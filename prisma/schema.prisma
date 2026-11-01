@@ -27,6 +27,7 @@ model Party {
   updatedAt   DateTime           @updatedAt
   memberships PartyMembership[]
   members     PartyMember[]
+  items       Item[]
 }
 
 model PartyMembership {
@@ -56,4 +57,22 @@ model PartyMember {
   party Party @relation(fields: [partyId], references: [id], onDelete: Restrict)
 
   @@unique([partyId, normalizedNickname])
+}
+
+model Item {
+  id             String   @id @default(cuid())
+  partyId        String
+  canonicalName  String
+  normalizedName String
+  displayName    String?
+  category       String?
+  gameVersion    String?
+  comment        String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  party Party @relation(fields: [partyId], references: [id], onDelete: Restrict)
+
+  @@unique([partyId, normalizedName])
+  @@index([partyId, category])
 }

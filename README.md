@@ -54,8 +54,11 @@ Local uploads and backups belong under `data/uploads/` and `data/backups/`; thes
 directories and the local database are excluded from Git.
 
 Phase 1 includes the local dashboard, party name settings and member create/edit/
-deactivate workflows. Raid, item, loot, sales, bank, backup/restore and SaaS
-functionality remain for later phases.
+deactivate workflows. Phase 2 adds the party-scoped item catalog with normalized
+duplicate protection, search, category filtering, editing and item details.
+Acquisition history remains empty until raids and LootDrop are implemented.
+Raid/loot workflows, sales, bank, backup/restore and SaaS functionality remain
+for later phases.
 
 Useful checks:
 

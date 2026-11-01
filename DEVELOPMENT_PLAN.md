@@ -36,16 +36,17 @@ Acceptance:
 
 ## Phase 2 — Item Catalog
 
-- [ ] Implement Item model.
-- [ ] Implement item creation.
-- [ ] Implement item editing.
-- [ ] Implement item search.
-- [ ] Implement duplicate detection.
-- [ ] Implement item list.
-- [ ] Implement item details.
-- [ ] Display acquisition history.
+- [x] Implement Item model.
+- [x] Implement item creation.
+- [x] Implement item editing.
+- [x] Implement item search.
+- [x] Implement duplicate detection.
+- [x] Implement item list.
+- [x] Implement item details.
+- [x] Show an empty acquisition-history state until Raid/LootDrop exists.
+- [ ] Display acquisition history after LootDrop is implemented.
 - [ ] Display sales history.
-- [ ] Add tests for item uniqueness and search.
+- [x] Add tests for item uniqueness and search.
 
 Acceptance:
 - Each unique item exists once in the party catalog.
@@ -125,6 +126,6 @@ Not part of the MVP.
 
 ## Current Status
 
-Current phase: Phase 1 — Project Foundation.
+Current phase: Phase 2 — Item Catalog.
 
 Do not start another phase without reviewing the current one.
