@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum PartyRole {
+  OWNER
+  MANAGER
+}
+
+model User {
+  id          String             @id @default(cuid())
+  email       String?            @unique
+  displayName String
+  createdAt   DateTime           @default(now())
+  memberships PartyMembership[]
+}
+
+model Party {
+  id          String             @id @default(cuid())
+  name        String
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  memberships PartyMembership[]
+  members     PartyMember[]
+}
+
+model PartyMembership {
+  id        String    @id @default(cuid())
+  partyId   String
+  userId    String
+  role      PartyRole @default(OWNER)
+  createdAt DateTime  @default(now())
+
+  party Party @relation(fields: [partyId], references: [id], onDelete: Restrict)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([partyId, userId])
+  @@index([userId])
+}
+
+model PartyMember {
+  id                 String   @id @default(cuid())
+  partyId            String
+  nickname           String
+  normalizedNickname String
+  isActive           Boolean  @default(true)
+  comment            String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  party Party @relation(fields: [partyId], references: [id], onDelete: Restrict)
+
+  @@unique([partyId, normalizedNickname])
+}
