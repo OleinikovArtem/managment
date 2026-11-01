@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   ScrollText,
   Settings2,
+  Swords,
   UsersRound,
   WalletCards,
 } from "lucide-react";
@@ -15,6 +16,7 @@ const navigation = [
   { href: "/dashboard", label: "Обзор", icon: LayoutDashboard },
   { href: "/members", label: "Участники", icon: UsersRound },
   { href: "/items", label: "Предметы", icon: ScrollText },
+  { href: "/raids", label: "Рейды", icon: Swords },
   { href: "/settings", label: "Настройки", icon: Settings2 },
 ];
 

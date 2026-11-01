@@ -12,6 +12,15 @@ enum PartyRole {
   MANAGER
 }
 
+enum RaidParticipantStatus {
+  PRESENT
+  ABSENT
+}
+
+enum LootDropStatus {
+  RECEIVED
+}
+
 model User {
   id          String             @id @default(cuid())
   email       String?            @unique
@@ -28,6 +37,7 @@ model Party {
   memberships PartyMembership[]
   members     PartyMember[]
   items       Item[]
+  raids       Raid[]
 }
 
 model PartyMembership {
@@ -55,8 +65,10 @@ model PartyMember {
   updatedAt          DateTime @updatedAt
 
   party Party @relation(fields: [partyId], references: [id], onDelete: Restrict)
+  raidParticipants RaidParticipant[]
 
   @@unique([partyId, normalizedNickname])
+  @@unique([partyId, id])
 }
 
 model Item {
@@ -72,7 +84,64 @@ model Item {
   updatedAt      DateTime @updatedAt
 
   party Party @relation(fields: [partyId], references: [id], onDelete: Restrict)
+  lootDrops LootDrop[]
 
   @@unique([partyId, normalizedName])
+  @@unique([partyId, id])
   @@index([partyId, category])
+}
+
+model Raid {
+  id             String   @id @default(cuid())
+  partyId        String
+  name           String
+  instanceName   String?
+  occurredAt     DateTime
+  screenshotPath String?
+  comment        String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  party        Party             @relation(fields: [partyId], references: [id], onDelete: Restrict)
+  participants RaidParticipant[]
+  lootDrops    LootDrop[]
+
+  @@unique([partyId, id])
+  @@index([partyId, occurredAt])
+}
+
+model RaidParticipant {
+  id               String                @id @default(cuid())
+  partyId          String
+  raidId           String
+  memberId         String
+  nicknameSnapshot String
+  status           RaidParticipantStatus
+  createdAt        DateTime              @default(now())
+
+  raid   Raid        @relation(fields: [partyId, raidId], references: [partyId, id], onDelete: Restrict)
+  member PartyMember @relation(fields: [partyId, memberId], references: [partyId, id], onDelete: Restrict)
+
+  @@unique([partyId, raidId, memberId])
+  @@index([partyId, memberId])
+}
+
+model LootDrop {
+  id             String         @id @default(cuid())
+  partyId        String
+  raidId         String
+  itemId         String
+  quantity       Int
+  screenshotPath String?
+  status         LootDropStatus @default(RECEIVED)
+  comment        String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  raid Raid @relation(fields: [partyId, raidId], references: [partyId, id], onDelete: Restrict)
+  item Item @relation(fields: [partyId, itemId], references: [partyId, id], onDelete: Restrict)
+
+  @@unique([partyId, id])
+  @@index([partyId, raidId, createdAt])
+  @@index([partyId, itemId, createdAt])
 }

@@ -44,7 +44,7 @@ Acceptance:
 - [x] Implement item list.
 - [x] Implement item details.
 - [x] Show an empty acquisition-history state until Raid/LootDrop exists.
-- [ ] Display acquisition history after LootDrop is implemented.
+- [x] Display acquisition history after LootDrop is implemented.
 - [ ] Display sales history.
 - [x] Add tests for item uniqueness and search.
 
@@ -55,22 +55,26 @@ Acceptance:
 
 ## Phase 3 — Raids and Loot
 
-- [ ] Implement Raid CRUD.
-- [ ] Implement participant selection.
-- [ ] Implement raid details.
-- [ ] Implement LootDrop model and CRUD.
-- [ ] Connect loot to Item.
-- [ ] Connect loot to Raid.
-- [ ] Implement local screenshot uploads.
-- [ ] Add raid history.
-- [ ] Add tests for raid participants and loot history.
+- [x] Implement party-scoped Raid list, create, edit and details (no hard delete).
+- [x] Snapshot every active PartyMember as PRESENT or ABSENT with nicknameSnapshot.
+- [x] Require at least one PRESENT member and preserve snapshot rows during edits.
+- [x] Create the raid, attendance snapshot and loot entries in one transaction.
+- [x] Implement party-scoped LootDrop creation and editing; repeated Item drops stay separate.
+- [x] Enforce party consistency with compound foreign keys and RESTRICT deletion.
+- [x] Validate positive integer quantities in Zod and the service.
+- [x] Display LootDrop acquisition history on Item details.
+- [x] Convert browser-local raid times to UTC for storage and display them locally.
+- [x] Add schema, service, repository and date conversion tests.
+- [ ] Implement screenshot uploads (deferred; only nullable path fields are reserved).
 
 Acceptance:
-- Raids can be created.
-- Actual participants can be selected.
-- Multiple loot entries can be added.
-- Existing catalog items can be reused.
-- Screenshots persist locally.
+- Raids can be created, viewed and edited without a hard-delete workflow.
+- Every active party member is represented in the immutable roster snapshot.
+- Attendance status changes update existing snapshot rows only.
+- Loot entries reference party-owned catalog items and retain separate acquisition records.
+- Invalid quantities and cross-party references are rejected.
+- Local input time is stored in UTC and rendered in the browser's local time zone.
+- Screenshot file storage remains out of scope for this phase.
 
 ## Phase 4 — Sales and Bank
 
@@ -126,6 +130,6 @@ Not part of the MVP.
 
 ## Current Status
 
-Current phase: Phase 2 — Item Catalog.
+Current phase: Phase 3 — Raids and Loot.
 
 Do not start another phase without reviewing the current one.
