@@ -14,6 +14,9 @@ const globalForPrisma = globalThis as typeof globalThis & {
 };
 
 function createPrismaClient() {
+  if (!databaseUrl) {
+    throw new Error("DATABASE_URL must be set before the database can be used.");
+  }
   const adapter = new PrismaBetterSqlite3({ url: databaseUrl });
   return new PrismaClient({ adapter });
 }

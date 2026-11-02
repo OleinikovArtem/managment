@@ -150,18 +150,26 @@ Acceptance for Phase 4:
 
 ## Phase 5 — Backup and Polish
 
-- [ ] Implement database backup.
-- [ ] Include screenshots in backups.
-- [ ] Implement backup validation.
-- [ ] Implement restore.
+- [x] Create a local ZIP backup using a consistent SQLite snapshot.
+- [x] Include existing files under `data/uploads/` in backups.
+- [x] Add a versioned manifest and SHA-256 checks for archive contents.
+- [x] Validate archive paths, sizes, SQLite integrity, foreign keys and required
+  financial triggers.
+- [x] Prepare and verify a restore candidate in a separate directory without
+  replacing the active database.
+- [ ] Implement user-facing upload/storage for screenshots.
+- [ ] Implement a reviewed workflow to activate a restore candidate and restore
+  its uploads; current preparation is deliberately non-destructive.
 - [ ] Implement CSV export.
 - [ ] Improve dashboard statistics.
 - [ ] Improve responsive UI.
-- [ ] Add final tests.
-- [ ] Update README.
+- [x] Add isolated integration tests for backup, validation and restore staging.
+- [x] Update README to document backup and restore-candidate behavior.
+- [ ] Add final tests for the remaining Phase 5 features.
 
 Acceptance:
-- Full local data can be backed up and restored.
+- Local database and existing uploads can be backed up and integrity-checked.
+- Restore preparation does not replace active data.
 - Core workflows work without external services.
 
 ## Future Phase — SaaS
@@ -180,7 +188,10 @@ Not part of the MVP.
 
 ## Current Status
 
-Current status: Phase 4 financial MVP implemented. Versioned migration/release
-workflow and any out-of-scope correction features remain future decisions.
+Current status: Phase 5 local backup, validation and non-destructive
+restore-candidate preparation implemented. Screenshot upload UI, automatic
+restore activation, CSV export and remaining polish are pending. Phase 4
+correction workflows and a versioned database migration/release workflow remain
+separate future decisions.
 
 Do not start another phase without reviewing the current one.

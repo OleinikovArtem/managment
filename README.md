@@ -12,7 +12,7 @@ Party Bank Manager helps manage:
 - Item acquisition history.
 - Received sales, weighted member shares, Party cash and outstanding member balances.
 
-Member payouts and the complete correction/history workflows remain under development.
+Compensating correction workflows remain outside the approved MVP.
 
 ## Technology
 
@@ -56,8 +56,8 @@ and `db:migrate:deploy` must not be used on a database initialized with `db:sync
 A reviewed migration path is required before distributing or releasing Phase 4.
 Back up valuable data before any schema change. The local database and backups
 belong under `prisma/` and `data/backups/` and are excluded from Git. Screenshot
-uploads are not implemented yet; when added, files must remain outside the public
-static directory.
+uploads are not implemented in the UI yet; existing files under `data/uploads/`
+are included in local backups and remain outside the public static directory.
 
 Phase 1 provides the local dashboard, party settings and member workflows. Phase 2
 adds the party-scoped item catalog with normalized duplicate protection, search,
@@ -74,7 +74,7 @@ storage and rendered back in the browser's local time zone. Nonexistent or
 ambiguous local times during daylight-saving transitions are rejected.
 
 Screenshot path fields are reserved, but screenshot uploads/storage are not
-implemented. Phase 4.2 records partial or repeated LootDrop sales only after
+implemented in the UI. Phase 4.2 records partial or repeated LootDrop sales only after
 Adena is received, distributes each sale among PRESENT participants using the
 Raid's snapshotted weights, and derives Party cash and member balances from the
 posted ledger. Raid attendance and loot become locked after its first posted
@@ -82,7 +82,16 @@ sale. Partial member payouts are allocated FIFO against outstanding shares, with
 balances and payment history backed by the immutable ledger. The `/ledger` page
 shows all posted account movements and their source records. Compensating
 correction workflows are outside the approved MVP.
-Backup/restore workflows and SaaS functionality remain for later phases.
+
+Phase 5 provides local ZIP backups of a consistent SQLite snapshot and files in
+`data/uploads/`, with a SHA-256 manifest, archive/path limits, SQLite integrity
+and foreign-key checks, and validation of required financial triggers. The
+settings page can validate backups and prepare a restore candidate under
+`data/restore-candidates/`. Preparation never replaces the active database.
+Switching `DATABASE_URL` and restoring candidate uploads are manual steps after
+stopping the application; preserve the current database and uploads before doing
+so. Upload UI, automatic restore activation, CSV export and remaining polish are
+not implemented yet. SaaS functionality remains a future plan.
 
 Useful checks:
 
@@ -101,8 +110,8 @@ npm run build
 
 ## Project Status
 
-Phase 4 — Sales, distribution, member payouts and financial history (implemented;
-compensating corrections remain outside the approved MVP).
+Phase 5 — Local backups, validation and safe restore-candidate preparation
+(implemented; automatic activation and remaining polish are pending).
 
 ## Future Plans
 

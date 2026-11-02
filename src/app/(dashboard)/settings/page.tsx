@@ -1,8 +1,10 @@
 import { Suspense } from "react";
 import { io } from "next/cache";
 import { SettingsForm } from "@/features/settings/settings-form";
+import { BackupManager } from "@/features/settings/backup-manager";
 import { ensureLocalWorkspace } from "@/server/bootstrap/local-workspace";
 import { getPartySettings } from "@/server/services/party-service";
+import { listLocalBackups } from "@/server/services/backup-service";
 
 export default function SettingsPage() {
   return (
@@ -15,7 +17,10 @@ export default function SettingsPage() {
 async function SettingsContent() {
   await io();
   const workspace = await ensureLocalWorkspace();
-  const party = await getPartySettings(workspace.partyId);
+  const [party, backups] = await Promise.all([
+    getPartySettings(workspace.partyId),
+    listLocalBackups(),
+  ]);
 
   return (
     <div className="space-y-7">
@@ -27,6 +32,7 @@ async function SettingsContent() {
         </p>
       </header>
       <SettingsForm partyName={party.name} />
+      <BackupManager backups={backups} />
     </div>
   );
 }
