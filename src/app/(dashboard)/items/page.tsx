@@ -70,7 +70,6 @@ async function ItemsContent({ searchParams }: ItemsPageProps) {
       </header>
 
       <ItemSearchControls
-        key={`${query}:${category ?? ""}`}
         query={query}
         category={category ?? ""}
         categories={categories}

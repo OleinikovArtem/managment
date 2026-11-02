@@ -82,7 +82,9 @@ editing and history; an attendance snapshot of the active roster; separate
 LootDrop records; and acquisition history on item details.
 
 Raid creation, its complete attendance snapshot and submitted loot records are
-written in one database transaction. Attendance edits update the original rows;
+written in one database transaction. Loot records select existing catalog
+items; create new items in the item catalog before adding them to a raid.
+Attendance edits update the original rows;
 the roster cannot be replaced. Historical records have no hard-delete UI or
 server action, and SQLite restricts deleting referenced raids, members and items.
 Raid times are entered in the browser's local time zone, converted to UTC for

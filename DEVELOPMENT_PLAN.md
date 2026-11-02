@@ -61,6 +61,7 @@ Acceptance:
 - [x] Snapshot every active PartyMember as PRESENT or ABSENT with nicknameSnapshot.
 - [x] Require at least one PRESENT member and preserve snapshot rows during edits.
 - [x] Create the raid, attendance snapshot and loot entries in one transaction.
+- [x] Require items to be created in the catalog before selecting them as loot.
 - [x] Implement party-scoped LootDrop creation and editing; repeated Item drops stay separate.
 - [x] Enforce party consistency with compound foreign keys and RESTRICT deletion.
 - [x] Validate positive integer quantities in Zod and the service.

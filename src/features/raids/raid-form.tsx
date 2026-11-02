@@ -10,7 +10,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { createItemAction } from "@/app/(dashboard)/items/actions";
 import {
   createRaidAction,
   updateRaidAction,
@@ -58,11 +57,7 @@ export function RaidForm({
 }: RaidFormProps) {
   const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
-  const [quickItemName, setQuickItemName] = useState("");
-  const [quickItemMessage, setQuickItemMessage] = useState<string | null>(null);
-  const [availableItems, setAvailableItems] = useState(items);
   const [isPending, startTransition] = useTransition();
-  const [isCatalogPending, startCatalogTransition] = useTransition();
   const form = useForm<RaidFormValues>({
     resolver: zodResolver(raidFormSchema),
     defaultValues: initialValues
@@ -110,35 +105,6 @@ export function RaidForm({
       router.refresh();
     });
   });
-
-  function addCatalogItem() {
-    const canonicalName = quickItemName.trim();
-    if (!canonicalName) {
-      setQuickItemMessage("Введите оригинальное название предмета.");
-      return;
-    }
-
-    setQuickItemMessage(null);
-    startCatalogTransition(async () => {
-      const result = await createItemAction({ canonicalName });
-      if (!result.ok) {
-        setQuickItemMessage(result.message);
-        toast.error(result.message);
-        return;
-      }
-
-      const itemId = result.itemId;
-      if (!itemId) {
-        throw new Error("Созданный предмет не вернул идентификатор.");
-      }
-      setAvailableItems((current) => [
-        ...current,
-        { id: itemId, canonicalName, displayName: null },
-      ]);
-      setQuickItemName("");
-      toast.success(result.message);
-    });
-  }
 
   return (
     <form className="space-y-6" onSubmit={onSubmit} noValidate>
@@ -225,28 +191,6 @@ export function RaidForm({
             })}
           </ul>
         )}
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Input
-            aria-label="Новое название предмета"
-            maxLength={200}
-            value={quickItemName}
-            onChange={(event) => setQuickItemName(event.target.value)}
-            placeholder="Новый предмет в каталог"
-            disabled={isPending || isCatalogPending}
-          />
-          <Button
-            type="button"
-            variant="outline"
-            onClick={addCatalogItem}
-            disabled={isPending || isCatalogPending}
-          >
-            <Plus aria-hidden="true" />
-            {isCatalogPending ? "Добавление..." : "Добавить в каталог"}
-          </Button>
-        </div>
-        {quickItemMessage && (
-          <p role="alert" className="text-sm text-destructive">{quickItemMessage}</p>
-        )}
         {(form.formState.errors.participants?.message ??
           form.formState.errors.participants?.root?.message) && (
           <p className="text-xs text-destructive">
@@ -269,20 +213,20 @@ export function RaidForm({
             variant="outline"
             onClick={() =>
               lootDrops.append({
-                itemId: availableItems[0]?.id ?? "",
+                itemId: items[0]?.id ?? "",
                 quantity: 1,
                 comment: "",
               })
             }
-            disabled={availableItems.length === 0 || isPending}
+            disabled={items.length === 0 || isPending}
           >
             <Plus aria-hidden="true" />
             Добавить выпадение
           </Button>
         </div>
-        {availableItems.length === 0 ? (
+        {items.length === 0 ? (
           <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-            Каталог пока пуст. Добавьте первый предмет прямо здесь или откройте раздел «Предметы».
+            Каталог пока пуст. Сначала добавьте предмет в разделе «Предметы».
           </div>
         ) : lootDrops.fields.length === 0 ? (
           <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
@@ -301,7 +245,7 @@ export function RaidForm({
                     className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm"
                     {...form.register(`lootDrops.${index}.itemId`)}
                   >
-                    {availableItems.map((item) => (
+                    {items.map((item) => (
                       <option key={item.id} value={item.id}>
                         {item.displayName || item.canonicalName}
                       </option>
