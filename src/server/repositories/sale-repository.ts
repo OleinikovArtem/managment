@@ -339,13 +339,22 @@ export async function listPartyLedgerTransactions(partyId: string) {
         include: {
           raid: { select: { id: true, name: true } },
           lootDrop: {
-            include: {
+            select: {
               item: {
                 select: { canonicalName: true, displayName: true },
               },
             },
           },
-          shares: { select: { memberId: true, nicknameSnapshot: true } },
+          shares: {
+            select: {
+              memberId: true,
+              nicknameSnapshot: true,
+              amount: true,
+              weightSnapshot: true,
+              distributionMethod: true,
+              algorithmVersion: true,
+            },
+          },
         },
       },
       memberPayment: {
@@ -356,9 +365,10 @@ export async function listPartyLedgerTransactions(partyId: string) {
                 select: {
                   saleTransaction: {
                     select: {
+                      id: true,
                       raid: { select: { id: true, name: true } },
                       lootDrop: {
-                        include: {
+                        select: {
                           item: {
                             select: { canonicalName: true, displayName: true },
                           },

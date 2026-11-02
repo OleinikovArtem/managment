@@ -160,7 +160,8 @@ Acceptance for Phase 4:
 - [ ] Implement user-facing upload/storage for screenshots.
 - [ ] Implement a reviewed workflow to activate a restore candidate and restore
   its uploads; current preparation is deliberately non-destructive.
-- [ ] Implement CSV export.
+- [x] Export party-scoped posted financial history as CSV, including allocations
+  and balanced ledger entries.
 - [ ] Improve dashboard statistics.
 - [ ] Improve responsive UI.
 - [x] Add isolated integration tests for backup, validation and restore staging.
@@ -188,10 +189,10 @@ Not part of the MVP.
 
 ## Current Status
 
-Current status: Phase 5 local backup, validation and non-destructive
-restore-candidate preparation implemented. Screenshot upload UI, automatic
-restore activation, CSV export and remaining polish are pending. Phase 4
-correction workflows and a versioned database migration/release workflow remain
-separate future decisions.
+Current status: Phase 5 local backup, validation, non-destructive
+restore-candidate preparation and financial-history CSV export implemented.
+Screenshot upload UI, automatic restore activation and remaining polish are
+pending. Phase 4 correction workflows and a versioned database migration/release
+workflow remain separate future decisions.
 
 Do not start another phase without reviewing the current one.

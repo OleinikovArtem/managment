@@ -32,11 +32,21 @@ async function LedgerContent() {
   return (
     <div className="space-y-7">
       <header>
-        <p className="text-sm font-medium text-primary">{workspace.partyName}</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">Финансовая история</h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          Хронология всех проведённых продаж и выплат. Записи ledger неизменяемы.
-        </p>
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+          <div>
+            <p className="text-sm font-medium text-primary">{workspace.partyName}</p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight">Финансовая история</h1>
+            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+              Хронология всех проведённых продаж и выплат. Записи ledger неизменяемы.
+            </p>
+          </div>
+          <a
+            href="/api/ledger/export"
+            className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 text-sm font-medium transition-colors hover:bg-muted"
+          >
+            Экспорт CSV
+          </a>
+        </div>
       </header>
 
       <Card>

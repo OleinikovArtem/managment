@@ -90,8 +90,10 @@ settings page can validate backups and prepare a restore candidate under
 `data/restore-candidates/`. Preparation never replaces the active database.
 Switching `DATABASE_URL` and restoring candidate uploads are manual steps after
 stopping the application; preserve the current database and uploads before doing
-so. Upload UI, automatic restore activation, CSV export and remaining polish are
-not implemented yet. SaaS functionality remains a future plan.
+so. The financial-history page exports posted sales, shares, ledger entries,
+payouts and FIFO allocations as UTF-8 CSV with exact Adena integer strings.
+Upload UI, automatic restore activation and remaining polish are not implemented
+yet. SaaS functionality remains a future plan.
 
 Useful checks:
 
@@ -110,8 +112,9 @@ npm run build
 
 ## Project Status
 
-Phase 5 — Local backups, validation and safe restore-candidate preparation
-(implemented; automatic activation and remaining polish are pending).
+Phase 5 — Local backups, validation, restore-candidate preparation and financial
+history CSV export (implemented; automatic activation and remaining polish are
+pending).
 
 ## Future Plans
 

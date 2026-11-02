@@ -303,7 +303,20 @@ describe("sale repository", () => {
         orderBy: [{ postedAt: "desc" }, { createdAt: "desc" }],
         include: expect.objectContaining({
           entries: expect.any(Object),
-          saleTransaction: expect.any(Object),
+          saleTransaction: expect.objectContaining({
+            include: expect.objectContaining({
+              shares: {
+                select: {
+                  memberId: true,
+                  nicknameSnapshot: true,
+                  amount: true,
+                  weightSnapshot: true,
+                  distributionMethod: true,
+                  algorithmVersion: true,
+                },
+              },
+            }),
+          }),
           memberPayment: expect.any(Object),
         }),
       }),

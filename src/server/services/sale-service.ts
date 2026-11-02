@@ -8,6 +8,7 @@ import {
   listPartySales,
   registerPartySale,
 } from "@/server/repositories/sale-repository";
+import { createFinancialHistoryCsv } from "@/server/services/financial-history-csv";
 
 export class SaleInputError extends SaleOperationError {
   constructor(message: string) {
@@ -59,4 +60,9 @@ export async function getPartyBalances(partyId: string) {
 
 export async function getFinancialHistory(partyId: string) {
   return listPartyLedgerTransactions(partyId);
+}
+
+export async function exportFinancialHistoryCsv(partyId: string) {
+  const transactions = await getFinancialHistory(partyId);
+  return createFinancialHistoryCsv(transactions);
 }
