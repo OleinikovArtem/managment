@@ -2,6 +2,7 @@ import "server-only";
 
 import { PartyRole } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db/prisma";
+import { ensureBaseItemCatalog } from "@/server/bootstrap/base-item-catalog";
 
 const LOCAL_USER_ID = "local-user";
 
@@ -40,6 +41,8 @@ export async function ensureLocalWorkspace(): Promise<LocalWorkspace> {
         );
       }
 
+      await ensureBaseItemCatalog(transaction, membership.partyId);
+
       return {
         partyId: membership.partyId,
         partyName: membership.party.name,
@@ -63,6 +66,8 @@ export async function ensureLocalWorkspace(): Promise<LocalWorkspace> {
         role: PartyRole.OWNER,
       },
     });
+
+    await ensureBaseItemCatalog(transaction, party.id);
 
     return {
       partyId: party.id,

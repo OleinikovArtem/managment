@@ -174,6 +174,8 @@ Acceptance for Phase 4:
 - [ ] Improve responsive UI.
 - [x] Add isolated integration tests for backup, validation and restore staging.
 - [x] Update README to document backup and restore-candidate behavior.
+- [x] Add and validate a checked-in, re-seedable Lineage 2 High Five item dump
+  for the requested item groups, including startup restoration and tests.
 - [ ] Add final tests for the remaining Phase 5 features.
 
 Acceptance:

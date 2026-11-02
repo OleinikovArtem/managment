@@ -46,9 +46,19 @@ npm run dev
 Open `http://localhost:3000`. The development and production servers bind to
 `127.0.0.1`. On the first application request, a local User, Party and OWNER
 membership are created in a transaction. Repeated requests reuse those records.
+The checked-in [High Five item dump](./prisma/seeds/lineage2-high-five-items.json)
+contains 130 curated names across Life Stones, Neolithics, S+ armor, Best A+
+weapons, skill books and enchant scrolls. During workspace initialization,
+missing names are restored idempotently for the local Party; existing entries
+are not overwritten. The JSON source remains in Git if the development database
+is cleared. After recreating the schema with `npm run db:sync`, the first
+application request recreates the local workspace and restores the catalog.
+The dump contains item names only, not a full game database.
 
-The SQLite database is stored at `prisma/dev.db`. Normal application startup does
-not modify or recreate the database. `npm run db:sync` uses Prisma `db push` and
+The SQLite database is stored at `prisma/dev.db`. Application requests do not
+reset or recreate the database; workspace initialization only restores missing
+names from the checked-in base item dump without overwriting existing catalog
+entries. `npm run db:sync` uses Prisma `db push` and
 then installs SQLite integrity triggers from
 [`prisma/financial-constraints.sql`](./prisma/financial-constraints.sql). This is
 a local development workflow, not a versioned migration, and should only be used
