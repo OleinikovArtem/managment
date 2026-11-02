@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { findMany, findFirst, count } = vi.hoisted(() => ({
+const { findMany, findFirst, count, create, updateMany } = vi.hoisted(() => ({
   findMany: vi.fn(),
   findFirst: vi.fn(),
   count: vi.fn(),
+  create: vi.fn(),
+  updateMany: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
@@ -13,12 +15,15 @@ vi.mock("@/lib/db/prisma", () => ({
       findMany,
       findFirst,
       count,
+      create,
+      updateMany,
     },
   },
 }));
 
 import {
   countPartyItems,
+  createPartyItemRecord,
   getPartyItemById,
   listPartyItemCategories,
   listPartyItems,
@@ -55,6 +60,48 @@ describe("item repository party scoping", () => {
         category: "Weapon",
       },
     });
+  });
+
+  it("persists the structured classification and Rare status", async () => {
+    await createPartyItemRecord(
+      "party-a",
+      {
+        canonicalName: "Draconic Leather Boots",
+        category: "Armor",
+        grade: "S",
+        itemType: "Boots",
+        itemSubtype: "Light",
+        isRare: true,
+      },
+      "draconic leather boots",
+    );
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          partyId: "party-a",
+          category: "Armor",
+          grade: "S",
+          itemType: "Boots",
+          itemSubtype: "Light",
+          isRare: true,
+        }),
+      }),
+    );
+  });
+
+  it("defaults omitted Rare status to false", async () => {
+    await createPartyItemRecord(
+      "party-a",
+      { canonicalName: "Ancient Sword" },
+      "ancient sword",
+    );
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ isRare: false }),
+      }),
+    );
   });
 
   it("scopes category options to the requested party", async () => {

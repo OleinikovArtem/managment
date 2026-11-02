@@ -41,6 +41,7 @@ Acceptance:
 - [x] Implement item editing.
 - [x] Implement item search.
 - [x] Add debounced live search and server-side pagination for the item list.
+- [x] Classify catalog items by group, grade, item type, variant and Rare status.
 - [x] Implement duplicate detection.
 - [x] Implement item list.
 - [x] Implement item details.

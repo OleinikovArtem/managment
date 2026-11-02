@@ -65,6 +65,12 @@ async function ItemDetailContent({ params }: ItemDetailPageProps) {
         )}
         <div className="mt-3 flex flex-wrap gap-2">
           {item.category && <Badge variant="secondary">{item.category}</Badge>}
+          {item.grade && <Badge variant="secondary">{item.grade}</Badge>}
+          {item.itemType && <Badge variant="secondary">{item.itemType}</Badge>}
+          {item.itemSubtype && (
+            <Badge variant="secondary">{item.itemSubtype}</Badge>
+          )}
+          {item.isRare && <Badge variant="destructive">Rare</Badge>}
           {item.gameVersion && <Badge variant="outline">{item.gameVersion}</Badge>}
         </div>
       </header>

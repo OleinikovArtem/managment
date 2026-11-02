@@ -41,6 +41,25 @@ describe("itemInputSchema", () => {
 
     expect(result.canonicalName).toBe("  Hero Sword  ");
   });
+
+  it("accepts independent catalog classification fields and rarity", () => {
+    expect(
+      itemInputSchema.parse({
+        canonicalName: "Draconic Leather Boots",
+        category: "Armor",
+        grade: "S",
+        itemType: "Boots",
+        itemSubtype: "Light",
+        isRare: true,
+      }),
+    ).toMatchObject({
+      category: "Armor",
+      grade: "S",
+      itemType: "Boots",
+      itemSubtype: "Light",
+      isRare: true,
+    });
+  });
 });
 
 describe("itemSearchSchema", () => {

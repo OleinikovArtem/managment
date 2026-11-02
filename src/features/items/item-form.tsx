@@ -23,10 +23,22 @@ type ItemFormProps = {
 };
 
 const fields = [
-  { name: "displayName", label: "Отображаемое название", maxLength: 200 },
-  { name: "category", label: "Категория", maxLength: 80 },
-  { name: "gameVersion", label: "Версия игры", maxLength: 80 },
+  { name: "grade", label: "Ранг", maxLength: 40, placeholder: "S80, S84, A..." },
+  { name: "itemType", label: "Тип предмета", maxLength: 80, placeholder: "Boots, Sword, Bow..." },
+  { name: "itemSubtype", label: "Вариант", maxLength: 80, placeholder: "Light, Heavy, Robe..." },
+  { name: "displayName", label: "Отображаемое название", maxLength: 200, placeholder: "" },
+  { name: "gameVersion", label: "Версия игры", maxLength: 80, placeholder: "" },
 ] as const;
+
+const itemCategories = [
+  "Weapon",
+  "Armor",
+  "Jewelry",
+  "Materials",
+  "Skill Book",
+  "Enchant Scroll",
+  "Other",
+];
 
 export function ItemForm({
   initialValues,
@@ -43,6 +55,10 @@ export function ItemForm({
       canonicalName: "",
       displayName: "",
       category: "",
+      grade: "",
+      itemType: "",
+      itemSubtype: "",
+      isRare: false,
       gameVersion: "",
       comment: "",
     },
@@ -58,6 +74,9 @@ export function ItemForm({
           "canonicalName",
           "displayName",
           "category",
+          "grade",
+          "itemType",
+          "itemSubtype",
           "gameVersion",
           "comment",
         ] as const) {
@@ -96,8 +115,33 @@ export function ItemForm({
         )}
       </div>
 
+      <div className="space-y-2">
+        <label htmlFor="category" className="text-sm font-medium">
+          Группа предмета{" "}
+          <span className="text-xs text-muted-foreground">(необязательно)</span>
+        </label>
+        <select
+          id="category"
+          aria-invalid={Boolean(form.formState.errors.category)}
+          className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm text-foreground"
+          {...form.register("category")}
+        >
+          <option value="">Не выбрана</option>
+          {itemCategories.map((category) => (
+            <option key={category} value={category}>
+              {category}
+            </option>
+          ))}
+        </select>
+        {form.formState.errors.category && (
+          <p className="text-xs text-destructive">
+            {form.formState.errors.category.message}
+          </p>
+        )}
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2">
-        {fields.map(({ name, label, maxLength }) => (
+        {fields.map(({ name, label, maxLength, placeholder }) => (
           <div key={name} className="space-y-2">
             <label htmlFor={name} className="text-sm font-medium">
               {label} <span className="text-xs text-muted-foreground">(необязательно)</span>
@@ -105,6 +149,7 @@ export function ItemForm({
             <Input
               id={name}
               maxLength={maxLength}
+              placeholder={placeholder}
               aria-invalid={Boolean(form.formState.errors[name])}
               {...form.register(name)}
             />
@@ -116,6 +161,15 @@ export function ItemForm({
           </div>
         ))}
       </div>
+
+      <label className="flex items-center gap-3 text-sm font-medium">
+        <Input
+          type="checkbox"
+          className="size-4 min-w-4 accent-primary"
+          {...form.register("isRare")}
+        />
+        Rare (редкий вариант)
+      </label>
 
       <div className="space-y-2">
         <label htmlFor="item-comment" className="text-sm font-medium">

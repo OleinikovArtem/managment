@@ -68,6 +68,10 @@ export function ItemManager({ items }: { items: ItemListRow[] }) {
                         canonicalName: item.canonicalName,
                         displayName: item.displayName ?? "",
                         category: item.category ?? "",
+                        grade: item.grade ?? "",
+                        itemType: item.itemType ?? "",
+                        itemSubtype: item.itemSubtype ?? "",
+                        isRare: item.isRare,
                         gameVersion: item.gameVersion ?? "",
                         comment: item.comment ?? "",
                       }}
@@ -93,6 +97,18 @@ export function ItemManager({ items }: { items: ItemListRow[] }) {
                         <div className="mt-2 flex flex-wrap gap-2">
                           {item.category && (
                             <Badge variant="secondary">{item.category}</Badge>
+                          )}
+                          {item.grade && (
+                            <Badge variant="secondary">{item.grade}</Badge>
+                          )}
+                          {item.itemType && (
+                            <Badge variant="secondary">{item.itemType}</Badge>
+                          )}
+                          {item.itemSubtype && (
+                            <Badge variant="secondary">{item.itemSubtype}</Badge>
+                          )}
+                          {item.isRare && (
+                            <Badge variant="destructive">Rare</Badge>
                           )}
                           {item.gameVersion && (
                             <Badge variant="outline">{item.gameVersion}</Badge>

@@ -47,13 +47,16 @@ Open `http://localhost:3000`. The development and production servers bind to
 `127.0.0.1`. On the first application request, a local User, Party and OWNER
 membership are created in a transaction. Repeated requests reuse those records.
 The checked-in [High Five item dump](./prisma/seeds/lineage2-high-five-items.json)
-contains 130 curated names across Life Stones, Neolithics, S+ armor, Best A+
-weapons, skill books and enchant scrolls. During workspace initialization,
-missing names are restored idempotently for the local Party; existing entries
-are not overwritten. The JSON source remains in Git if the development database
-is cleared. After recreating the schema with `npm run db:sync`, the first
-application request recreates the local workspace and restores the catalog.
-The dump contains item names only, not a full game database.
+contains 130 curated names across armor, weapons, materials, skill books and
+enchant scrolls. During workspace initialization,
+missing names are restored idempotently for the local Party, and legacy group
+labels are migrated to structured classifications once. Later edits to an
+item's classification and Rare status are preserved. The JSON source remains
+in Git if the development database is cleared. After recreating the schema with
+`npm run db:sync`, the first application request recreates the local workspace
+and restores the catalog. Catalog entries show separate item group, grade, item
+type, variant (for example armor type) and Rare status. The dump contains
+curated item names rather than a full game database.
 
 The SQLite database is stored at `prisma/dev.db`. Application requests do not
 reset or recreate the database; workspace initialization only restores missing
@@ -73,8 +76,8 @@ are included in local backups and remain outside the public static directory.
 
 Phase 1 provides the local dashboard, party settings and member workflows. Phase 2
 adds the party-scoped item catalog with normalized duplicate protection,
-debounced live search, server-side pagination, category filtering and item
-details. Phase 3 adds party-scoped raid creation,
+debounced live search, server-side pagination, category filtering, structured
+item classification and item details. Phase 3 adds party-scoped raid creation,
 editing and history; an attendance snapshot of the active roster; separate
 LootDrop records; and acquisition history on item details.
 

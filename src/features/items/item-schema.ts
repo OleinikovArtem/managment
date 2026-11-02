@@ -29,6 +29,10 @@ export const itemInputSchema = z
     canonicalName: itemNameSchema,
     displayName: optionalText(200, "Отображаемое название"),
     category: optionalText(80, "Категория"),
+    grade: optionalText(40, "Ранг"),
+    itemType: optionalText(80, "Тип предмета"),
+    itemSubtype: optionalText(80, "Вариант предмета"),
+    isRare: z.boolean().optional(),
     gameVersion: optionalText(80, "Версия игры"),
     comment: optionalText(500, "Комментарий"),
   })

@@ -107,6 +107,10 @@ model Item {
   normalizedName String
   displayName    String?
   category       String?
+  grade          String?
+  itemType       String?
+  itemSubtype    String?
+  isRare         Boolean  @default(false)
   gameVersion    String?
   comment        String?
   createdAt      DateTime @default(now())
