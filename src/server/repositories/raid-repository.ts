@@ -14,7 +14,7 @@ async function assertPartyReferences(
 ) {
   const activeMembers = await transaction.partyMember.findMany({
     where: { partyId, isActive: true },
-    select: { id: true, nickname: true },
+    select: { id: true, nickname: true, distributionWeight: true },
   });
   const submittedMemberIds = input.participants.map(({ memberId }) => memberId);
   const activeMemberIds = activeMembers.map(({ id }) => id);
@@ -105,6 +105,7 @@ export async function createPartyRaidRecord(partyId: string, input: RaidInput) {
           memberId: member.id,
           nicknameSnapshot: member.nickname,
           status: attendance.status,
+          distributionWeight: member.distributionWeight,
         },
       });
     }

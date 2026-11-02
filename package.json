@@ -10,6 +10,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:constraints": "prisma db execute --file prisma/financial-constraints.sql",
+    "db:sync": "npm run db:push && npm run db:constraints",
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy"
   },

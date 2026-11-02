@@ -76,27 +76,67 @@ Acceptance:
 - Local input time is stored in UTC and rendered in the browser's local time zone.
 - Screenshot file storage remains out of scope for this phase.
 
-## Phase 4 — Sales and Bank
+## Phase 4 — Financial System
 
-- [ ] Implement SaleListing.
-- [ ] Implement manual sale registration.
-- [ ] Implement partial sales.
-- [ ] Implement SaleTransaction.
-- [ ] Implement SaleShare.
-- [ ] Implement LedgerEntry.
-- [ ] Implement equal distribution.
-- [ ] Implement remainder handling.
-- [ ] Implement member balances.
-- [ ] Implement manual payments.
-- [ ] Implement financial history.
-- [ ] Add financial calculation tests.
+Approved rules:
+- Sales are recorded directly against LootDrop; no SaleListing in the MVP.
+- Partial and repeated sales are allowed, limited by the LootDrop quantity.
+- Only fully received Adena is recorded as a sale.
+- Distribute independently per sale among PRESENT participants using snapshotted
+  positive weights and Largest Remainder Method. Tie-break by RaidParticipant.id;
+  Party share is 0%.
+- Payments represent Adena actually handed over, support partial payments and
+  allocate FIFO to outstanding SaleShare records.
+- Ledger entries use BigInt, double-entry PARTY_CASH/MEMBER_PAYABLE accounts and
+  become immutable when POSTED. JSON money values are decimal strings.
+- Idempotency keys are party-scoped; same key/same parameters reuses the result,
+  while same key/different parameters is a conflict.
+- First posted sale locks attendance and financial LootDrop fields on the Raid.
 
-Acceptance:
-- Sales can be registered.
-- Shares are calculated correctly.
-- Member balances are correct.
-- Payments are recorded independently.
-- Financial history is preserved.
+### Phase 4.1 — Financial Schema Foundation (in progress)
+
+- [x] Add PartyMember.distributionWeight with a default of 1.
+- [x] Snapshot nickname and distributionWeight into every new RaidParticipant.
+- [x] Add Raid.lockedAt and financial models for sales, shares, payments,
+  allocations and double-entry ledger transactions/entries.
+- [x] Add party/raid/member composite relations, idempotency unique constraints
+  and RESTRICT delete behavior.
+- [x] Add SQLite guards for positive values, oversell, sale/share and payout
+  ledger balance, posted-record immutability and Raid locking.
+- [x] Add a local db:sync workflow that applies Prisma schema and SQL guards.
+- [x] Validate the schema and test SQLite FK, uniqueness, lock and ledger guards
+  on an isolated database.
+- [ ] Implement Zod validation, party-scoped repositories and financial services.
+- [ ] Add native CHECK constraints to the reviewed versioned migration; current
+  disposable-db guards are triggers because Prisma db push does not represent
+  CHECK constraints in schema.prisma.
+- [ ] Add checked-in migration history before distributing/releasing this
+  schema; Phase 4.1 was synchronized with db push by explicit approval because
+  the local DB contained disposable test data.
+- [ ] Verify retry behavior for SQLite lock/time-out failures in the service.
+
+### Phase 4.2 — Sales and Distribution
+
+- [ ] Implement idempotent partial sale registration against LootDrop.
+- [ ] Implement weighted Largest Remainder distribution and SaleShare snapshots.
+- [ ] Atomically post balanced sale ledger and lock the Raid.
+- [ ] Add sale history and member/Party balance queries.
+- [ ] Test rollback, repeated idempotency requests, oversell and concurrent sales.
+
+### Phase 4.3 — Payouts and Financial UI
+
+- [ ] Implement actual member payments and FIFO PaymentAllocation.
+- [ ] Prevent payouts above member payable or Party cash.
+- [ ] Add Raid sale details, Party/member balances and immutable financial history.
+- [ ] Add Zod, service, repository and integration tests for financial workflows.
+- [ ] Run lint, typecheck, tests, build and browser smoke checks.
+
+Acceptance for Phase 4:
+- Sales and payouts are atomic, idempotent and party-scoped.
+- Sale shares exactly equal the received Adena amount.
+- Party cash, accrued member earnings and actual payments are distinguishable.
+- Posted ledger history cannot be edited or deleted.
+- Financial records and original Raid snapshots remain intact.
 
 ## Phase 5 — Backup and Polish
 
@@ -130,6 +170,6 @@ Not part of the MVP.
 
 ## Current Status
 
-Current phase: Phase 3 — Raids and Loot.
+Current phase: Phase 4.1 — Financial Schema Foundation (in progress).
 
 Do not start another phase without reviewing the current one.

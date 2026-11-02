@@ -21,23 +21,48 @@ enum LootDropStatus {
   RECEIVED
 }
 
+enum DistributionMethod {
+  WEIGHTED
+}
+
+enum LedgerTransactionType {
+  SALE_POSTED
+  PAYOUT_POSTED
+}
+
+enum LedgerTransactionStatus {
+  DRAFT
+  POSTED
+}
+
+enum LedgerAccountType {
+  PARTY_CASH
+  MEMBER_PAYABLE
+}
+
 model User {
-  id          String             @id @default(cuid())
-  email       String?            @unique
+  id          String            @id @default(cuid())
+  email       String?           @unique
   displayName String
-  createdAt   DateTime           @default(now())
+  createdAt   DateTime          @default(now())
   memberships PartyMembership[]
 }
 
 model Party {
-  id          String             @id @default(cuid())
-  name        String
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  memberships PartyMembership[]
-  members     PartyMember[]
-  items       Item[]
-  raids       Raid[]
+  id                 String              @id @default(cuid())
+  name               String
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  memberships        PartyMembership[]
+  members            PartyMember[]
+  items              Item[]
+  raids              Raid[]
+  saleTransactions   SaleTransaction[]
+  saleShares         SaleShare[]
+  memberPayments     MemberPayment[]
+  paymentAllocations PaymentAllocation[]
+  ledgerTransactions LedgerTransaction[]
+  ledgerEntries      LedgerEntry[]
 }
 
 model PartyMembership {
@@ -61,11 +86,15 @@ model PartyMember {
   normalizedNickname String
   isActive           Boolean  @default(true)
   comment            String?
+  distributionWeight Int      @default(1)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  party Party @relation(fields: [partyId], references: [id], onDelete: Restrict)
+  party            Party             @relation(fields: [partyId], references: [id], onDelete: Restrict)
   raidParticipants RaidParticipant[]
+  memberPayments   MemberPayment[]
+  saleShares       SaleShare[]
+  ledgerEntries    LedgerEntry[]
 
   @@unique([partyId, normalizedNickname])
   @@unique([partyId, id])
@@ -83,7 +112,7 @@ model Item {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  party Party @relation(fields: [partyId], references: [id], onDelete: Restrict)
+  party     Party      @relation(fields: [partyId], references: [id], onDelete: Restrict)
   lootDrops LootDrop[]
 
   @@unique([partyId, normalizedName])
@@ -92,37 +121,42 @@ model Item {
 }
 
 model Raid {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   partyId        String
   name           String
   instanceName   String?
   occurredAt     DateTime
   screenshotPath String?
   comment        String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  lockedAt       DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  party        Party             @relation(fields: [partyId], references: [id], onDelete: Restrict)
-  participants RaidParticipant[]
-  lootDrops    LootDrop[]
+  party            Party             @relation(fields: [partyId], references: [id], onDelete: Restrict)
+  participants     RaidParticipant[]
+  lootDrops        LootDrop[]
+  saleTransactions SaleTransaction[]
 
   @@unique([partyId, id])
   @@index([partyId, occurredAt])
 }
 
 model RaidParticipant {
-  id               String                @id @default(cuid())
-  partyId          String
-  raidId           String
-  memberId         String
-  nicknameSnapshot String
-  status           RaidParticipantStatus
-  createdAt        DateTime              @default(now())
+  id                 String                @id @default(cuid())
+  partyId            String
+  raidId             String
+  memberId           String
+  nicknameSnapshot   String
+  status             RaidParticipantStatus
+  distributionWeight Int
+  createdAt          DateTime              @default(now())
 
-  raid   Raid        @relation(fields: [partyId, raidId], references: [partyId, id], onDelete: Restrict)
-  member PartyMember @relation(fields: [partyId, memberId], references: [partyId, id], onDelete: Restrict)
+  raid       Raid        @relation(fields: [partyId, raidId], references: [partyId, id], onDelete: Restrict)
+  member     PartyMember @relation(fields: [partyId, memberId], references: [partyId, id], onDelete: Restrict)
+  saleShares SaleShare[]
 
   @@unique([partyId, raidId, memberId])
+  @@unique([partyId, raidId, id, memberId])
   @@index([partyId, memberId])
 }
 
@@ -138,10 +172,139 @@ model LootDrop {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
-  raid Raid @relation(fields: [partyId, raidId], references: [partyId, id], onDelete: Restrict)
-  item Item @relation(fields: [partyId, itemId], references: [partyId, id], onDelete: Restrict)
+  raid             Raid              @relation(fields: [partyId, raidId], references: [partyId, id], onDelete: Restrict)
+  item             Item              @relation(fields: [partyId, itemId], references: [partyId, id], onDelete: Restrict)
+  saleTransactions SaleTransaction[]
 
   @@unique([partyId, id])
+  @@unique([partyId, raidId, id])
   @@index([partyId, raidId, createdAt])
   @@index([partyId, itemId, createdAt])
+}
+
+model SaleTransaction {
+  id                 String             @id @default(cuid())
+  partyId            String
+  raidId             String
+  lootDropId         String
+  quantitySold       Int
+  totalPrice         BigInt
+  receivedAt         DateTime
+  idempotencyKey     String
+  distributionMethod DistributionMethod @default(WEIGHTED)
+  algorithmVersion   Int                @default(1)
+  createdAt          DateTime           @default(now())
+
+  party             Party              @relation(fields: [partyId], references: [id], onDelete: Restrict)
+  raid              Raid               @relation(fields: [partyId, raidId], references: [partyId, id], onDelete: Restrict)
+  lootDrop          LootDrop           @relation(fields: [partyId, raidId, lootDropId], references: [partyId, raidId, id], onDelete: Restrict)
+  shares            SaleShare[]
+  ledgerTransaction LedgerTransaction?
+
+  @@unique([partyId, id])
+  @@unique([partyId, raidId, id])
+  @@unique([partyId, idempotencyKey])
+  @@index([partyId, lootDropId, receivedAt])
+}
+
+model SaleShare {
+  id                 String             @id @default(cuid())
+  partyId            String
+  raidId             String
+  saleTransactionId  String
+  raidParticipantId  String
+  memberId           String
+  nicknameSnapshot   String
+  weightSnapshot     Int
+  distributionMethod DistributionMethod
+  algorithmVersion   Int
+  amount             BigInt
+  createdAt          DateTime           @default(now())
+
+  party              Party               @relation(fields: [partyId], references: [id], onDelete: Restrict)
+  saleTransaction    SaleTransaction     @relation(fields: [partyId, raidId, saleTransactionId], references: [partyId, raidId, id], onDelete: Restrict)
+  raidParticipant    RaidParticipant     @relation(fields: [partyId, raidId, raidParticipantId, memberId], references: [partyId, raidId, id, memberId], onDelete: Restrict)
+  member             PartyMember         @relation(fields: [partyId, memberId], references: [partyId, id], onDelete: Restrict)
+  paymentAllocations PaymentAllocation[]
+
+  @@unique([partyId, id])
+  @@unique([partyId, memberId, id])
+  @@unique([partyId, saleTransactionId, raidParticipantId])
+  @@index([partyId, memberId, createdAt])
+}
+
+model MemberPayment {
+  id               String   @id @default(cuid())
+  partyId          String
+  memberId         String
+  nicknameSnapshot String
+  amount           BigInt
+  paidAt           DateTime
+  comment          String?
+  idempotencyKey   String
+  createdAt        DateTime @default(now())
+
+  party             Party               @relation(fields: [partyId], references: [id], onDelete: Restrict)
+  member            PartyMember         @relation(fields: [partyId, memberId], references: [partyId, id], onDelete: Restrict)
+  allocations       PaymentAllocation[]
+  ledgerTransaction LedgerTransaction?
+
+  @@unique([partyId, id])
+  @@unique([partyId, memberId, id])
+  @@unique([partyId, idempotencyKey])
+  @@index([partyId, memberId, paidAt])
+}
+
+model PaymentAllocation {
+  id              String   @id @default(cuid())
+  partyId         String
+  memberId        String
+  memberPaymentId String
+  saleShareId     String
+  amount          BigInt
+  createdAt       DateTime @default(now())
+
+  party         Party         @relation(fields: [partyId], references: [id], onDelete: Restrict)
+  memberPayment MemberPayment @relation(fields: [partyId, memberId, memberPaymentId], references: [partyId, memberId, id], onDelete: Restrict)
+  saleShare     SaleShare     @relation(fields: [partyId, memberId, saleShareId], references: [partyId, memberId, id], onDelete: Restrict)
+
+  @@unique([partyId, memberPaymentId, saleShareId])
+  @@index([partyId, saleShareId])
+}
+
+model LedgerTransaction {
+  id                String                  @id @default(cuid())
+  partyId           String
+  type              LedgerTransactionType
+  status            LedgerTransactionStatus @default(DRAFT)
+  saleTransactionId String?
+  memberPaymentId   String?
+  createdAt         DateTime                @default(now())
+  postedAt          DateTime?
+
+  party           Party            @relation(fields: [partyId], references: [id], onDelete: Restrict)
+  saleTransaction SaleTransaction? @relation(fields: [partyId, saleTransactionId], references: [partyId, id], onDelete: Restrict)
+  memberPayment   MemberPayment?   @relation(fields: [partyId, memberPaymentId], references: [partyId, id], onDelete: Restrict)
+  entries         LedgerEntry[]
+
+  @@unique([partyId, id])
+  @@unique([partyId, saleTransactionId])
+  @@unique([partyId, memberPaymentId])
+}
+
+model LedgerEntry {
+  id                  String            @id @default(cuid())
+  partyId             String
+  ledgerTransactionId String
+  accountType         LedgerAccountType
+  partyMemberId       String?
+  debit               BigInt            @default(0)
+  credit              BigInt            @default(0)
+  createdAt           DateTime          @default(now())
+
+  party             Party             @relation(fields: [partyId], references: [id], onDelete: Restrict)
+  ledgerTransaction LedgerTransaction @relation(fields: [partyId, ledgerTransactionId], references: [partyId, id], onDelete: Restrict)
+  partyMember       PartyMember?      @relation(fields: [partyId, partyMemberId], references: [partyId, id], onDelete: Restrict)
+
+  @@index([partyId, accountType, partyMemberId, createdAt])
 }

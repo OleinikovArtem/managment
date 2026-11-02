@@ -10,8 +10,9 @@ Party Bank Manager helps manage:
 - Separate loot-drop acquisition records.
 - Unique item catalog.
 - Item acquisition history.
+- Financial schema foundation for sales, member shares, payouts and immutable ledger.
 
-Sales, party bank balances and payments are planned for a later phase.
+Financial workflows, balances and UI are still under development.
 
 ## Technology
 
@@ -36,7 +37,7 @@ Setup from the project directory (PowerShell):
 npm install
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 npm run db:generate
-npm run db:migrate:deploy
+npm run db:sync
 npm run dev
 ```
 
@@ -45,12 +46,18 @@ Open `http://localhost:3000`. The development and production servers bind to
 membership are created in a transaction. Repeated requests reuse those records.
 
 The SQLite database is stored at `prisma/dev.db`. Normal application startup does
-not run migrations, reset or recreate the database. Use `npm run db:migrate` to
-create a development migration, and `npm run db:migrate:deploy` to apply checked-in
-migrations. Back up the database before applying schema changes to valuable data.
-The local database and backups belong under `prisma/` and `data/backups/` and are
-excluded from Git. Screenshot uploads are not implemented yet; when added, files
-must remain outside the public static directory.
+not modify or recreate the database. `npm run db:sync` uses Prisma `db push` and
+then installs SQLite integrity triggers from
+[`prisma/financial-constraints.sql`](./prisma/financial-constraints.sql). This is
+a local development workflow, not a versioned migration, and should only be used
+with a disposable development database. The Phase 4 schema has not been added to
+Prisma migration history; `prisma migrate status` does not certify this schema,
+and `db:migrate:deploy` must not be used on a database initialized with `db:sync`.
+A reviewed migration path is required before distributing or releasing Phase 4.
+Back up valuable data before any schema change. The local database and backups
+belong under `prisma/` and `data/backups/` and are excluded from Git. Screenshot
+uploads are not implemented yet; when added, files must remain outside the public
+static directory.
 
 Phase 1 provides the local dashboard, party settings and member workflows. Phase 2
 adds the party-scoped item catalog with normalized duplicate protection, search,
@@ -67,8 +74,9 @@ storage and rendered back in the browser's local time zone. Nonexistent or
 ambiguous local times during daylight-saving transitions are rejected.
 
 Screenshot path fields are reserved, but screenshot uploads/storage are not
-implemented. Sales, bank, backup/restore workflows and SaaS functionality remain
-for later phases.
+implemented. Phase 4.1 adds the financial data model and SQLite guards, but sales,
+distribution, payouts, bank balances and financial UI are not implemented yet.
+Backup/restore workflows and SaaS functionality remain for later phases.
 
 Useful checks:
 
@@ -87,7 +95,7 @@ npm run build
 
 ## Project Status
 
-Phase 3 — Raids and Loot.
+Phase 4.1 — Financial schema foundation (in progress; no sale or payout workflows yet).
 
 ## Future Plans
 

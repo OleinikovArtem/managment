@@ -105,8 +105,8 @@ describe("raid repository", () => {
 
   it("creates the raid, every active member snapshot and every loot entry transactionally", async () => {
     activeMemberFindMany.mockResolvedValue([
-      { id: "member-1", nickname: "Current One" },
-      { id: "member-2", nickname: "Current Two" },
+      { id: "member-1", nickname: "Current One", distributionWeight: 2 },
+      { id: "member-2", nickname: "Current Two", distributionWeight: 1 },
     ]);
     itemFindMany.mockResolvedValue([{ id: "item-1" }]);
     raidCreate.mockResolvedValue({ id: "raid-1" });
@@ -116,7 +116,7 @@ describe("raid repository", () => {
     expect($transaction).toHaveBeenCalledOnce();
     expect(activeMemberFindMany).toHaveBeenCalledWith({
       where: { partyId: "party-a", isActive: true },
-      select: { id: true, nickname: true },
+      select: { id: true, nickname: true, distributionWeight: true },
     });
     expect(raidParticipantCreate).toHaveBeenNthCalledWith(
       1,
@@ -127,6 +127,7 @@ describe("raid repository", () => {
           memberId: "member-1",
           nicknameSnapshot: "Current One",
           status: "PRESENT",
+          distributionWeight: 2,
         }),
       }),
     );
@@ -136,6 +137,7 @@ describe("raid repository", () => {
         data: expect.objectContaining({
           nicknameSnapshot: "Current Two",
           status: "ABSENT",
+          distributionWeight: 1,
         }),
       }),
     );

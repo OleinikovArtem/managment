@@ -143,6 +143,7 @@ Fields:
 - partyId
 - nickname
 - isActive
+- distributionWeight (positive integer, default 1)
 - comment
 - createdAt
 - updatedAt
@@ -186,6 +187,7 @@ Fields:
 - date
 - screenshotPath (optional)
 - comment (optional)
+- lockedAt (optional; set on the first posted sale)
 - createdAt
 - updatedAt
 
@@ -196,11 +198,15 @@ Fields:
 - partyId
 - raidId
 - memberId
+- nicknameSnapshot
+- status (PRESENT or ABSENT)
+- distributionWeight snapshot
 
-Unique constraint:
-raidId + memberId.
+Unique constraint: partyId + raidId + memberId.
 
 Store actual participants independently for every raid.
+The distribution weight and nickname used by a sale come from this historical
+snapshot, never from the current party roster.
 
 ### LootDrop
 
@@ -220,81 +226,75 @@ Fields:
 
 Statuses:
 - RECEIVED
-- LISTED
-- PARTIALLY_SOLD
-- SOLD
-- CANCELLED
 
 Multiple LootDrop records can reference the same Item.
 
 Never create a new Item just because an existing item drops again.
 
-### SaleListing
-
-Fields:
-- id
-- partyId
-- lootDropId
-- quantityListed
-- quantitySold
-- askingPrice (optional)
-- status
-- listedAt
-- updatedAt
-
-Statuses:
-- LISTED
-- PARTIALLY_SOLD
-- SOLD
-- CANCELLED
+Sales are recorded directly against a LootDrop. Sale listings and asking-price
+workflows are not part of the approved financial MVP.
 
 ### SaleTransaction
 
 Fields:
 - id
 - partyId
-- saleListingId
+- raidId
+- lootDropId
 - quantitySold
-- totalPrice
-- currency
-- source
-- soldAt
+- totalPrice (BigInt Adena)
+- receivedAt
+- idempotencyKey (unique within a party)
+- distributionMethod
+- algorithmVersion
 - createdAt
 
-Support partial sales and multiple transactions per listing.
+The recorded price is Adena actually received. A LootDrop can have multiple
+partial or repeat sales, but cumulative sold quantity cannot exceed its quantity.
+Each transaction is distributed independently.
 
 ### SaleShare
 
 Fields:
 - id
 - partyId
-- transactionId
+- raidId
+- saleTransactionId
+- raidParticipantId
 - memberId
-- amount
+- nicknameSnapshot
+- weightSnapshot
+- distributionMethod
+- algorithmVersion
+- amount (BigInt Adena)
 
-Stores actual participant shares for every transaction.
+Store the calculated share for each PRESENT RaidParticipant. Composite foreign
+keys must enforce matching party, raid, sale and participant.
 
-### LedgerEntry
+### MemberPayment and PaymentAllocation
 
-Fields:
-- id
-- partyId
-- memberId (optional)
-- type
-- amount
-- description
-- relatedTransactionId (optional)
-- createdAt
+MemberPayment records Adena actually paid to one PartyMember, including the
+member nickname snapshot, paidAt, comment and party-scoped idempotency key.
+PaymentAllocation links each payment to one or more SaleShare records and
+preserves the amount applied to each outstanding share.
 
-Types:
-- SALE_CREDIT
-- PAYMENT
-- ADJUSTMENT
-- REFUND
+Partial and multiple payments are supported. Allocate payments FIFO to the
+member's oldest outstanding SaleShare. The member's current active status or
+nickname does not alter historical payment records.
 
-Use integer Adena amounts.
+### LedgerTransaction and LedgerEntry
 
-Use Prisma BigInt where appropriate. Never use floating-point arithmetic for financial calculations.
+LedgerTransaction has a DRAFT or POSTED status and exactly one source: a
+SaleTransaction or MemberPayment. LedgerEntry uses the PARTY_CASH and
+MEMBER_PAYABLE accounts with separate debit and credit BigInt Adena values.
+
+DRAFT entries may be edited or deleted. Posting requires balanced entries and
+matching sale shares or payment allocations. POSTED transactions and entries are
+immutable; corrections, refunds and manual adjustments are outside the approved
+MVP.
+
+Use Prisma BigInt for monetary values and decimal strings over JSON. Never use
+floating-point arithmetic for financial calculations.
 
 ## 7. Item Catalog and Loot History
 
@@ -362,14 +362,14 @@ Support multiple items per raid.
 
 ## 9. Sales Management
 
-Implement:
-- Create sale listing from LootDrop.
-- Set asking price.
-- Change listing status.
-- Record manual sale.
-- Support partial sales.
-- View sale history.
-- Link each transaction to its original raid and item.
+Implement direct sale recording from a LootDrop.
+
+- A sale can cover part or all of the remaining LootDrop quantity.
+- Multiple transactions can record subsequent sales of the same LootDrop.
+- Record only a sale for which the full Adena amount has been received.
+- Use an idempotency key to prevent duplicate operations.
+- Link each transaction to its original LootDrop, Raid and Item.
+- Do not create SaleListing or asking-price workflows in this MVP.
 
 A sale must use participants of its originating raid.
 
@@ -377,34 +377,35 @@ Never use the current party roster for historical distribution.
 
 ## 10. Financial Management
 
-Default rule: equal distribution between actual raid participants.
+Distribute each sale among PRESENT participants of the originating Raid, using
+the RaidParticipant weight and nickname snapshots. ABSENT participants receive
+no share. The current PartyMember roster must never be used to calculate a
+historical sale.
 
-Formula:
-
-share = transaction.totalPrice / participantCount
-
-Use integer arithmetic.
-
-Remainders must be handled deterministically and retained in the party bank.
+Use weighted integer distribution with the Largest Remainder Method. Break equal
+remainder ties deterministically by RaidParticipant.id. Each sale is calculated
+independently, and the total of all SaleShare amounts must equal totalPrice
+exactly. The Party's share of a sale is 0%.
 
 Keep separate:
-- Party bank.
-- Member accrued earnings.
+- Party cash.
+- Member accrued earnings (outstanding payable).
 - Member actual payments.
-- Outstanding member balances.
+- Remaining member balances.
 
-Every sale creates:
-- SaleTransaction.
-- SaleShare records.
-- SALE_CREDIT ledger entries.
+Post a sale and its shares and ledger entries atomically. The first posted sale
+sets Raid.lockedAt in the same transaction; afterward attendance and financial
+LootDrop fields cannot change. Explanatory comments remain editable.
 
-Every payment creates a PAYMENT ledger entry.
+Post a payout and its FIFO allocations and ledger entries atomically. A payout
+cannot exceed the member's outstanding earnings or available Party cash.
 
-Never silently modify financial history.
+Every posted sale creates a SaleTransaction, SaleShare records and balanced
+double-entry ledger records. Every payout creates a MemberPayment,
+PaymentAllocation records and balanced ledger records.
 
-Corrections must create compensating entries.
-
-Perform sale registration and distribution in one database transaction.
+Never edit or delete posted financial history. Refunds, reversals, adjustments,
+fees and other compensating operations are outside the approved MVP.
 
 ## 11. Application Pages
 
@@ -439,9 +440,8 @@ Perform sale registration and distribution in one database transaction.
 
 /sales
 /sales/[id]
-- Listings.
-- Completed sales.
-- Partial sales.
+- Sales by LootDrop.
+- Completed partial sales and distribution.
 
 /bank
 - Party balance.
@@ -501,7 +501,10 @@ Avoid SQLite-specific raw SQL unless necessary.
 
 Keep business logic independent of the database provider.
 
-Use Prisma migrations.
+Use Prisma migrations for durable schema changes. The disposable Phase 4.1
+development database was synchronized with `db push` by explicit approval;
+this is not a release migration and must be replaced with a reviewed,
+versioned migration before distributing or deploying the financial schema.
 
 Keep file storage behind an abstraction so local storage can later be replaced by cloud storage.
 
@@ -516,12 +519,12 @@ Write tests for:
 - Reusing an existing item across raids.
 - Acquisition history.
 - Raid participant selection.
-- Equal distribution.
-- Remainder handling.
+- Weighted Largest Remainder distribution.
+- Idempotent sale and payout processing.
 - Partial sales.
-- Multiple sales per listing.
+- Multiple sales per LootDrop.
 - Payment calculations.
-- Manual adjustments.
+- Ledger posting and immutability.
 - Historical data integrity.
 
 ## 16. MVP Acceptance Criteria
@@ -536,10 +539,9 @@ The application is usable when:
 6. Existing items can be reused across raids.
 7. Each item has a complete acquisition history.
 8. Loot screenshots can be stored locally.
-9. Items can be listed for sale.
-10. Sales can be registered manually.
-11. Participant shares are calculated correctly.
-12. Member balances and payments are tracked.
-13. Financial history is preserved.
-14. Database and screenshots can be backed up and restored.
-15. Architecture supports future multi-party SaaS development.
+9. Sales can be recorded directly against LootDrop records.
+10. Participant shares are calculated correctly and exactly conserve Adena.
+11. Member balances and actual payments are tracked independently.
+12. Posted financial history is preserved.
+13. Database and screenshots can be backed up and restored.
+14. Architecture supports future multi-party SaaS development.
