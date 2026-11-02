@@ -17,6 +17,7 @@ const navigation = [
   { href: "/members", label: "Участники", icon: UsersRound },
   { href: "/items", label: "Предметы", icon: ScrollText },
   { href: "/raids", label: "Рейды", icon: Swords },
+  { href: "/sales", label: "Продажи", icon: WalletCards },
   { href: "/settings", label: "Настройки", icon: Settings2 },
 ];
 
@@ -55,7 +56,7 @@ function SidebarNavigation() {
   return (
     <nav aria-label="Основная навигация" className="flex gap-2 md:flex-col">
         {navigation.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href;
+          const active = pathname === href || pathname.startsWith(`${href}/`);
           return (
             <Link
               key={href}

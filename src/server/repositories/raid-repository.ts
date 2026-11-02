@@ -73,7 +73,13 @@ export async function getPartyRaidById(partyId: string, raidId: string) {
       participants: { orderBy: { nicknameSnapshot: "asc" } },
       lootDrops: {
         where: { partyId },
-        include: { item: { select: { id: true, canonicalName: true, displayName: true } } },
+        include: {
+          item: { select: { id: true, canonicalName: true, displayName: true } },
+          saleTransactions: {
+            include: { shares: { orderBy: { memberId: "asc" } } },
+            orderBy: [{ receivedAt: "asc" }, { createdAt: "asc" }],
+          },
+        },
         orderBy: { createdAt: "asc" },
       },
     },

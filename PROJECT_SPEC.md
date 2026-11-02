@@ -244,6 +244,7 @@ Fields:
 - quantitySold
 - totalPrice (BigInt Adena)
 - receivedAt
+- comment (optional)
 - idempotencyKey (unique within a party)
 - distributionMethod
 - algorithmVersion

@@ -20,11 +20,15 @@ describe("createPartyMember", () => {
   });
 
   it("persists the original nickname and its normalized unique key", async () => {
-    await createPartyMember("party-1", { nickname: "  Hero   One ", comment: "" });
+    await createPartyMember("party-1", {
+      nickname: "  Hero   One ",
+      distributionWeight: 3,
+      comment: "",
+    });
 
     expect(createPartyMemberRecord).toHaveBeenCalledWith(
       "party-1",
-      { nickname: "  Hero   One ", comment: "" },
+      { nickname: "  Hero   One ", distributionWeight: 3, comment: "" },
       "hero one",
     );
   });
@@ -41,7 +45,11 @@ describe("createPartyMember", () => {
     createPartyMemberRecord.mockRejectedValue(uniqueError);
 
     await expect(
-      createPartyMember("party-1", { nickname: "Hero", comment: "" }),
+      createPartyMember("party-1", {
+        nickname: "Hero",
+        distributionWeight: 1,
+        comment: "",
+      }),
     ).rejects.toBeInstanceOf(DuplicateNicknameError);
   });
 });

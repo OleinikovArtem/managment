@@ -10,9 +10,9 @@ Party Bank Manager helps manage:
 - Separate loot-drop acquisition records.
 - Unique item catalog.
 - Item acquisition history.
-- Financial schema foundation for sales, member shares, payouts and immutable ledger.
+- Received sales, weighted member shares, Party cash and outstanding member balances.
 
-Financial workflows, balances and UI are still under development.
+Member payouts and the complete correction/history workflows remain under development.
 
 ## Technology
 
@@ -74,8 +74,11 @@ storage and rendered back in the browser's local time zone. Nonexistent or
 ambiguous local times during daylight-saving transitions are rejected.
 
 Screenshot path fields are reserved, but screenshot uploads/storage are not
-implemented. Phase 4.1 adds the financial data model and SQLite guards, but sales,
-distribution, payouts, bank balances and financial UI are not implemented yet.
+implemented. Phase 4.2 records partial or repeated LootDrop sales only after
+Adena is received, distributes each sale among PRESENT participants using the
+Raid's snapshotted weights, and derives Party cash and member balances from the
+posted ledger. Raid attendance and loot become locked after its first posted
+sale. Member payouts and ledger correction workflows are still in progress.
 Backup/restore workflows and SaaS functionality remain for later phases.
 
 Useful checks:
@@ -95,7 +98,7 @@ npm run build
 
 ## Project Status
 
-Phase 4.1 — Financial schema foundation (in progress; no sale or payout workflows yet).
+Phase 4.2 — Sales and distribution (in progress; payouts remain pending).
 
 ## Future Plans
 

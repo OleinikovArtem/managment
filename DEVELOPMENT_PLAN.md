@@ -93,7 +93,7 @@ Approved rules:
   while same key/different parameters is a conflict.
 - First posted sale locks attendance and financial LootDrop fields on the Raid.
 
-### Phase 4.1 — Financial Schema Foundation (in progress)
+### Phase 4.1 — Financial Schema Foundation (complete for local development)
 
 - [x] Add PartyMember.distributionWeight with a default of 1.
 - [x] Snapshot nickname and distributionWeight into every new RaidParticipant.
@@ -106,30 +106,35 @@ Approved rules:
 - [x] Add a local db:sync workflow that applies Prisma schema and SQL guards.
 - [x] Validate the schema and test SQLite FK, uniqueness, lock and ledger guards
   on an isolated database.
-- [ ] Implement Zod validation, party-scoped repositories and financial services.
+- [x] Implement sale Zod validation, party-scoped repositories and sale service.
 - [ ] Add native CHECK constraints to the reviewed versioned migration; current
   disposable-db guards are triggers because Prisma db push does not represent
   CHECK constraints in schema.prisma.
 - [ ] Add checked-in migration history before distributing/releasing this
   schema; Phase 4.1 was synchronized with db push by explicit approval because
   the local DB contained disposable test data.
-- [ ] Verify retry behavior for SQLite lock/time-out failures in the service.
+- [x] Verify bounded retry behavior for SQLite lock/time-out failures with
+  repository tests. Real multi-client contention remains a release verification.
 
 ### Phase 4.2 — Sales and Distribution
 
-- [ ] Implement idempotent partial sale registration against LootDrop.
-- [ ] Implement weighted Largest Remainder distribution and SaleShare snapshots.
-- [ ] Atomically post balanced sale ledger and lock the Raid.
-- [ ] Add sale history and member/Party balance queries.
-- [ ] Test rollback, repeated idempotency requests, oversell and concurrent sales.
+- [x] Implement idempotent partial sale registration against LootDrop.
+- [x] Implement weighted Largest Remainder distribution and SaleShare snapshots.
+- [x] Atomically post balanced sale ledger and lock the Raid.
+- [x] Add sale history and ledger-derived member/Party balance queries.
+- [ ] Test rollback, repeated idempotency requests, oversell and concurrent sales
+  against a real SQLite database (unit coverage currently verifies workflow,
+  idempotency, oversell and bounded lock retries).
 
 ### Phase 4.3 — Payouts and Financial UI
 
 - [ ] Implement actual member payments and FIFO PaymentAllocation.
 - [ ] Prevent payouts above member payable or Party cash.
-- [ ] Add Raid sale details, Party/member balances and immutable financial history.
+- [x] Add Raid sale details and ledger-derived Party/member balances.
+- [ ] Add payment UI and immutable financial history with correction workflows.
 - [ ] Add Zod, service, repository and integration tests for financial workflows.
-- [ ] Run lint, typecheck, tests, build and browser smoke checks.
+- [ ] Add real SQLite transaction/concurrency tests and rerun full checks after
+  the payout workflow is implemented.
 
 Acceptance for Phase 4:
 - Sales and payouts are atomic, idempotent and party-scoped.
@@ -170,6 +175,6 @@ Not part of the MVP.
 
 ## Current Status
 
-Current phase: Phase 4.1 — Financial Schema Foundation (in progress).
+Current phase: Phase 4.2 — Sales and Distribution (in progress).
 
 Do not start another phase without reviewing the current one.

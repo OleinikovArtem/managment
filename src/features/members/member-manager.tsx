@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { MemberActionResult } from "@/features/members/member-action-result";
 import {
   memberInputSchema,
+  type MemberFormInput,
   type MemberInput,
 } from "@/features/members/member-schema";
 import {
@@ -31,6 +32,7 @@ import {
 type MemberRow = {
   id: string;
   nickname: string;
+  distributionWeight: number;
   isActive: boolean;
   comment: string | null;
   createdAt: string;
@@ -53,9 +55,13 @@ function MemberForm({
 }: MemberFormProps) {
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const form = useForm<MemberInput>({
+  const form = useForm<MemberFormInput, unknown, MemberInput>({
     resolver: zodResolver(memberInputSchema),
-    defaultValues: initialValues ?? { nickname: "", comment: "" },
+    defaultValues: initialValues ?? {
+      nickname: "",
+      distributionWeight: 1,
+      comment: "",
+    },
   });
 
   const onSubmit = form.handleSubmit((values) => {
@@ -66,6 +72,7 @@ function MemberForm({
         setMessage(result.message);
         toast.error(result.message);
         const nicknameError = result.fieldErrors?.nickname?.[0];
+        const weightError = result.fieldErrors?.distributionWeight?.[0];
         const commentError = result.fieldErrors?.comment?.[0];
         if (nicknameError) {
           form.setError("nickname", { message: nicknameError });
@@ -73,13 +80,16 @@ function MemberForm({
         if (commentError) {
           form.setError("comment", { message: commentError });
         }
+        if (weightError) {
+          form.setError("distributionWeight", { message: weightError });
+        }
         return;
       }
 
       toast.success(result.message);
       onSuccess();
       if (!initialValues) {
-        form.reset({ nickname: "", comment: "" });
+        form.reset({ nickname: "", distributionWeight: 1, comment: "" });
       }
     });
   });
@@ -101,6 +111,32 @@ function MemberForm({
         {form.formState.errors.nickname && (
           <p className="text-xs text-destructive">
             {form.formState.errors.nickname.message}
+          </p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <label
+          htmlFor={initialValues ? "edit-distribution-weight" : "new-distribution-weight"}
+          className="text-sm font-medium"
+        >
+          Вес распределения
+        </label>
+        <Input
+          id={initialValues ? "edit-distribution-weight" : "new-distribution-weight"}
+          type="number"
+          min={1}
+          max={2_147_483_647}
+          step={1}
+          aria-invalid={Boolean(form.formState.errors.distributionWeight)}
+          {...form.register("distributionWeight", { valueAsNumber: true })}
+        />
+        <p className="text-xs text-muted-foreground">
+          Доля участника в распределении Adena относительно остальных PRESENT.
+        </p>
+        {form.formState.errors.distributionWeight && (
+          <p className="text-xs text-destructive">
+            {form.formState.errors.distributionWeight.message}
           </p>
         )}
       </div>
@@ -216,6 +252,7 @@ export function MemberManager({ members }: { members: MemberRow[] }) {
                     <MemberForm
                       initialValues={{
                         nickname: member.nickname,
+                        distributionWeight: member.distributionWeight,
                         comment: member.comment ?? "",
                       }}
                       submitLabel="Сохранить"
@@ -233,7 +270,7 @@ export function MemberManager({ members }: { members: MemberRow[] }) {
                           </Badge>
                         </div>
                         <p className="mt-1 text-xs text-muted-foreground">
-                          Добавлен {member.createdAt}
+                          Вес: {member.distributionWeight} · Добавлен {member.createdAt}
                           {member.comment ? ` · ${member.comment}` : ""}
                         </p>
                       </div>

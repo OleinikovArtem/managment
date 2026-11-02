@@ -29,4 +29,15 @@ describe("memberInputSchema", () => {
 
     expect(result.nickname).toBe("  Hero  ");
   });
+
+  it("defaults the distribution weight and rejects non-positive weights", () => {
+    expect(memberInputSchema.parse({ nickname: "Hero", comment: "" }).distributionWeight).toBe(1);
+    expect(
+      memberInputSchema.safeParse({
+        nickname: "Hero",
+        comment: "",
+        distributionWeight: 0,
+      }).success,
+    ).toBe(false);
+  });
 });

@@ -5,11 +5,14 @@ import { io } from "next/cache";
 import { ArrowLeft, Pencil, ScrollText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SaleForm } from "@/features/sales/sale-form";
 import { LocalDateTimeDisplay } from "@/features/raids/local-date-time-display";
 import { ensureLocalWorkspace } from "@/server/bootstrap/local-workspace";
 import { getRaid, RaidNotFoundError } from "@/server/services/raid-service";
 
 type RaidDetailPageProps = { params: Promise<{ id: string }> };
+
+const adenaFormatter = new Intl.NumberFormat("ru-RU");
 
 export default function RaidDetailPage({ params }: RaidDetailPageProps) {
   return (
@@ -50,13 +53,17 @@ async function RaidDetailContent({ params }: RaidDetailPageProps) {
               <LocalDateTimeDisplay value={raid.occurredAt.toISOString()} />
             </p>
           </div>
-          <Link
-            href={`/raids/${raid.id}/edit`}
-            className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-background px-3 text-sm font-medium transition-colors hover:bg-muted"
-          >
-            <Pencil aria-hidden="true" />
-            Редактировать
-          </Link>
+          {raid.lockedAt ? (
+            <Badge variant="outline">Финансовая история зафиксирована</Badge>
+          ) : (
+            <Link
+              href={`/raids/${raid.id}/edit`}
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-background px-3 text-sm font-medium transition-colors hover:bg-muted"
+            >
+              <Pencil aria-hidden="true" />
+              Редактировать
+            </Link>
+          )}
         </div>
       </header>
 
@@ -122,6 +129,41 @@ async function RaidDetailContent({ params }: RaidDetailPageProps) {
                     </div>
                     <Badge variant="outline">Количество: {drop.quantity}</Badge>
                   </div>
+                  {drop.saleTransactions.length > 0 && (
+                    <div className="mt-4 rounded-lg border px-3 py-3">
+                      <p className="text-sm font-medium">Продажи и распределение</p>
+                      <ul className="mt-2 divide-y divide-border">
+                        {drop.saleTransactions.map((sale) => (
+                          <li key={sale.id} className="py-3 first:pt-0 last:pb-0">
+                            <div className="flex flex-wrap justify-between gap-2 text-sm">
+                              <span>
+                                {sale.quantitySold} шт. · {adenaFormatter.format(sale.totalPrice)} Adena
+                              </span>
+                              <LocalDateTimeDisplay value={sale.receivedAt.toISOString()} />
+                            </div>
+                            {sale.comment && (
+                              <p className="mt-1 text-xs text-muted-foreground">{sale.comment}</p>
+                            )}
+                            <ul className="mt-2 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
+                              {sale.shares.map((share) => (
+                                <li key={share.id} className="flex justify-between gap-3">
+                                  <span>{share.nicknameSnapshot}</span>
+                                  <span>{adenaFormatter.format(share.amount)} Adena</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <SaleForm
+                    lootDropId={drop.id}
+                    remainingQuantity={
+                      drop.quantity -
+                      drop.saleTransactions.reduce((sum, sale) => sum + sale.quantitySold, 0)
+                    }
+                  />
                 </li>
               ))}
             </ul>

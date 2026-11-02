@@ -18,6 +18,12 @@ const nicknameSchema = z
 
 export const memberInputSchema = z.object({
   nickname: nicknameSchema,
+  distributionWeight: z
+    .number()
+    .int()
+    .min(1, "Вес должен быть положительным целым числом.")
+    .max(2_147_483_647, "Вес слишком велик.")
+    .default(1),
   comment: z
     .string()
     .trim()
@@ -28,3 +34,4 @@ export const memberInputSchema = z.object({
 export const memberIdSchema = z.string().trim().min(1, "Member ID is required.");
 
 export type MemberInput = z.infer<typeof memberInputSchema>;
+export type MemberFormInput = z.input<typeof memberInputSchema>;

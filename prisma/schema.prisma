@@ -190,6 +190,7 @@ model SaleTransaction {
   quantitySold       Int
   totalPrice         BigInt
   receivedAt         DateTime
+  comment            String?
   idempotencyKey     String
   distributionMethod DistributionMethod @default(WEIGHTED)
   algorithmVersion   Int                @default(1)

@@ -19,6 +19,7 @@ async function MembersContent() {
   const members = records.map((member) => ({
     id: member.id,
     nickname: member.nickname,
+    distributionWeight: member.distributionWeight,
     isActive: member.isActive,
     comment: member.comment,
     createdAt: member.createdAt.toLocaleDateString("ru-RU"),
