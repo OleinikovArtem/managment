@@ -79,8 +79,9 @@ Adena is received, distributes each sale among PRESENT participants using the
 Raid's snapshotted weights, and derives Party cash and member balances from the
 posted ledger. Raid attendance and loot become locked after its first posted
 sale. Partial member payouts are allocated FIFO against outstanding shares, with
-balances and payment history backed by the immutable ledger. Compensating
-correction workflows are still in progress.
+balances and payment history backed by the immutable ledger. The `/ledger` page
+shows all posted account movements and their source records. Compensating
+correction workflows are outside the approved MVP.
 Backup/restore workflows and SaaS functionality remain for later phases.
 
 Useful checks:
@@ -100,7 +101,8 @@ npm run build
 
 ## Project Status
 
-Phase 4.3 — Sales, distribution and member payouts (in progress; corrections remain pending).
+Phase 4 — Sales, distribution, member payouts and financial history (implemented;
+compensating corrections remain outside the approved MVP).
 
 ## Future Plans
 

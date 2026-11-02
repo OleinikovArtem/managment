@@ -4,6 +4,7 @@ import { saleInputSchema, type SaleInput } from "@/features/sales/sale-schema";
 import { SaleOperationError } from "@/features/sales/sale-errors";
 import {
   getPartyFinancialBalances,
+  listPartyLedgerTransactions,
   listPartySales,
   registerPartySale,
 } from "@/server/repositories/sale-repository";
@@ -54,4 +55,8 @@ export async function getSales(partyId: string) {
 
 export async function getPartyBalances(partyId: string) {
   return getPartyFinancialBalances(partyId);
+}
+
+export async function getFinancialHistory(partyId: string) {
+  return listPartyLedgerTransactions(partyId);
 }

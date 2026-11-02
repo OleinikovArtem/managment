@@ -298,6 +298,10 @@ MVP.
 Use Prisma BigInt for monetary values and decimal strings over JSON. Never use
 floating-point arithmetic for financial calculations.
 
+The application exposes a Party-scoped chronological history of all POSTED
+ledger transactions, including their source, account movements and payment
+allocations.
+
 ## 7. Item Catalog and Loot History
 
 This is a core feature.

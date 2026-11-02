@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Suspense } from "react";
 import {
   LayoutDashboard,
+  ListOrdered,
   ScrollText,
   Settings2,
   Swords,
@@ -18,6 +19,7 @@ const navigation = [
   { href: "/items", label: "Предметы", icon: ScrollText },
   { href: "/raids", label: "Рейды", icon: Swords },
   { href: "/sales", label: "Продажи", icon: WalletCards },
+  { href: "/ledger", label: "Финансовая история", icon: ListOrdered },
   { href: "/settings", label: "Настройки", icon: Settings2 },
 ];
 

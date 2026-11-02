@@ -326,3 +326,53 @@ export async function getPartyFinancialBalances(partyId: string) {
       .sort((left, right) => left.nickname.localeCompare(right.nickname)),
   };
 }
+
+export async function listPartyLedgerTransactions(partyId: string) {
+  return prisma.ledgerTransaction.findMany({
+    where: { partyId, status: LedgerTransactionStatus.POSTED },
+    include: {
+      entries: {
+        orderBy: [{ accountType: "asc" }, { partyMemberId: "asc" }],
+        include: { partyMember: { select: { nickname: true } } },
+      },
+      saleTransaction: {
+        include: {
+          raid: { select: { id: true, name: true } },
+          lootDrop: {
+            include: {
+              item: {
+                select: { canonicalName: true, displayName: true },
+              },
+            },
+          },
+          shares: { select: { memberId: true, nicknameSnapshot: true } },
+        },
+      },
+      memberPayment: {
+        include: {
+          allocations: {
+            include: {
+              saleShare: {
+                select: {
+                  saleTransaction: {
+                    select: {
+                      raid: { select: { id: true, name: true } },
+                      lootDrop: {
+                        include: {
+                          item: {
+                            select: { canonicalName: true, displayName: true },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    orderBy: [{ postedAt: "desc" }, { createdAt: "desc" }],
+  });
+}

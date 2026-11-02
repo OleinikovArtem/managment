@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   ledgerTransactionUpdate: vi.fn(),
   ledgerEntryCreateMany: vi.fn(),
   ledgerEntryFindMany: vi.fn(),
+  ledgerTransactionFindMany: vi.fn(),
 }));
 
 const transaction = {
@@ -39,11 +40,13 @@ vi.mock("@/lib/db/prisma", () => ({
       findMany: mocks.saleFindMany,
     },
     ledgerEntry: { findMany: mocks.ledgerEntryFindMany },
+    ledgerTransaction: { findMany: mocks.ledgerTransactionFindMany },
   },
 }));
 
 import {
   getPartyFinancialBalances,
+  listPartyLedgerTransactions,
   registerPartySale,
   listPartySales,
 } from "@/server/repositories/sale-repository";
@@ -285,6 +288,24 @@ describe("sale repository", () => {
           partyId: "party-1",
           ledgerTransaction: { status: "POSTED" },
         },
+      }),
+    );
+  });
+
+  it("lists only posted ledger transactions scoped to the requested Party", async () => {
+    mocks.ledgerTransactionFindMany.mockResolvedValue([]);
+
+    await listPartyLedgerTransactions("party-1");
+
+    expect(mocks.ledgerTransactionFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { partyId: "party-1", status: "POSTED" },
+        orderBy: [{ postedAt: "desc" }, { createdAt: "desc" }],
+        include: expect.objectContaining({
+          entries: expect.any(Object),
+          saleTransaction: expect.any(Object),
+          memberPayment: expect.any(Object),
+        }),
       }),
     );
   });

@@ -132,12 +132,14 @@ Approved rules:
   transaction and SQLite posting trigger.
 - [x] Add Raid sale details and ledger-derived Party/member balances.
 - [x] Add payment UI, payout history snapshots and immutable posted ledger history.
+- [x] Add unified Party-scoped financial history of posted ledger transactions.
 - [x] Add Zod, service, repository and workflow tests for payouts.
 - [x] Verify split FIFO allocation, idempotency and concurrent cash protection
   against a copied SQLite database with the actual Prisma Client.
-- [ ] Add correction/compensating operations. Corrections remain outside the
-  currently approved MVP and need explicit product approval.
-- [ ] Run the complete check set after correction workflows are implemented.
+- [x] Run lint, typecheck, all tests, Prisma validation and production build.
+- [x] Smoke-test the sales and financial-history pages.
+- [ ] Reversals and compensating corrections remain outside the approved MVP;
+  require a separate product decision before implementation.
 
 Acceptance for Phase 4:
 - Sales and payouts are atomic, idempotent and party-scoped.
@@ -178,6 +180,7 @@ Not part of the MVP.
 
 ## Current Status
 
-Current phase: Phase 4.3 — Payouts and Financial UI (in progress).
+Current status: Phase 4 financial MVP implemented. Versioned migration/release
+workflow and any out-of-scope correction features remain future decisions.
 
 Do not start another phase without reviewing the current one.
