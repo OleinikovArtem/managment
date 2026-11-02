@@ -122,9 +122,8 @@ Approved rules:
 - [x] Implement weighted Largest Remainder distribution and SaleShare snapshots.
 - [x] Atomically post balanced sale ledger and lock the Raid.
 - [x] Add sale history and ledger-derived member/Party balance queries.
-- [ ] Test rollback, repeated idempotency requests, oversell and concurrent sales
-  against a real SQLite database (unit coverage currently verifies workflow,
-  idempotency, oversell and bounded lock retries).
+- [x] Verify repeated idempotency requests, oversell protection and concurrent
+  sales against a copied SQLite database using the actual Prisma Client.
 
 ### Phase 4.3 — Payouts and Financial UI
 
@@ -136,7 +135,8 @@ Approved rules:
 - [x] Add Zod, service, repository and workflow tests for payouts.
 - [x] Verify split FIFO allocation, idempotency and concurrent cash protection
   against a copied SQLite database with the actual Prisma Client.
-- [ ] Add correction/compensating operations and real concurrent-sale tests.
+- [ ] Add correction/compensating operations. Corrections remain outside the
+  currently approved MVP and need explicit product approval.
 - [ ] Run the complete check set after correction workflows are implemented.
 
 Acceptance for Phase 4:

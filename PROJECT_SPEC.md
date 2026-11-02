@@ -280,8 +280,9 @@ PaymentAllocation links each payment to one or more SaleShare records and
 preserves the amount applied to each outstanding share.
 
 Partial and multiple payments are supported. Allocate payments FIFO to the
-member's oldest outstanding SaleShare. The member's current active status or
-nickname does not alter historical payment records.
+member's oldest outstanding SaleShare, ordered by SaleTransaction.receivedAt,
+then SaleShare.createdAt and id for deterministic ties. The member's current
+active status or nickname does not alter historical payment records.
 
 ### LedgerTransaction and LedgerEntry
 

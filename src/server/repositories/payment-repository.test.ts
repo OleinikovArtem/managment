@@ -117,7 +117,11 @@ describe("payment repository", () => {
             ledgerTransaction: { is: { status: "POSTED" } },
           },
         }),
-        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        orderBy: [
+          { saleTransaction: { receivedAt: "asc" } },
+          { createdAt: "asc" },
+          { id: "asc" },
+        ],
       }),
     );
     expect(mocks.allocationCreateMany).toHaveBeenCalledWith({

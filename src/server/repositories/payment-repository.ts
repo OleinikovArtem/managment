@@ -171,7 +171,11 @@ async function createPartyPaymentRecord(
         select: { amount: true },
       },
     },
-    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    orderBy: [
+      { saleTransaction: { receivedAt: "asc" } },
+      { createdAt: "asc" },
+      { id: "asc" },
+    ],
   });
 
   let remaining = input.amount;
