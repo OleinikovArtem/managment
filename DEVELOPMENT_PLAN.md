@@ -128,13 +128,16 @@ Approved rules:
 
 ### Phase 4.3 — Payouts and Financial UI
 
-- [ ] Implement actual member payments and FIFO PaymentAllocation.
-- [ ] Prevent payouts above member payable or Party cash.
+- [x] Implement actual member payments and FIFO PaymentAllocation.
+- [x] Prevent payouts above member payable or Party cash in the service,
+  transaction and SQLite posting trigger.
 - [x] Add Raid sale details and ledger-derived Party/member balances.
-- [ ] Add payment UI and immutable financial history with correction workflows.
-- [ ] Add Zod, service, repository and integration tests for financial workflows.
-- [ ] Add real SQLite transaction/concurrency tests and rerun full checks after
-  the payout workflow is implemented.
+- [x] Add payment UI, payout history snapshots and immutable posted ledger history.
+- [x] Add Zod, service, repository and workflow tests for payouts.
+- [x] Verify split FIFO allocation, idempotency and concurrent cash protection
+  against a copied SQLite database with the actual Prisma Client.
+- [ ] Add correction/compensating operations and real concurrent-sale tests.
+- [ ] Run the complete check set after correction workflows are implemented.
 
 Acceptance for Phase 4:
 - Sales and payouts are atomic, idempotent and party-scoped.
@@ -175,6 +178,6 @@ Not part of the MVP.
 
 ## Current Status
 
-Current phase: Phase 4.2 — Sales and Distribution (in progress).
+Current phase: Phase 4.3 — Payouts and Financial UI (in progress).
 
 Do not start another phase without reviewing the current one.

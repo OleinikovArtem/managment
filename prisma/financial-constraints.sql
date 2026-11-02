@@ -584,10 +584,11 @@ BEGIN
 
   SELECT CASE
     WHEN NEW.type = 'PAYOUT_POSTED' AND EXISTS (
-      SELECT 1 FROM PaymentAllocation AS allocation
+      SELECT allocation.memberId FROM PaymentAllocation AS allocation
       WHERE allocation.partyId = NEW.partyId
         AND allocation.memberPaymentId = NEW.memberPaymentId
-        AND allocation.amount <> COALESCE((
+      GROUP BY allocation.memberId
+      HAVING SUM(allocation.amount) <> COALESCE((
           SELECT SUM(entry.debit) FROM LedgerEntry AS entry
           WHERE entry.partyId = NEW.partyId
             AND entry.ledgerTransactionId = NEW.id

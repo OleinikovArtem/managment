@@ -78,7 +78,9 @@ implemented. Phase 4.2 records partial or repeated LootDrop sales only after
 Adena is received, distributes each sale among PRESENT participants using the
 Raid's snapshotted weights, and derives Party cash and member balances from the
 posted ledger. Raid attendance and loot become locked after its first posted
-sale. Member payouts and ledger correction workflows are still in progress.
+sale. Partial member payouts are allocated FIFO against outstanding shares, with
+balances and payment history backed by the immutable ledger. Compensating
+correction workflows are still in progress.
 Backup/restore workflows and SaaS functionality remain for later phases.
 
 Useful checks:
@@ -98,7 +100,7 @@ npm run build
 
 ## Project Status
 
-Phase 4.2 — Sales and distribution (in progress; payouts remain pending).
+Phase 4.3 — Sales, distribution and member payouts (in progress; corrections remain pending).
 
 ## Future Plans
 

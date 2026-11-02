@@ -5,8 +5,10 @@ import { ArrowUpRight, Banknote } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LocalDateTimeDisplay } from "@/features/raids/local-date-time-display";
+import { PaymentForm } from "@/features/sales/payment-form";
 import { ensureLocalWorkspace } from "@/server/bootstrap/local-workspace";
 import { getPartyBalances, getSales } from "@/server/services/sale-service";
+import { getPayments } from "@/server/services/payment-service";
 
 const adenaFormatter = new Intl.NumberFormat("ru-RU");
 
@@ -21,12 +23,14 @@ export default function SalesPage() {
 async function SalesContent() {
   await io();
   const workspace = await ensureLocalWorkspace();
-  const [sales, balances] = await Promise.all([
+  const [sales, balances, payments] = await Promise.all([
     getSales(workspace.partyId),
     getPartyBalances(workspace.partyId),
+    getPayments(workspace.partyId),
   ]);
 
   const totalSales = sales.reduce((sum, sale) => sum + sale.totalPrice, 0n);
+  const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0n);
   const outstanding = balances.memberBalances.reduce(
     (sum, member) => sum + member.payable,
     0n,
@@ -42,7 +46,7 @@ async function SalesContent() {
         </p>
       </header>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Получено от продаж</CardDescription>
@@ -61,6 +65,12 @@ async function SalesContent() {
             <CardTitle className="text-2xl">{adenaFormatter.format(outstanding)} Adena</CardTitle>
           </CardHeader>
         </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Фактически выплачено</CardDescription>
+            <CardTitle className="text-2xl">{adenaFormatter.format(totalPaid)} Adena</CardTitle>
+          </CardHeader>
+        </Card>
       </div>
 
       {balances.memberBalances.length > 0 && (
@@ -73,19 +83,87 @@ async function SalesContent() {
             <ul className="divide-y divide-border">
               {balances.memberBalances.map((member) => (
                 <li key={member.memberId} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
-                  <span className="flex items-center gap-2 text-sm">
-                    {member.nickname}
-                    {!member.isActive && <Badge variant="outline">Неактивен</Badge>}
-                  </span>
-                  <span className="text-sm font-medium">
-                    {adenaFormatter.format(member.payable)} Adena
-                  </span>
+                  <div className="w-full space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <span className="flex items-center gap-2 text-sm">
+                        {member.nickname}
+                        {!member.isActive && <Badge variant="outline">Неактивен</Badge>}
+                      </span>
+                      <span className="text-sm font-medium">
+                        {adenaFormatter.format(member.payable)} Adena
+                      </span>
+                    </div>
+                    {member.payable > 0n && (
+                      <PaymentForm
+                        memberId={member.memberId}
+                        nickname={member.nickname}
+                        remaining={member.payable.toString()}
+                        partyCash={balances.partyCash.toString()}
+                      />
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>
           </CardContent>
         </Card>
       )}
+
+      <Card>
+          <CardHeader>
+            <CardTitle>История выплат</CardTitle>
+            <CardDescription>
+              {payments.length} проведённых выплат; начисления погашаются в порядке FIFO.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {payments.length === 0 ? (
+              <p className="rounded-xl border border-dashed px-6 py-8 text-center text-sm text-muted-foreground">
+                Выплат пока нет. Они появятся здесь после фактической передачи Adena участнику.
+              </p>
+            ) : (
+              <ul className="divide-y divide-border">
+                {payments.map((payment) => (
+                  <li key={payment.id} className="py-4 first:pt-0 last:pb-0">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="space-y-1">
+                        <p className="font-medium">{payment.nicknameSnapshot}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {adenaFormatter.format(payment.amount)} Adena
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          <LocalDateTimeDisplay value={payment.paidAt.toISOString()} />
+                        </p>
+                        {payment.comment && (
+                          <p className="text-sm text-muted-foreground">{payment.comment}</p>
+                        )}
+                      </div>
+                      <Badge variant="outline">
+                        {payment.allocations.length} начислений FIFO
+                      </Badge>
+                    </div>
+                    <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
+                      {payment.allocations.map((allocation) => (
+                        <li
+                          key={allocation.id}
+                          className="flex flex-wrap justify-between gap-2"
+                        >
+                          <span>
+                            {allocation.saleShare.saleTransaction.lootDrop.item.displayName ||
+                              allocation.saleShare.saleTransaction.lootDrop.item.canonicalName}
+                            {" · "}
+                            {allocation.saleShare.saleTransaction.raid.name}
+                          </span>
+                          <span>{adenaFormatter.format(allocation.amount)} Adena</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
