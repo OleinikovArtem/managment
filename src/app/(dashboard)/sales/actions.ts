@@ -24,7 +24,7 @@ export async function registerSaleAction(payload: unknown): Promise<SaleActionRe
     revalidatePath("/sales");
     revalidatePath("/dashboard");
     revalidatePath("/raids");
-    return { ok: true, message: "Продажа и распределение Adena проведены.", sale };
+    return { ok: true, message: "Продажа записана, доли Adena рассчитаны.", sale };
   } catch (error) {
     if (error instanceof SaleOperationError) {
       return { ok: false, message: error.message };

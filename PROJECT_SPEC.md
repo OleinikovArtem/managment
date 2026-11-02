@@ -298,9 +298,9 @@ MVP.
 Use Prisma BigInt for monetary values and decimal strings over JSON. Never use
 floating-point arithmetic for financial calculations.
 
-The application exposes a Party-scoped chronological history of all POSTED
-ledger transactions, including their source, account movements and payment
-allocations.
+The user-facing history is a Party-scoped chronological list of sales and
+payments. A sale shows its participant shares; a payment shows the member, amount
+and date. Internal ledger entries and debit/credit details are not shown.
 
 ## 7. Item Catalog and Loot History
 
@@ -383,6 +383,11 @@ Never use the current party roster for historical distribution.
 
 ## 10. Financial Management
 
+The user-facing financial workflow is intentionally simple: record a completed
+item sale, show each raid participant's share, record Adena actually handed to a
+member, and show both the remaining member balances and the total party bank.
+This is not accounting software.
+
 Distribute each sale among PRESENT participants of the originating Raid, using
 the RaidParticipant weight and nickname snapshots. ABSENT participants receive
 no share. The current PartyMember roster must never be used to calculate a
@@ -393,25 +398,26 @@ remainder ties deterministically by RaidParticipant.id. Each sale is calculated
 independently, and the total of all SaleShare amounts must equal totalPrice
 exactly. The Party's share of a sale is 0%.
 
-Keep separate:
-- Party cash.
-- Member accrued earnings (outstanding payable).
-- Member actual payments.
-- Remaining member balances.
+Show the following in plain language:
+- Adena remaining in the party bank.
+- Each member's total share from sales.
+- Adena already handed to each member.
+- Each member's amount still to be handed over.
 
-Post a sale and its shares and ledger entries atomically. The first posted sale
-sets Raid.lockedAt in the same transaction; afterward attendance and financial
-LootDrop fields cannot change. Explanatory comments remain editable.
+Save a sale and its participant shares together. The first sale locks the Raid's
+attendance and financial LootDrop fields; explanatory comments remain editable.
 
-Post a payout and its FIFO allocations and ledger entries atomically. A payout
-cannot exceed the member's outstanding earnings or available Party cash.
+Record full or partial payments made to a member. A payment cannot exceed that
+member's remaining share or the available Party bank. Keep the date, amount and
+optional note for every payment.
 
-Every posted sale creates a SaleTransaction, SaleShare records and balanced
-double-entry ledger records. Every payout creates a MemberPayment,
-PaymentAllocation records and balanced ledger records.
+The database currently uses immutable internal ledger records to reliably
+calculate the bank and member balances. This implementation detail is not shown
+as accounting concepts or individual debit/credit entries in the user interface.
 
-Never edit or delete posted financial history. Refunds, reversals, adjustments,
-fees and other compensating operations are outside the approved MVP.
+Returns, refunds, reversals, fees, manual adjustments and accounting workflows
+are explicitly outside the product scope. A sale represents an item that has
+already sold and Adena that has already been received.
 
 ## 11. Application Pages
 
@@ -447,13 +453,14 @@ fees and other compensating operations are outside the approved MVP.
 /sales
 /sales/[id]
 - Sales by LootDrop.
-- Completed partial sales and distribution.
+- Sold quantity and price.
+- Each participant's share from the sale.
 
-/bank
-- Party balance.
-- Member balances.
-- Payments.
-- Financial ledger.
+/ledger
+- Simple chronological list of sales and member payments.
+- Participant shares for each sale.
+- No accounting entries or debit/credit terminology.
+- CSV export of sales, shares and member payments.
 
 /settings
 - Party information.
@@ -530,7 +537,8 @@ Write tests for:
 - Partial sales.
 - Multiple sales per LootDrop.
 - Payment calculations.
-- Ledger posting and immutability.
+- Correct party-bank and member balances.
+- CSV fields with commas, quotes and formula-like text.
 - Historical data integrity.
 
 ## 16. MVP Acceptance Criteria
@@ -547,7 +555,7 @@ The application is usable when:
 8. Loot screenshots can be stored locally.
 9. Sales can be recorded directly against LootDrop records.
 10. Participant shares are calculated correctly and exactly conserve Adena.
-11. Member balances and actual payments are tracked independently.
-12. Posted financial history is preserved.
+11. Each member's sale shares, payments and remaining balance are visible.
+12. Sales, shares and payment history are preserved.
 13. Database and screenshots can be backed up and restored.
 14. Architecture supports future multi-party SaaS development.

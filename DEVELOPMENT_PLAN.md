@@ -85,13 +85,16 @@ Approved rules:
 - Distribute independently per sale among PRESENT participants using snapshotted
   positive weights and Largest Remainder Method. Tie-break by RaidParticipant.id;
   Party share is 0%.
-- Payments represent Adena actually handed over, support partial payments and
-  allocate FIFO to outstanding SaleShare records.
-- Ledger entries use BigInt, double-entry PARTY_CASH/MEMBER_PAYABLE accounts and
-  become immutable when POSTED. JSON money values are decimal strings.
+- Record full or partial Adena actually handed to a member; show total share,
+  amount already handed over, and remaining amount in plain language.
+- Track the remaining total in the shared Party bank.
+- No returns, refunds, reversals, fees, manual adjustments or accounting UI are
+  part of the product scope.
+- An immutable internal ledger currently protects balances and payment history;
+  its technical entries are not shown to users.
 - Idempotency keys are party-scoped; same key/same parameters reuses the result,
   while same key/different parameters is a conflict.
-- First posted sale locks attendance and financial LootDrop fields on the Raid.
+- First recorded sale locks attendance and financial LootDrop fields on the Raid.
 
 ### Phase 4.1 — Financial Schema Foundation (complete for local development)
 
@@ -125,27 +128,33 @@ Approved rules:
 - [x] Verify repeated idempotency requests, oversell protection and concurrent
   sales against a copied SQLite database using the actual Prisma Client.
 
-### Phase 4.3 — Payouts and Financial UI
+### Phase 4.3 — Member Payments and Simple Finance UI
 
-- [x] Implement actual member payments and FIFO PaymentAllocation.
-- [x] Prevent payouts above member payable or Party cash in the service,
-  transaction and SQLite posting trigger.
-- [x] Add Raid sale details and ledger-derived Party/member balances.
-- [x] Add payment UI, payout history snapshots and immutable posted ledger history.
-- [x] Add unified Party-scoped financial history of posted ledger transactions.
+- [x] Record full or partial Adena payments to members; internal allocation
+  links payments to unpaid sale shares.
+- [x] Prevent payments above a member's remaining share or the Party bank.
+- [x] Add Raid sale details and Party/member balances from recorded sales and
+  payments.
+- [x] Add payment UI, payment history and member nickname snapshots.
+- [x] Add a Party-scoped chronological history of sales and payments.
+- [x] Keep accounting entries and allocation mechanics out of the user-facing
+  finance screens.
+- [x] Use plain sales, participant shares and transfer amounts in the CSV export;
+  keep the ledger as an internal implementation detail.
 - [x] Add Zod, service, repository and workflow tests for payouts.
 - [x] Verify split FIFO allocation, idempotency and concurrent cash protection
   against a copied SQLite database with the actual Prisma Client.
 - [x] Run lint, typecheck, all tests, Prisma validation and production build.
 - [x] Smoke-test the sales and financial-history pages.
-- [ ] Reversals and compensating corrections remain outside the approved MVP;
-  require a separate product decision before implementation.
+- [x] Keep returns, refunds, reversals, fees and accounting workflows outside
+  the MVP.
 
 Acceptance for Phase 4:
 - Sales and payouts are atomic, idempotent and party-scoped.
 - Sale shares exactly equal the received Adena amount.
-- Party cash, accrued member earnings and actual payments are distinguishable.
-- Posted ledger history cannot be edited or deleted.
+- The shared Party bank and each member's remaining amount are easy to see.
+- Each sale shows which participants receive a share and how much.
+- Each payment shows who received Adena, how much and when.
 - Financial records and original Raid snapshots remain intact.
 
 ## Phase 5 — Backup and Polish
@@ -160,8 +169,7 @@ Acceptance for Phase 4:
 - [ ] Implement user-facing upload/storage for screenshots.
 - [ ] Implement a reviewed workflow to activate a restore candidate and restore
   its uploads; current preparation is deliberately non-destructive.
-- [x] Export party-scoped posted financial history as CSV, including allocations
-  and balanced ledger entries.
+- [x] Export Party sales, participant shares and member payments as a simple CSV.
 - [ ] Improve dashboard statistics.
 - [ ] Improve responsive UI.
 - [x] Add isolated integration tests for backup, validation and restore staging.
@@ -190,9 +198,10 @@ Not part of the MVP.
 ## Current Status
 
 Current status: Phase 5 local backup, validation, non-destructive
-restore-candidate preparation and financial-history CSV export implemented.
-Screenshot upload UI, automatic restore activation and remaining polish are
-pending. Phase 4 correction workflows and a versioned database migration/release
-workflow remain separate future decisions.
+restore-candidate preparation and simple sales/payment CSV export implemented.
+The finance UI focuses on sale shares, member payments and the shared bank; the
+ledger remains internal. Screenshot upload UI, automatic restore activation and
+remaining polish are pending. Returns and accounting workflows are out of scope.
+A versioned database migration/release workflow remains a separate future task.
 
 Do not start another phase without reviewing the current one.

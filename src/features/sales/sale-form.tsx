@@ -156,7 +156,7 @@ export function SaleForm({ lootDropId, remainingQuantity }: SaleFormProps) {
           ) : (
             <Check aria-hidden="true" />
           )}
-          {isPending ? "Проводим продажу..." : "Продажа получена"}
+          {isPending ? "Сохраняем продажу..." : "Записать продажу"}
         </Button>
       </div>
     </form>

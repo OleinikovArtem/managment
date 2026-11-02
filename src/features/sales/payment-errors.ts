@@ -7,14 +7,14 @@ export class PaymentOperationError extends Error {
 
 export class PaymentIdempotencyConflictError extends PaymentOperationError {
   constructor() {
-    super("Этот ключ операции уже использован для выплаты с другими данными.");
+    super("Передача уже сохранена с другими данными. Проверьте сумму и историю.");
     this.name = "PaymentIdempotencyConflictError";
   }
 }
 
 export class PaymentTemporaryDatabaseError extends PaymentOperationError {
   constructor() {
-    super("База данных занята. Выплата не проведена; подождите и повторите попытку.");
+    super("Не удалось записать передачу Adena. Подождите и повторите попытку.");
     this.name = "PaymentTemporaryDatabaseError";
   }
 }

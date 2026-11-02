@@ -40,9 +40,10 @@ async function SalesContent() {
     <div className="space-y-7">
       <header>
         <p className="text-sm font-medium text-primary">{workspace.partyName}</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">Продажи</h1>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight">Продажи и банк</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          Записи о фактически полученной оплате. Продажу можно внести со страницы исходного рейда.
+          Учитывайте проданные предметы, доли участников, переданную Adena и остаток общего банка.
+          Продажу можно внести со страницы исходного рейда.
         </p>
       </header>
 
@@ -55,19 +56,19 @@ async function SalesContent() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Остаток в кассе</CardDescription>
+            <CardDescription>Остаток общего банка</CardDescription>
             <CardTitle className="text-2xl">{adenaFormatter.format(balances.partyCash)} Adena</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Начислено к выплате участникам</CardDescription>
+            <CardDescription>Осталось передать участникам</CardDescription>
             <CardTitle className="text-2xl">{adenaFormatter.format(outstanding)} Adena</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Фактически выплачено</CardDescription>
+            <CardDescription>Уже передано участникам</CardDescription>
             <CardTitle className="text-2xl">{adenaFormatter.format(totalPaid)} Adena</CardTitle>
           </CardHeader>
         </Card>
@@ -76,8 +77,10 @@ async function SalesContent() {
       {balances.memberBalances.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Начисления участникам</CardTitle>
-            <CardDescription>Суммы восстановлены из проведённых записей ledger.</CardDescription>
+            <CardTitle>Сколько осталось передать</CardTitle>
+            <CardDescription>
+              Остаток доли каждого участника с продаж за вычетом уже переданной Adena.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <ul className="divide-y divide-border">
@@ -111,15 +114,15 @@ async function SalesContent() {
 
       <Card>
           <CardHeader>
-            <CardTitle>История выплат</CardTitle>
+            <CardTitle>История передач участникам</CardTitle>
             <CardDescription>
-              {payments.length} проведённых выплат; начисления погашаются в порядке FIFO.
+              {payments.length} записей. Частичная передача уменьшает остаток участника.
             </CardDescription>
           </CardHeader>
           <CardContent>
             {payments.length === 0 ? (
               <p className="rounded-xl border border-dashed px-6 py-8 text-center text-sm text-muted-foreground">
-                Выплат пока нет. Они появятся здесь после фактической передачи Adena участнику.
+                Передач пока нет. Они появятся здесь после того, как вы отдадите Adena участнику.
               </p>
             ) : (
               <ul className="divide-y divide-border">
@@ -138,26 +141,8 @@ async function SalesContent() {
                           <p className="text-sm text-muted-foreground">{payment.comment}</p>
                         )}
                       </div>
-                      <Badge variant="outline">
-                        {payment.allocations.length} начислений FIFO
-                      </Badge>
+                      <Badge variant="outline">Передано</Badge>
                     </div>
-                    <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
-                      {payment.allocations.map((allocation) => (
-                        <li
-                          key={allocation.id}
-                          className="flex flex-wrap justify-between gap-2"
-                        >
-                          <span>
-                            {allocation.saleShare.saleTransaction.lootDrop.item.displayName ||
-                              allocation.saleShare.saleTransaction.lootDrop.item.canonicalName}
-                            {" · "}
-                            {allocation.saleShare.saleTransaction.raid.name}
-                          </span>
-                          <span>{adenaFormatter.format(allocation.amount)} Adena</span>
-                        </li>
-                      ))}
-                    </ul>
                   </li>
                 ))}
               </ul>

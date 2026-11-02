@@ -19,7 +19,7 @@ const navigation = [
   { href: "/items", label: "Предметы", icon: ScrollText },
   { href: "/raids", label: "Рейды", icon: Swords },
   { href: "/sales", label: "Продажи", icon: WalletCards },
-  { href: "/ledger", label: "Финансовая история", icon: ListOrdered },
+  { href: "/ledger", label: "Продажи и передачи", icon: ListOrdered },
   { href: "/settings", label: "Настройки", icon: Settings2 },
 ];
 

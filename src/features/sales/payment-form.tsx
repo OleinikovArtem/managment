@@ -44,7 +44,7 @@ export function PaymentForm({
 
     const paidDate = new Date(paidAt);
     if (!/^[1-9]\d*$/.test(amount) || !Number.isFinite(paidDate.getTime())) {
-      setMessage("Проверьте сумму и дату выплаты.");
+      setMessage("Проверьте сумму и дату передачи Adena.");
       return;
     }
 
@@ -85,11 +85,11 @@ export function PaymentForm({
       onSubmit={onSubmit}
     >
       <p className="text-xs text-muted-foreground">
-        Выплата {nickname}. Максимум сейчас: {maxPayable} Adena (долг и касса).
+        Передача для {nickname}. Максимум сейчас: {maxPayable} Adena (остаток участника и общего банка).
       </p>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="space-y-1.5 text-xs font-medium">
-          Выплатить Adena
+          Передать Adena
           <Input
             inputMode="numeric"
             pattern="[0-9]*"
@@ -97,12 +97,12 @@ export function PaymentForm({
             required
             value={amount}
             onChange={(event) => setAmount(event.target.value)}
-            aria-label={`Сумма выплаты для ${nickname}`}
+            aria-label={`Сумма передачи Adena для ${nickname}`}
             placeholder="Например, 500000"
           />
         </label>
         <label className="space-y-1.5 text-xs font-medium">
-          Дата выплаты
+          Дата передачи
           <Input
             type="datetime-local"
             required
@@ -111,7 +111,7 @@ export function PaymentForm({
               if (!paidAt) setPaidAt(getLocalDateTimeValue(new Date()));
             }}
             onChange={(event) => setPaidAt(event.target.value)}
-            aria-label={`Дата выплаты для ${nickname}`}
+            aria-label={`Дата передачи Adena для ${nickname}`}
           />
         </label>
       </div>
@@ -122,7 +122,7 @@ export function PaymentForm({
           rows={2}
           value={comment}
           onChange={(event) => setComment(event.target.value)}
-          aria-label={`Комментарий к выплате для ${nickname}`}
+          aria-label={`Комментарий к передаче Adena для ${nickname}`}
           placeholder="Например, перевод или наличные"
         />
       </label>
@@ -134,7 +134,7 @@ export function PaymentForm({
           ) : (
             <Check aria-hidden="true" />
           )}
-          {isPending ? "Проводим выплату..." : "Записать выплату"}
+          {isPending ? "Сохраняем передачу..." : "Записать передачу"}
         </Button>
       </div>
     </form>

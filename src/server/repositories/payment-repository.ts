@@ -131,7 +131,7 @@ async function createPartyPaymentRecord(
   );
   if (input.amount > partyCash) {
     throw new PaymentOperationError(
-      "Выплата превышает доступный остаток Adena в кассе группы.",
+      "Нельзя передать больше Adena, чем сейчас есть в общем банке.",
     );
   }
 
@@ -145,7 +145,7 @@ async function createPartyPaymentRecord(
   );
   if (input.amount > memberPayable) {
     throw new PaymentOperationError(
-      "Выплата превышает начисленную участнику сумму.",
+      "Нельзя передать участнику больше его оставшейся доли.",
     );
   }
 
@@ -196,7 +196,7 @@ async function createPartyPaymentRecord(
 
   if (remaining !== 0n) {
     throw new PaymentOperationError(
-      "Не удалось распределить выплату по оставшимся начислениям участника.",
+      "Не удалось учесть передачу в остатке доли участника.",
     );
   }
 

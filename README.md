@@ -12,7 +12,9 @@ Party Bank Manager helps manage:
 - Item acquisition history.
 - Received sales, weighted member shares, Party cash and outstanding member balances.
 
-Compensating correction workflows remain outside the approved MVP.
+The financial workflow is intentionally simple: record sold items, see each
+participant's share, record Adena handed to members, and track the shared Party
+bank. Returns, refunds and accounting workflows are not part of the product.
 
 ## Technology
 
@@ -74,14 +76,13 @@ storage and rendered back in the browser's local time zone. Nonexistent or
 ambiguous local times during daylight-saving transitions are rejected.
 
 Screenshot path fields are reserved, but screenshot uploads/storage are not
-implemented in the UI. Phase 4.2 records partial or repeated LootDrop sales only after
-Adena is received, distributes each sale among PRESENT participants using the
-Raid's snapshotted weights, and derives Party cash and member balances from the
-posted ledger. Raid attendance and loot become locked after its first posted
-sale. Partial member payouts are allocated FIFO against outstanding shares, with
-balances and payment history backed by the immutable ledger. The `/ledger` page
-shows all posted account movements and their source records. Compensating
-correction workflows are outside the approved MVP.
+implemented in the UI. Phase 4.2 records partial or repeated LootDrop sales only
+after Adena is received, distributes each sale among PRESENT participants using
+the Raid's snapshotted weights, and updates the Party bank and member balances.
+Raid attendance and loot become locked after its first sale.
+Partial payments update the remaining amount for each participant. An immutable
+internal record is used to calculate balances, but the interface shows sales,
+participant shares and payments rather than accounting entries.
 
 Phase 5 provides local ZIP backups of a consistent SQLite snapshot and files in
 `data/uploads/`, with a SHA-256 manifest, archive/path limits, SQLite integrity
@@ -90,8 +91,8 @@ settings page can validate backups and prepare a restore candidate under
 `data/restore-candidates/`. Preparation never replaces the active database.
 Switching `DATABASE_URL` and restoring candidate uploads are manual steps after
 stopping the application; preserve the current database and uploads before doing
-so. The financial-history page exports posted sales, shares, ledger entries,
-payouts and FIFO allocations as UTF-8 CSV with exact Adena integer strings.
+so. The sales-and-payments history page exports sales, participant shares and
+payments as UTF-8 CSV with exact Adena integer strings.
 Upload UI, automatic restore activation and remaining polish are not implemented
 yet. SaaS functionality remains a future plan.
 

@@ -17,7 +17,7 @@ export async function registerPaymentAction(
   if (!parsed.success) {
     return {
       ok: false,
-      message: parsed.error.issues[0]?.message ?? "Проверьте данные выплаты.",
+      message: parsed.error.issues[0]?.message ?? "Проверьте данные передачи Adena.",
       fieldErrors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -27,7 +27,7 @@ export async function registerPaymentAction(
     const payment = await registerPayment(partyId, parsed.data);
     revalidatePath("/sales");
     revalidatePath("/dashboard");
-    return { ok: true, message: "Выплата проведена и записана в историю.", payment };
+    return { ok: true, message: "Передача Adena записана.", payment };
   } catch (error) {
     if (error instanceof PaymentOperationError) {
       return { ok: false, message: error.message };
