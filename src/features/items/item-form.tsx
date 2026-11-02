@@ -63,6 +63,11 @@ export function ItemForm({
       comment: "",
     },
   });
+  const availableCategories =
+    initialValues?.category &&
+    !itemCategories.includes(initialValues.category)
+      ? [initialValues.category, ...itemCategories]
+      : itemCategories;
 
   const onSubmit = form.handleSubmit((values) => {
     setMessage(null);
@@ -127,7 +132,7 @@ export function ItemForm({
           {...form.register("category")}
         >
           <option value="">Не выбрана</option>
-          {itemCategories.map((category) => (
+          {availableCategories.map((category) => (
             <option key={category} value={category}>
               {category}
             </option>
