@@ -269,8 +269,8 @@ export async function listPartySales(partyId: string) {
   return prisma.saleTransaction.findMany({
     where: { partyId },
     include: {
-      lootDrop: { include: { item: { select: { id: true, canonicalName: true, displayName: true } } } },
-      raid: { select: { id: true, name: true, occurredAt: true } },
+      lootDrop: { include: { item: { select: { id: true, canonicalName: true, displayName: true, category: true } } } },
+      raid: { select: { id: true, name: true, instanceName: true, occurredAt: true } },
       shares: { orderBy: { memberId: "asc" } },
     },
     orderBy: [{ receivedAt: "desc" }, { createdAt: "desc" }],

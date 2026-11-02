@@ -48,7 +48,6 @@ import {
 } from "@/server/repositories/payment-repository";
 import {
   PaymentIdempotencyConflictError,
-  PaymentOperationError,
   PaymentTemporaryDatabaseError,
 } from "@/features/sales/payment-errors";
 
@@ -152,27 +151,23 @@ describe("payment repository", () => {
     );
   });
 
-  it("rejects a payment greater than available Party cash before writing", async () => {
+  it("allows a payment greater than available Party cash as debt", async () => {
     mocks.ledgerEntryFindMany.mockResolvedValue([
       { accountType: "PARTY_CASH", partyMemberId: null, debit: 50n, credit: 0n },
     ]);
 
-    await expect(registerPartyPayment("party-1", input)).rejects.toBeInstanceOf(
-      PaymentOperationError,
-    );
-    expect(mocks.paymentCreate).not.toHaveBeenCalled();
+    await expect(registerPartyPayment("party-1", input)).resolves.toMatchObject({ amount: 90n });
+    expect(mocks.paymentCreate).toHaveBeenCalled();
   });
 
-  it("rejects a payment greater than the member's outstanding payable", async () => {
+  it("allows a payment greater than the member's outstanding payable as debt", async () => {
     mocks.ledgerEntryFindMany.mockResolvedValue([
       { accountType: "PARTY_CASH", partyMemberId: null, debit: 150n, credit: 0n },
       { accountType: "MEMBER_PAYABLE", partyMemberId: "member-1", debit: 100n, credit: 100n },
     ]);
 
-    await expect(registerPartyPayment("party-1", input)).rejects.toBeInstanceOf(
-      PaymentOperationError,
-    );
-    expect(mocks.paymentCreate).not.toHaveBeenCalled();
+    await expect(registerPartyPayment("party-1", input)).resolves.toMatchObject({ amount: 90n });
+    expect(mocks.paymentCreate).toHaveBeenCalled();
   });
 
   it("reuses an idempotent request and rejects a different request with the same key", async () => {

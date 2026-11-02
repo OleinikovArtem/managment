@@ -23,3 +23,18 @@ export async function getPartyMemberCounts(partyId: string) {
 
   return { activeMembers, totalMembers };
 }
+
+export async function resetPartyData(partyId: string) {
+  return prisma.$transaction(async (transaction) => {
+    await transaction.paymentAllocation.deleteMany({ where: { partyId } });
+    await transaction.ledgerEntry.deleteMany({ where: { partyId } });
+    await transaction.ledgerTransaction.deleteMany({ where: { partyId } });
+    await transaction.memberPayment.deleteMany({ where: { partyId } });
+    await transaction.saleShare.deleteMany({ where: { partyId } });
+    await transaction.saleTransaction.deleteMany({ where: { partyId } });
+    await transaction.lootDrop.deleteMany({ where: { partyId } });
+    await transaction.raidParticipant.deleteMany({ where: { partyId } });
+    await transaction.raid.deleteMany({ where: { partyId } });
+    await transaction.partyMember.deleteMany({ where: { partyId } });
+  });
+}

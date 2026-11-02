@@ -13,12 +13,16 @@ describe("paymentInputSchema", () => {
     expect(paymentInputSchema.parse(validInput)).toEqual(validInput);
   });
 
-  it.each(["0", "-1", "1.5", "1e5", " 100", "01", "9223372036854775808"])(
+  it.each(["0", "-1", "1.5", "1e5", "01", "9223372036854775808"])(
     "rejects invalid Adena amount %s",
     (amount) => {
       expect(paymentInputSchema.safeParse({ ...validInput, amount }).success).toBe(false);
     },
   );
+
+  it("accepts compact million notation", () => {
+    expect(paymentInputSchema.parse({ ...validInput, amount: "5.25м" }).amount).toBe("5250000");
+  });
 
   it("rejects malformed dates, IDs and overlong comments", () => {
     expect(paymentInputSchema.safeParse({ ...validInput, paidAt: "yesterday" }).success).toBe(false);

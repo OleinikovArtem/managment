@@ -123,6 +123,10 @@ npm run build
 
 ## Documentation
 
+- [docs/PROJECT_CONTEXT.md](./docs/PROJECT_CONTEXT.md) — compact implementation map and development context.
+- [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) — current data flows, financial invariants and operational limitations.
+- [docs/UI_UX_AUDIT.md](./docs/UI_UX_AUDIT.md) — evidence-backed UI/UX audit and prioritized redesign brief.
+
 - `PROJECT_SPEC.md` — product requirements and architecture.
 - `DEVELOPMENT_PLAN.md` — implementation roadmap.
 - `COPILOT_INSTRUCTIONS.md` — GitHub Copilot development rules.

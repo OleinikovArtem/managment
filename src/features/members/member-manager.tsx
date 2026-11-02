@@ -185,6 +185,7 @@ function MemberForm({
 export function MemberManager({ members }: { members: MemberRow[] }) {
   const router = useRouter();
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const activeCount = members.filter((member) => member.isActive).length;
@@ -192,6 +193,7 @@ export function MemberManager({ members }: { members: MemberRow[] }) {
   function refreshAfterSave(successMessage: string) {
     setMessage(successMessage);
     setEditingId(null);
+    setIsCreateOpen(false);
     router.refresh();
   }
 
@@ -214,7 +216,7 @@ export function MemberManager({ members }: { members: MemberRow[] }) {
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
+    <div className="mx-auto max-w-5xl">
       <Card className="h-fit">
         <CardHeader className="flex-row items-start justify-between gap-4">
           <div className="space-y-1">
@@ -223,15 +225,41 @@ export function MemberManager({ members }: { members: MemberRow[] }) {
               Ники уникальны внутри группы без учёта регистра и лишних пробелов.
             </CardDescription>
           </div>
-          <Badge variant="outline" className="border-emerald-400/30 text-emerald-300">
-            {activeCount} активных
-          </Badge>
+          <div className="flex shrink-0 items-center gap-2">
+            <Badge variant="outline" className="hidden border-emerald-400/30 text-emerald-300 sm:inline-flex">
+              {activeCount} активных
+            </Badge>
+            <Button type="button" size="sm" onClick={() => setIsCreateOpen((open) => !open)} aria-expanded={isCreateOpen}>
+              <Plus aria-hidden="true" />
+              {isCreateOpen ? "Скрыть форму" : "Добавить участника"}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {message && (
             <p role="status" className="rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm">
               {message}
             </p>
+          )}
+
+          {isCreateOpen && (
+            <div className="rounded-xl border border-primary/25 bg-primary/5 p-4">
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="font-medium">Новый участник</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">Заполните только данные, которые нужны для распределения.</p>
+                </div>
+                <Button type="button" variant="ghost" size="icon-sm" onClick={() => setIsCreateOpen(false)} aria-label="Закрыть форму добавления">
+                  <X aria-hidden="true" />
+                </Button>
+              </div>
+              <MemberForm
+                submitLabel="Добавить участника"
+                action={createMemberAction}
+                onSuccess={() => refreshAfterSave("Участник добавлен.")}
+                onCancel={() => setIsCreateOpen(false)}
+              />
+            </div>
           )}
 
           {members.length === 0 ? (
@@ -309,21 +337,6 @@ export function MemberManager({ members }: { members: MemberRow[] }) {
         </CardContent>
       </Card>
 
-      <Card className="h-fit">
-        <CardHeader>
-          <CardTitle>Добавить участника</CardTitle>
-          <CardDescription>
-            Участник — это игровой персонаж, а не пользователь приложения.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <MemberForm
-            submitLabel="Добавить участника"
-            action={createMemberAction}
-            onSuccess={() => refreshAfterSave("Участник добавлен.")}
-          />
-        </CardContent>
-      </Card>
     </div>
   );
 }

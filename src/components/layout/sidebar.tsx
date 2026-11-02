@@ -14,18 +14,18 @@ import {
 } from "lucide-react";
 
 const navigation = [
-  { href: "/dashboard", label: "Обзор", icon: LayoutDashboard },
+  { href: "/dashboard", label: "Дашборд", icon: LayoutDashboard },
   { href: "/members", label: "Участники", icon: UsersRound },
   { href: "/items", label: "Предметы", icon: ScrollText },
   { href: "/raids", label: "Рейды", icon: Swords },
-  { href: "/sales", label: "Продажи", icon: WalletCards },
-  { href: "/ledger", label: "Продажи и передачи", icon: ListOrdered },
+  { href: "/sales", label: "Финансы", icon: WalletCards },
+  { href: "/ledger", label: "История", icon: ListOrdered },
   { href: "/settings", label: "Настройки", icon: Settings2 },
 ];
 
 export function Sidebar() {
   return (
-    <aside className="flex w-full shrink-0 flex-col border-b border-sidebar-border bg-sidebar px-4 py-4 md:min-h-screen md:w-64 md:border-r md:border-b-0 md:px-5 md:py-7">
+    <aside className="flex w-full shrink-0 flex-col border-b border-sidebar-border/80 bg-sidebar/95 px-4 py-4 backdrop-blur-xl md:min-h-screen md:w-64 md:border-r md:border-b-0 md:px-5 md:py-7">
       <Link href="/dashboard" className="mb-5 flex items-center gap-3 md:mb-10">
         <span className="flex size-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
           <WalletCards aria-hidden="true" size={21} />
@@ -56,7 +56,7 @@ function SidebarNavigation() {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Основная навигация" className="flex gap-2 md:flex-col">
+    <nav aria-label="Основная навигация" className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 md:mx-0 md:flex-col md:overflow-visible md:px-0 md:pb-0">
         {navigation.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(`${href}/`);
           return (

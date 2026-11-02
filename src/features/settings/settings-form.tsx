@@ -51,7 +51,7 @@ export function SettingsForm({ partyName }: { partyName: string }) {
   });
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.7fr)]">
+    <div className="grid gap-6 lg:grid-cols-2">
       <Card className="h-fit">
         <CardHeader>
           <CardTitle>Параметры группы</CardTitle>
@@ -103,6 +103,7 @@ export function SettingsForm({ partyName }: { partyName: string }) {
           пересоздаёт базу данных.
         </CardContent>
       </Card>
+
     </div>
   );
 }

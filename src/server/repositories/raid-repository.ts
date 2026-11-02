@@ -77,10 +77,10 @@ export async function getPartyRaidById(partyId: string, raidId: string) {
           item: { select: { id: true, canonicalName: true, displayName: true } },
           saleTransactions: {
             include: { shares: { orderBy: { memberId: "asc" } } },
-            orderBy: [{ receivedAt: "asc" }, { createdAt: "asc" }],
+            orderBy: [{ receivedAt: "desc" }, { createdAt: "desc" }],
           },
         },
-        orderBy: { createdAt: "asc" },
+        orderBy: { createdAt: "desc" },
       },
     },
   });

@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Save } from "lucide-react";
+import { CheckCheck, Plus, Save, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,7 @@ import {
   raidFormSchema,
   type RaidFormValues,
 } from "@/features/raids/raid-schema";
+import { ItemCombobox } from "@/features/raids/item-combobox";
 
 export type RaidMemberOption = {
   id: string;
@@ -80,6 +81,18 @@ export function RaidForm({
   const participants = useFieldArray({ control: form.control, name: "participants" });
   const lootDrops = useFieldArray({ control: form.control, name: "lootDrops" });
   const participantValues = useWatch({ control: form.control, name: "participants" }) ?? [];
+  const lootDropValues = useWatch({ control: form.control, name: "lootDrops" }) ?? [];
+  const presentCount = participantValues.filter(({ status }) => status === "PRESENT").length;
+  const allPresent = members.length > 0 && presentCount === members.length;
+
+  function setAllParticipantStatuses(status: "PRESENT" | "ABSENT") {
+    members.forEach((_, index) => {
+      form.setValue(`participants.${index}.status`, status, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    });
+  }
 
   const onSubmit = form.handleSubmit((values) => {
     setMessage(null);
@@ -151,26 +164,45 @@ export function RaidForm({
       </section>
 
       <section className="space-y-3">
-        <div>
-          <h2 className="font-medium">Состав группы на момент рейда</h2>
-          <p className="text-sm text-muted-foreground">
-            Снимок включает всех текущих участников; отметьте тех, кто отсутствовал.
-            После сохранения участники снимка не добавляются и не удаляются.
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="font-medium">Состав группы на момент рейда</h2>
+            <p className="text-sm text-muted-foreground">
+              Отметьте присутствующих. Снимок сохраняет всех участников, а статус можно изменить до сохранения.
+            </p>
+          </div>
+          {members.length > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setAllParticipantStatuses(allPresent ? "ABSENT" : "PRESENT")}
+              disabled={isPending}
+              aria-label={allPresent ? "Снять отметку со всех участников" : "Отметить всех участников присутствующими"}
+            >
+              <CheckCheck aria-hidden="true" />
+              {allPresent ? "Снять всех" : "Отметить всех"}
+            </Button>
+          )}
         </div>
         {members.length === 0 ? (
           <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
             Для создания рейда сначала добавьте участника в разделе «Участники».
           </div>
         ) : (
-          <ul className="grid gap-2 sm:grid-cols-2">
+          <>
+            <p className="text-xs font-medium text-muted-foreground" aria-live="polite">
+              Присутствуют: <span className="text-foreground">{presentCount} из {members.length}</span>
+            </p>
+            <ul className="grid gap-2 sm:grid-cols-2">
             {members.map((member, index) => {
               const isPresent = participantValues[index]?.status === "PRESENT";
               return (
                 <li key={participants.fields[index]?.id ?? member.id}>
-                  <label className="flex min-h-11 items-center gap-3 rounded-lg border px-3">
+                  <label className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border px-3 transition-colors ${isPresent ? "border-primary/40 bg-primary/5" : "hover:bg-muted/40"}`}>
                     <input
                       type="checkbox"
+                      aria-label={`${isPresent ? "Убрать присутствие" : "Отметить присутствие"}: ${member.nickname}`}
                       checked={isPresent}
                       disabled={isPending}
                       onChange={(event) =>
@@ -189,7 +221,8 @@ export function RaidForm({
                 </li>
               );
             })}
-          </ul>
+            </ul>
+          </>
         )}
         {(form.formState.errors.participants?.message ??
           form.formState.errors.participants?.root?.message) && (
@@ -235,22 +268,18 @@ export function RaidForm({
         ) : (
           <ul className="space-y-3">
             {lootDrops.fields.map((field, index) => (
-              <li key={field.id} className="grid gap-3 rounded-lg border p-3 sm:grid-cols-[minmax(0,1fr)_8rem]">
+              <li key={field.id} className="grid gap-3 rounded-xl border border-border/80 bg-background/20 p-3 sm:grid-cols-[minmax(0,1fr)_8rem_auto] sm:items-end">
                 <div className="space-y-2">
                   <label htmlFor={`loot-item-${index}`} className="text-sm font-medium">
                     Предмет
                   </label>
-                  <select
+                  <ItemCombobox
                     id={`loot-item-${index}`}
-                    className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm"
-                    {...form.register(`lootDrops.${index}.itemId`)}
-                  >
-                    {items.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.displayName || item.canonicalName}
-                      </option>
-                    ))}
-                  </select>
+                    items={items}
+                    value={lootDropValues[index]?.itemId ?? ""}
+                    onChange={(value) => form.setValue(`lootDrops.${index}.itemId`, value, { shouldDirty: true, shouldValidate: true })}
+                    disabled={isPending}
+                  />
                   <Input
                     aria-label={`Комментарий к выпадению ${index + 1}`}
                     maxLength={500}
@@ -279,6 +308,19 @@ export function RaidForm({
                     <p className="text-xs text-muted-foreground">Историческая запись</p>
                   )}
                 </div>
+                {!form.getValues(`lootDrops.${index}.id`) && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="text-muted-foreground hover:text-destructive"
+                    aria-label={`Удалить выпадение ${index + 1}`}
+                    onClick={() => lootDrops.remove(index)}
+                    disabled={isPending}
+                  >
+                    <Trash2 aria-hidden="true" />
+                  </Button>
+                )}
               </li>
             ))}
           </ul>

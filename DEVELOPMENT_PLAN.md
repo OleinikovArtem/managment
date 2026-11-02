@@ -202,6 +202,31 @@ Not part of the MVP.
 
 ## Current Status
 
+Financial display improvement (2026-11-02): added compact Adena input/output
+(`к`, `м`, `б`) with exact integer parsing and value-based gold-to-red coloring
+across sales, payments, ledger and raid sale views.
+
+UI/UX research (2026-11-02): added `docs/UI_UX_AUDIT.md` with screenshot/source
+evidence, severity matrix, state matrix and a minimal combobox-plus-editable-row
+redesign plan for raid loot entry. Static state coverage passed for 126 files.
+
+UI foundation pass (2026-11-02): refreshed shared dark theme tokens, card/input/
+button/badge primitives, focus treatment, select/checkbox styling, sidebar density
+and responsive dashboard spacing. Production build, typecheck, lint and 97 tests pass.
+
+Raid entry UX pass (2026-11-02): added a local keyboard-accessible item combobox
+with filtered suggestions and remove controls for unsaved loot rows.
+
+Rare-action UX pass (2026-11-02): moved new member and new item forms behind
+explicit inline disclosure controls; list screens now use one focused surface
+instead of a permanent split form layout. Production build remains green.
+
+Documentation review (2026-11-02): added `docs/PROJECT_CONTEXT.md` and
+`docs/ARCHITECTURE.md` with the implementation map, financial invariants,
+test prerequisites and known gaps; linked them from README and AGENTS.md.
+Baseline checks: lint, typecheck and all 94 tests passed (18 test files).
+Production build and browser smoke tests were not run for this documentation task.
+
 Current status: Phase 5 local backup, validation, non-destructive
 restore-candidate preparation and simple sales/payment CSV export implemented.
 The finance UI focuses on sale shares, member payments and the shared bank; the

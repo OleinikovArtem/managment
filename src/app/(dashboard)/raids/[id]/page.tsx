@@ -12,7 +12,7 @@ import { getRaid, RaidNotFoundError } from "@/server/services/raid-service";
 
 type RaidDetailPageProps = { params: Promise<{ id: string }> };
 
-const adenaFormatter = new Intl.NumberFormat("ru-RU");
+import { AdenaAmount } from "@/components/ui/adena-amount";
 
 export default function RaidDetailPage({ params }: RaidDetailPageProps) {
   return (
@@ -137,18 +137,28 @@ async function RaidDetailContent({ params }: RaidDetailPageProps) {
                           <li key={sale.id} className="py-3 first:pt-0 last:pb-0">
                             <div className="flex flex-wrap justify-between gap-2 text-sm">
                               <span>
-                                {sale.quantitySold} шт. · {adenaFormatter.format(sale.totalPrice)} Adena
+                                {sale.quantitySold} шт. · <AdenaAmount amount={sale.totalPrice} />
                               </span>
                               <LocalDateTimeDisplay value={sale.receivedAt.toISOString()} />
                             </div>
                             {sale.comment && (
                               <p className="mt-1 text-xs text-muted-foreground">{sale.comment}</p>
                             )}
-                            <ul className="mt-2 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
+                            <p className="mt-3 text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                              Доли участников
+                            </p>
+                            <ul className="mt-2 grid gap-1.5">
                               {sale.shares.map((share) => (
-                                <li key={share.id} className="flex justify-between gap-3">
-                                  <span>{share.nicknameSnapshot}</span>
-                                  <span>{adenaFormatter.format(share.amount)} Adena</span>
+                                <li
+                                  key={share.id}
+                                  className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-md bg-muted/35 px-3 py-2 text-sm"
+                                >
+                                  <span className="min-w-0 truncate font-medium text-foreground">
+                                    {share.nicknameSnapshot}
+                                  </span>
+                                  <span className="whitespace-nowrap font-semibold tabular-nums">
+                                    <AdenaAmount amount={share.amount} />
+                                  </span>
                                 </li>
                               ))}
                             </ul>

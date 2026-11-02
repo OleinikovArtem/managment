@@ -114,40 +114,7 @@ async function createPartyPaymentRecord(
     throw new PaymentOperationError("Участник не найден в этой группе.");
   }
 
-  const postedEntries = await transaction.ledgerEntry.findMany({
-    where: {
-      partyId,
-      ledgerTransaction: { status: LedgerTransactionStatus.POSTED },
-    },
-    select: { accountType: true, partyMemberId: true, debit: true, credit: true },
-  });
 
-  const partyCash = postedEntries.reduce(
-    (cash, entry) =>
-      entry.accountType === LedgerAccountType.PARTY_CASH
-        ? cash + entry.debit - entry.credit
-        : cash,
-    0n,
-  );
-  if (input.amount > partyCash) {
-    throw new PaymentOperationError(
-      "Нельзя передать больше Adena, чем сейчас есть в общем банке.",
-    );
-  }
-
-  const memberPayable = postedEntries.reduce(
-    (payable, entry) =>
-      entry.accountType === LedgerAccountType.MEMBER_PAYABLE &&
-      entry.partyMemberId === member.id
-        ? payable + entry.credit - entry.debit
-        : payable,
-    0n,
-  );
-  if (input.amount > memberPayable) {
-    throw new PaymentOperationError(
-      "Нельзя передать участнику больше его оставшейся доли.",
-    );
-  }
 
   const shares = await transaction.saleShare.findMany({
     where: {
@@ -194,10 +161,19 @@ async function createPartyPaymentRecord(
     if (remaining === 0n) break;
   }
 
-  if (remaining !== 0n) {
+  if (remaining !== 0n && shares.length === 0) {
     throw new PaymentOperationError(
-      "Не удалось учесть передачу в остатке доли участника.",
+      "Нельзя оформить выплату в долг: у участника ещё нет начисленной доли.",
     );
+  }
+
+  if (remaining !== 0n) {
+    const lastAllocation = allocations.at(-1);
+    if (!lastAllocation) {
+      throw new PaymentOperationError("Не удалось учесть передачу в остатке доли участника.");
+    }
+    lastAllocation.amount += remaining;
+    remaining = 0n;
   }
 
   const now = new Date();

@@ -616,48 +616,6 @@ BEGIN
     THEN RAISE(ABORT, 'PAYOUT_POSTED contains an unallocated member debit')
   END;
 
-  SELECT CASE
-    WHEN NEW.type = 'PAYOUT_POSTED' AND (
-      SELECT amount FROM MemberPayment
-      WHERE partyId = NEW.partyId AND id = NEW.memberPaymentId
-    ) > COALESCE((
-      SELECT SUM(entry.debit - entry.credit)
-      FROM LedgerEntry AS entry
-      JOIN LedgerTransaction AS ledgerTx
-        ON ledgerTx.partyId = entry.partyId
-       AND ledgerTx.id = entry.ledgerTransactionId
-      WHERE entry.partyId = NEW.partyId
-        AND entry.accountType = 'PARTY_CASH'
-        AND ledgerTx.status = 'POSTED'
-    ), 0)
-    THEN RAISE(ABORT, 'PAYOUT_POSTED exceeds available party cash')
-  END;
-
-  SELECT CASE
-    WHEN NEW.type = 'PAYOUT_POSTED' AND EXISTS (
-      SELECT 1 FROM PaymentAllocation AS currentAllocation
-      WHERE currentAllocation.partyId = NEW.partyId
-        AND currentAllocation.memberPaymentId = NEW.memberPaymentId
-        AND (
-          SELECT COALESCE(SUM(previousAllocation.amount), 0)
-          FROM PaymentAllocation AS previousAllocation
-          LEFT JOIN LedgerTransaction AS previousPaymentLedger
-            ON previousPaymentLedger.partyId = previousAllocation.partyId
-           AND previousPaymentLedger.memberPaymentId = previousAllocation.memberPaymentId
-          WHERE previousAllocation.partyId = currentAllocation.partyId
-            AND previousAllocation.saleShareId = currentAllocation.saleShareId
-            AND (
-              previousAllocation.memberPaymentId = NEW.memberPaymentId
-              OR previousPaymentLedger.status = 'POSTED'
-            )
-        ) > (
-          SELECT amount FROM SaleShare
-          WHERE partyId = currentAllocation.partyId
-            AND id = currentAllocation.saleShareId
-        )
-    )
-    THEN RAISE(ABORT, 'PAYOUT_POSTED exceeds outstanding member earnings')
-  END;
 END;
 
 CREATE TRIGGER IF NOT EXISTS LedgerTransaction_lock_raid

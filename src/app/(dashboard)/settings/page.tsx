@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { io } from "next/cache";
 import { SettingsForm } from "@/features/settings/settings-form";
 import { BackupManager } from "@/features/settings/backup-manager";
+import { ResetDataCard } from "@/features/settings/reset-data-card";
 import { ensureLocalWorkspace } from "@/server/bootstrap/local-workspace";
 import { getPartySettings } from "@/server/services/party-service";
 import { listLocalBackups } from "@/server/services/backup-service";
@@ -33,6 +34,7 @@ async function SettingsContent() {
       </header>
       <SettingsForm partyName={party.name} />
       <BackupManager backups={backups} />
+      <ResetDataCard />
     </div>
   );
 }

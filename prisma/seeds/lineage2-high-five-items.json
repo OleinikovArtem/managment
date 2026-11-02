@@ -141,6 +141,27 @@
     { "canonicalName": "Blessed Scroll: Enchant Weapon (S-grade)", "category": "Enchant Scroll" },
     { "canonicalName": "Blessed Scroll: Enchant Armor (S-grade)", "category": "Enchant Scroll" },
     { "canonicalName": "Giant's Codex", "category": "Enchant Scroll" },
-    { "canonicalName": "Giant's Codex - Mastery", "category": "Enchant Scroll" }
+
+    { "canonicalName": "Life Stone - Lv. 80", "category": "Materials" },
+    { "canonicalName": "Mid-grade Life Stone - Lv. 80", "category": "Materials" },
+    { "canonicalName": "High-grade Life Stone - Lv. 80", "category": "Materials" },
+    { "canonicalName": "Top-grade Life Stone - Lv. 80", "category": "Materials" },
+    { "canonicalName": "Life Stone - Lv. 82", "category": "Materials" },
+    { "canonicalName": "Mid-grade Life Stone - Lv. 82", "category": "Materials" },
+    { "canonicalName": "High-grade Life Stone - Lv. 82", "category": "Materials" },
+    { "canonicalName": "Top-grade Life Stone - Lv. 82", "category": "Materials" },
+    { "canonicalName": "Life Stone - Lv. 84", "category": "Materials" },
+    { "canonicalName": "Mid-grade Life Stone - Lv. 84", "category": "Materials" },
+    { "canonicalName": "High-grade Life Stone - Lv. 84", "category": "Materials" },
+    { "canonicalName": "Top-grade Life Stone - Lv. 84", "category": "Materials" },
+    { "canonicalName": "Giant's Codex - Discipline", "category": "Enchant Scroll" },
+    { "canonicalName": "Giant's Codex - Oblivion", "category": "Enchant Scroll" },
+    { "canonicalName": "Giant's Codex - Mastery", "category": "Enchant Scroll" },
+    { "canonicalName": "Forgotten Book - 1st", "category": "Skill Book" },
+    { "canonicalName": "Forgotten Book - 2nd", "category": "Skill Book" },
+    { "canonicalName": "Forgotten Book - 3rd", "category": "Skill Book" },
+    { "canonicalName": "Blessed Scroll: Enchant Weapon (S80-grade)", "category": "Enchant Scroll" },
+    { "canonicalName": "Blessed Scroll: Enchant Armor (S80-grade)", "category": "Enchant Scroll" },
+    { "canonicalName": "Life Stone - Lv. 85", "category": "Materials" }
   ]
 }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ArrowUpRight, Pencil, ScrollText } from "lucide-react";
+import { ArrowUpRight, Pencil, Plus, ScrollText, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,8 +25,10 @@ export type ItemListRow = ItemInput & {
 export function ItemManager({ items }: { items: ItemListRow[] }) {
   const router = useRouter();
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   function handleCreate(itemId?: string) {
+    setIsCreateOpen(false);
     router.refresh();
     if (itemId) {
       router.push(`/items/${itemId}`);
@@ -39,15 +41,40 @@ export function ItemManager({ items }: { items: ItemListRow[] }) {
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(340px,0.65fr)]">
+    <div className="mx-auto max-w-5xl">
       <Card className="h-fit">
-        <CardHeader>
-          <CardTitle>Каталог предметов</CardTitle>
-          <CardDescription>
-            Справочник уникальных предметов. Каждое выпадение будет отдельной записью истории.
-          </CardDescription>
+        <CardHeader className="flex-row items-start justify-between gap-4">
+          <div className="space-y-1">
+            <CardTitle>Каталог предметов</CardTitle>
+            <CardDescription>
+              Справочник уникальных предметов. Каждое выпадение будет отдельной записью истории.
+            </CardDescription>
+          </div>
+          <Button type="button" size="sm" className="shrink-0" onClick={() => setIsCreateOpen((open) => !open)} aria-expanded={isCreateOpen}>
+            <Plus aria-hidden="true" />
+            {isCreateOpen ? "Скрыть форму" : "Добавить предмет"}
+          </Button>
         </CardHeader>
         <CardContent>
+          {isCreateOpen && (
+            <div className="mb-5 rounded-xl border border-primary/25 bg-primary/5 p-4">
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="font-medium">Новый предмет</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">Заполните оригинальное название; классификацию можно добавить позже.</p>
+                </div>
+                <Button type="button" variant="ghost" size="icon-sm" onClick={() => setIsCreateOpen(false)} aria-label="Закрыть форму добавления">
+                  <X aria-hidden="true" />
+                </Button>
+              </div>
+              <ItemForm
+                submitLabel="Добавить в каталог"
+                action={createItemAction}
+                onSuccess={handleCreate}
+                onCancel={() => setIsCreateOpen(false)}
+              />
+            </div>
+          )}
           {items.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border px-6 py-10 text-center">
               <span className="mx-auto flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -145,21 +172,6 @@ export function ItemManager({ items }: { items: ItemListRow[] }) {
         </CardContent>
       </Card>
 
-      <Card className="h-fit">
-        <CardHeader>
-          <CardTitle>Добавить предмет</CardTitle>
-          <CardDescription>
-            Сохраните предмет один раз в справочнике. Он сможет иметь множество записей выпадения.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ItemForm
-            submitLabel="Добавить в каталог"
-            action={createItemAction}
-            onSuccess={handleCreate}
-          />
-        </CardContent>
-      </Card>
     </div>
   );
 }

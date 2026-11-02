@@ -7,3 +7,16 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## Project context
+
+Start with `docs/PROJECT_CONTEXT.md` for a compact map of the implementation and
+task-specific source files. Read `docs/ARCHITECTURE.md` when changing data flows,
+financial logic, persistence or backups. These describe the current code, not new
+requirements; `PROJECT_SPEC.md` and `DEVELOPMENT_PLAN.md` define product scope.
+
+Keep these notes current when changing architecture, invariants or workflows.
+Read only the sections and source files relevant to the task; verify facts in code.
+Never reset the local database to investigate a problem. The financial schema is
+not fully represented in checked-in migrations; see the architecture notes before
+running schema commands. Do not edit generated Prisma output.

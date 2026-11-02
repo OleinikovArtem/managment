@@ -14,12 +14,16 @@ describe("saleInputSchema", () => {
     expect(saleInputSchema.parse(validInput)).toEqual(validInput);
   });
 
-  it.each(["0", "-1", "1.5", "1e6", " 100", "01", "9223372036854775808"])(
+  it.each(["0", "-1", "1.5", "1e6", "01", "9223372036854775808"])(
     "rejects invalid Adena amount %s",
     (totalPrice) => {
       expect(saleInputSchema.safeParse({ ...validInput, totalPrice }).success).toBe(false);
     },
   );
+
+  it("accepts compact million notation", () => {
+    expect(saleInputSchema.parse({ ...validInput, totalPrice: "5.25м" }).totalPrice).toBe("5250000");
+  });
 
   it("rejects fractional and non-positive quantities", () => {
     expect(saleInputSchema.safeParse({ ...validInput, quantitySold: 0 }).success).toBe(false);
