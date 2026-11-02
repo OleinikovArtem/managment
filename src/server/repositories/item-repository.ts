@@ -7,6 +7,8 @@ export async function listPartyItems(
   partyId: string,
   normalizedQuery: string,
   category: string | undefined,
+  skip: number,
+  take: number,
 ) {
   return prisma.item.findMany({
     where: {
@@ -15,6 +17,22 @@ export async function listPartyItems(
       ...(category ? { category } : {}),
     },
     orderBy: [{ normalizedName: "asc" }, { canonicalName: "asc" }],
+    skip,
+    take,
+  });
+}
+
+export async function countPartyItems(
+  partyId: string,
+  normalizedQuery: string,
+  category: string | undefined,
+) {
+  return prisma.item.count({
+    where: {
+      partyId,
+      ...(normalizedQuery ? { normalizedName: { contains: normalizedQuery } } : {}),
+      ...(category ? { category } : {}),
+    },
   });
 }
 

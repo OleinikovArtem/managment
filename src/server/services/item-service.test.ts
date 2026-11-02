@@ -2,12 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   createPartyItemRecord,
+  countPartyItems,
   getPartyItemById,
   listPartyItemCategories,
   listPartyItems,
   updatePartyItemRecord,
 } = vi.hoisted(() => ({
   createPartyItemRecord: vi.fn(),
+  countPartyItems: vi.fn(),
   getPartyItemById: vi.fn(),
   listPartyItemCategories: vi.fn(),
   listPartyItems: vi.fn(),
@@ -17,6 +19,7 @@ const {
 vi.mock("server-only", () => ({}));
 vi.mock("@/server/repositories/item-repository", () => ({
   createPartyItemRecord,
+  countPartyItems,
   getPartyItemById,
   listPartyItemCategories,
   listPartyItems,
@@ -36,6 +39,7 @@ import {
 describe("item service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    countPartyItems.mockResolvedValue(0);
   });
 
   it("computes normalizedName on the server and scopes creation by partyId", async () => {
@@ -74,7 +78,23 @@ describe("item service", () => {
       "party-a",
       "ancient sword",
       "Weapon",
+      0,
+      25,
     );
+  });
+
+  it("returns a party-scoped page and clamps requests past the last page", async () => {
+    countPartyItems.mockResolvedValue(51);
+    listPartyItems.mockResolvedValue([{ id: "last-item" }]);
+
+    await expect(searchItems("party-a", "", undefined, 99)).resolves.toEqual({
+      items: [{ id: "last-item" }],
+      total: 51,
+      page: 3,
+      pageCount: 3,
+    });
+    expect(countPartyItems).toHaveBeenCalledWith("party-a", "", undefined);
+    expect(listPartyItems).toHaveBeenCalledWith("party-a", "", undefined, 50, 25);
   });
 
   it("scopes item details by party and rejects IDs from another party", async () => {

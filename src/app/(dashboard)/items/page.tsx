@@ -1,20 +1,21 @@
 import { Suspense } from "react";
 import { io } from "next/cache";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import Link from "next/link";
+import { ItemSearchControls } from "@/features/items/item-search-controls";
 import {
   ItemManager,
   type ItemListRow,
 } from "@/features/items/item-manager";
 import { itemSearchSchema } from "@/features/items/item-schema";
 import {
+  ITEM_PAGE_SIZE,
   getItemCategories,
   searchItems,
 } from "@/server/services/item-service";
 import { ensureLocalWorkspace } from "@/server/bootstrap/local-workspace";
 
 type ItemsPageProps = {
-  searchParams: Promise<{ q?: string; category?: string }>;
+  searchParams: Promise<{ q?: string; category?: string; page?: string }>;
 };
 
 export default function ItemsPage({ searchParams }: ItemsPageProps) {
@@ -31,19 +32,20 @@ async function ItemsContent({ searchParams }: ItemsPageProps) {
   const parsedParams = itemSearchSchema.safeParse({
     query: rawParams.q,
     category: rawParams.category,
+    page: rawParams.page,
   });
   const params = parsedParams.success
     ? parsedParams.data
-    : { query: "", category: "" };
+    : { query: "", category: "", page: 1 };
   const query = params.query ?? "";
   const category = params.category || undefined;
   const { partyId, partyName } = await ensureLocalWorkspace();
 
   const [records, categories] = await Promise.all([
-    searchItems(partyId, query, category),
+    searchItems(partyId, query, category, params.page),
     getItemCategories(partyId),
   ]);
-  const items: ItemListRow[] = records.map((item) => ({
+  const items: ItemListRow[] = records.items.map((item) => ({
     id: item.id,
     canonicalName: item.canonicalName,
     displayName: item.displayName ?? "",
@@ -63,37 +65,79 @@ async function ItemsContent({ searchParams }: ItemsPageProps) {
         </p>
       </header>
 
-      <form method="get" action="/items" className="flex flex-col gap-3 sm:flex-row">
-        <Input
-          name="q"
-          defaultValue={query}
-          maxLength={200}
-          aria-label="Поиск по названию"
-          placeholder="Поиск по оригинальному названию"
-          className="h-10 sm:max-w-md"
-        />
-        <select
-          name="category"
-          defaultValue={category ?? ""}
-          aria-label="Фильтр по категории"
-          className="h-10 rounded-lg border border-input bg-card px-3 text-sm text-foreground sm:w-56"
-        >
-          <option value="">Все категории</option>
-          {categories.map((value) => (
-            <option key={value} value={value}>
-              {value}
-            </option>
-          ))}
-        </select>
-        <Button type="submit" variant="outline" className="h-10">
-          Найти
-        </Button>
-      </form>
+      <ItemSearchControls
+        key={`${query}:${category ?? ""}`}
+        query={query}
+        category={category ?? ""}
+        categories={categories}
+      />
 
-      <p className="text-sm text-muted-foreground">
-        Найдено: {records.length}
+      <p className="text-sm text-muted-foreground" aria-live="polite">
+        {records.total === 0
+          ? "Найдено: 0"
+          : `Показано ${(records.page - 1) * ITEM_PAGE_SIZE + 1}–${Math.min(
+              records.page * ITEM_PAGE_SIZE,
+              records.total,
+            )} из ${records.total}`}
       </p>
       <ItemManager items={items} />
+      {records.total > ITEM_PAGE_SIZE && (
+        <nav
+          aria-label="Страницы каталога предметов"
+          className="flex flex-wrap items-center justify-center gap-3"
+        >
+          {records.page > 1 ? (
+            <PageLink
+              query={query}
+              category={category}
+              page={records.page - 1}
+              label="Назад"
+            />
+          ) : (
+            <span className="text-sm text-muted-foreground">Назад</span>
+          )}
+          <span className="text-sm text-muted-foreground">
+            Страница {records.page} из {records.pageCount}
+          </span>
+          {records.page < records.pageCount ? (
+            <PageLink
+              query={query}
+              category={category}
+              page={records.page + 1}
+              label="Вперёд"
+            />
+          ) : (
+            <span className="text-sm text-muted-foreground">Вперёд</span>
+          )}
+        </nav>
+      )}
     </div>
+  );
+}
+
+function PageLink({
+  query,
+  category,
+  page,
+  label,
+}: {
+  query: string;
+  category?: string;
+  page: number;
+  label: string;
+}) {
+  const params = new URLSearchParams();
+  if (query) params.set("q", query);
+  if (category) params.set("category", category);
+  params.set("page", String(page));
+
+  return (
+    <Link
+      href={`/items?${params.toString()}`}
+      prefetch={false}
+      className="inline-flex h-9 items-center rounded-lg border border-border px-3 text-sm font-medium transition-colors hover:bg-muted"
+    >
+      {label}
+    </Link>
   );
 }

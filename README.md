@@ -72,8 +72,9 @@ uploads are not implemented in the UI yet; existing files under `data/uploads/`
 are included in local backups and remain outside the public static directory.
 
 Phase 1 provides the local dashboard, party settings and member workflows. Phase 2
-adds the party-scoped item catalog with normalized duplicate protection, search,
-category filtering and item details. Phase 3 adds party-scoped raid creation,
+adds the party-scoped item catalog with normalized duplicate protection,
+debounced live search, server-side pagination, category filtering and item
+details. Phase 3 adds party-scoped raid creation,
 editing and history; an attendance snapshot of the active roster; separate
 LootDrop records; and acquisition history on item details.
 

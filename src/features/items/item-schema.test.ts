@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { itemInputSchema, normalizeItemName } from "@/features/items/item-schema";
+import {
+  itemInputSchema,
+  itemSearchSchema,
+  normalizeItemName,
+} from "@/features/items/item-schema";
 
 describe("normalizeItemName", () => {
   it("normalizes Unicode, case and whitespace", () => {
@@ -18,7 +22,6 @@ describe("itemInputSchema", () => {
       canonicalName: "Sword",
       normalizedName: "forged-value",
     });
-
     expect(result.success).toBe(false);
   });
 
@@ -37,5 +40,16 @@ describe("itemInputSchema", () => {
     const result = itemInputSchema.parse({ canonicalName: "  Hero Sword  " });
 
     expect(result.canonicalName).toBe("  Hero Sword  ");
+  });
+});
+
+describe("itemSearchSchema", () => {
+  it("parses a positive page number from URL search params", () => {
+    expect(itemSearchSchema.parse({ page: "3" }).page).toBe(3);
+  });
+
+  it("rejects invalid page numbers", () => {
+    expect(itemSearchSchema.safeParse({ page: "0" }).success).toBe(false);
+    expect(itemSearchSchema.safeParse({ page: "invalid" }).success).toBe(false);
   });
 });

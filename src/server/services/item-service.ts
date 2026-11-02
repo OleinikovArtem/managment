@@ -7,6 +7,7 @@ import {
 } from "@/features/items/item-schema";
 import {
   createPartyItemRecord,
+  countPartyItems,
   getPartyItemById,
   listPartyItemCategories,
   listPartyItems,
@@ -27,6 +28,8 @@ export class ItemNotFoundError extends Error {
   }
 }
 
+export const ITEM_PAGE_SIZE = 25;
+
 function isUniqueConstraintError(error: unknown): boolean {
   return (
     error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002"
@@ -37,9 +40,26 @@ export async function searchItems(
   partyId: string,
   query = "",
   category?: string,
+  requestedPage = 1,
 ) {
   const normalizedQuery = normalizeItemName(query);
-  return listPartyItems(partyId, normalizedQuery, category || undefined);
+  const normalizedCategory = category || undefined;
+  const total = await countPartyItems(
+    partyId,
+    normalizedQuery,
+    normalizedCategory,
+  );
+  const pageCount = Math.max(1, Math.ceil(total / ITEM_PAGE_SIZE));
+  const page = Math.min(Math.max(1, requestedPage), pageCount);
+  const items = await listPartyItems(
+    partyId,
+    normalizedQuery,
+    normalizedCategory,
+    (page - 1) * ITEM_PAGE_SIZE,
+    ITEM_PAGE_SIZE,
+  );
+
+  return { items, total, page, pageCount };
 }
 
 export async function getItemCategories(partyId: string) {

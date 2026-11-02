@@ -40,6 +40,7 @@ Acceptance:
 - [x] Implement item creation.
 - [x] Implement item editing.
 - [x] Implement item search.
+- [x] Add debounced live search and server-side pagination for the item list.
 - [x] Implement duplicate detection.
 - [x] Implement item list.
 - [x] Implement item details.

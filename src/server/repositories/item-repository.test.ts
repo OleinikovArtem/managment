@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { findMany, findFirst } = vi.hoisted(() => ({
+const { findMany, findFirst, count } = vi.hoisted(() => ({
   findMany: vi.fn(),
   findFirst: vi.fn(),
+  count: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
@@ -11,11 +12,13 @@ vi.mock("@/lib/db/prisma", () => ({
     item: {
       findMany,
       findFirst,
+      count,
     },
   },
 }));
 
 import {
+  countPartyItems,
   getPartyItemById,
   listPartyItemCategories,
   listPartyItems,
@@ -27,7 +30,7 @@ describe("item repository party scoping", () => {
   });
 
   it("scopes item searches and category filters to the requested party", async () => {
-    await listPartyItems("party-a", "ancient sword", "Weapon");
+    await listPartyItems("party-a", "ancient sword", "Weapon", 25, 25);
 
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -36,8 +39,22 @@ describe("item repository party scoping", () => {
           normalizedName: { contains: "ancient sword" },
           category: "Weapon",
         },
+        skip: 25,
+        take: 25,
       }),
     );
+  });
+
+  it("counts only rows matching the requested Party, query and category", async () => {
+    await countPartyItems("party-a", "ancient sword", "Weapon");
+
+    expect(count).toHaveBeenCalledWith({
+      where: {
+        partyId: "party-a",
+        normalizedName: { contains: "ancient sword" },
+        category: "Weapon",
+      },
+    });
   });
 
   it("scopes category options to the requested party", async () => {

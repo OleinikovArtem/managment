@@ -39,6 +39,7 @@ export const itemIdSchema = z.string().trim().min(1, "Некорректный �
 export const itemSearchSchema = z.object({
   query: z.string().max(200).optional(),
   category: z.string().trim().max(80).optional(),
+  page: z.coerce.number().int().min(1).optional(),
 });
 
 export type ItemInput = z.infer<typeof itemInputSchema>;
