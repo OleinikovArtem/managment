@@ -120,6 +120,9 @@ export function ItemForm({
         )}
       </div>
 
+      <details className="disclosure">
+        <summary className="text-sm font-medium">Классификация и заметка</summary>
+        <div className="space-y-4 pt-4">
       <div className="space-y-2">
         <label htmlFor="category" className="text-sm font-medium">
           Группа предмета{" "}
@@ -195,6 +198,8 @@ export function ItemForm({
         )}
       </div>
 
+        </div>
+      </details>
       {message && (
         <p role="alert" className="text-sm text-destructive">
           {message}

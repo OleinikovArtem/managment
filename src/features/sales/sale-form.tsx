@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Banknote, Check, LoaderCircle, MessageSquarePlus } from "lucide-react";
@@ -14,6 +14,10 @@ import { registerSaleAction } from "@/app/(dashboard)/sales/actions";
 type SaleFormProps = {
   lootDropId: string;
   remainingQuantity: number;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  onPendingChange?: (pending: boolean) => void;
+  triggerDisabled?: boolean;
 };
 
 function getLocalDateTimeValue(date: Date) {
@@ -21,17 +25,35 @@ function getLocalDateTimeValue(date: Date) {
   return localDate.toISOString().slice(0, 16);
 }
 
-export function SaleForm({ lootDropId, remainingQuantity }: SaleFormProps) {
+export function SaleForm({ lootDropId, remainingQuantity, open, onOpenChange, onPendingChange, triggerDisabled = false }: SaleFormProps) {
   const router = useRouter();
   const idempotencyKey = useRef<{ fingerprint: string; key: string } | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [showForm, setShowForm] = useState(false);
+  const [localOpen, setLocalOpen] = useState(false);
+  const showForm = open ?? localOpen;
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const amountRef = useRef<HTMLInputElement>(null);
+  const wasOpen = useRef(false);
   const [quantity, setQuantity] = useState("1");
   const [totalPrice, setTotalPrice] = useState("");
   const [receivedAt, setReceivedAt] = useState(() => getLocalDateTimeValue(new Date()));
   const [comment, setComment] = useState("");
   const [showComment, setShowComment] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+
+  function setShowForm(next: boolean) {
+    setLocalOpen(next);
+    onOpenChange?.(next);
+  }
+
+  useEffect(() => {
+    onPendingChange?.(isPending);
+  }, [isPending, onPendingChange]);
+
+  useEffect(() => {
+    if (showForm && !wasOpen.current) amountRef.current?.focus();
+    wasOpen.current = showForm;
+  }, [showForm]);
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -89,7 +111,7 @@ export function SaleForm({ lootDropId, remainingQuantity }: SaleFormProps) {
     return (
       <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-dashed bg-muted/10 px-3 py-2">
         <p className="text-xs text-muted-foreground">Доступно к продаже: <span className="font-semibold text-foreground">{remainingQuantity} шт.</span></p>
-        <Button type="button" size="sm" variant="secondary" onClick={() => setShowForm(true)}>
+        <Button ref={triggerRef} type="button" size="sm" variant="secondary" disabled={triggerDisabled} onClick={() => setShowForm(true)}>
           <Banknote aria-hidden="true" size={15} />
           Отметить продажу
         </Button>
@@ -123,6 +145,7 @@ export function SaleForm({ lootDropId, remainingQuantity }: SaleFormProps) {
         <label className="space-y-1.5 text-xs font-medium">
           Получено Adena
           <Input
+            ref={amountRef}
             inputMode="numeric"
             pattern="[0-9.,a-zа-яА-Я]*"
             minLength={1}
@@ -150,7 +173,7 @@ export function SaleForm({ lootDropId, remainingQuantity }: SaleFormProps) {
           {message}
         </p>
       )}
-      <div>
+      <div className="flex flex-wrap items-center gap-2">
         <Button type="submit" size="sm" disabled={isPending}>
           {isPending ? (
             <LoaderCircle aria-hidden="true" className="animate-spin" />
@@ -159,6 +182,21 @@ export function SaleForm({ lootDropId, remainingQuantity }: SaleFormProps) {
           )}
           {isPending ? "Сохраняем продажу..." : "Записать продажу"}
         </Button>
+        {onOpenChange && (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            disabled={isPending}
+            title="Свернуть форму, сохранив введённые данные"
+            onClick={() => {
+              setShowForm(false);
+              requestAnimationFrame(() => triggerRef.current?.focus());
+            }}
+          >
+            Свернуть
+          </Button>
+        )}
       </div>
     </form>
   );

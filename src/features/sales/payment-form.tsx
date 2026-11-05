@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, LoaderCircle, MessageSquarePlus } from "lucide-react";
@@ -19,6 +19,10 @@ type PaymentFormProps = {
   remaining: string;
   partyCash: string;
   totalOutstanding: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  onPendingChange?: (pending: boolean) => void;
+  triggerDisabled?: boolean;
 };
 
 function getLocalDateTimeValue(date: Date) {
@@ -32,11 +36,19 @@ export function PaymentForm({
   remaining,
   partyCash,
   totalOutstanding,
+  open,
+  onOpenChange,
+  onPendingChange,
+  triggerDisabled = false,
 }: PaymentFormProps) {
   const router = useRouter();
   const idempotencyKey = useRef<{ fingerprint: string; key: string } | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [showForm, setShowForm] = useState(false);
+  const [localOpen, setLocalOpen] = useState(false);
+  const showForm = open ?? localOpen;
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  function setShowForm(next: boolean) { setLocalOpen(next); onOpenChange?.(next); }
+  useEffect(() => { onPendingChange?.(isPending); }, [isPending, onPendingChange]);
   const [amount, setAmount] = useState("");
   const [paidAt, setPaidAt] = useState(() => getLocalDateTimeValue(new Date()));
   const [comment, setComment] = useState("");
@@ -107,7 +119,7 @@ export function PaymentForm({
         <p className="text-xs text-muted-foreground">
           Начислено сейчас: <AdenaAmount amount={currentPayable} />
         </p>
-        <Button type="button" size="sm" variant="secondary" onClick={openForm}>
+        <Button ref={triggerRef} type="button" size="sm" variant="secondary" disabled={triggerDisabled} onClick={openForm}>
           <Check aria-hidden="true" size={15} />
           Передать
         </Button>
@@ -172,7 +184,7 @@ export function PaymentForm({
         )}
       </div>
       {message && <p role="alert" className="text-sm text-destructive">{message}</p>}
-      <div>
+      <div className="flex flex-wrap items-center gap-2">
         <Button type="submit" size="sm" disabled={isPending || !paidAt}>
           {isPending ? (
             <LoaderCircle aria-hidden="true" className="animate-spin" />
@@ -181,6 +193,7 @@ export function PaymentForm({
           )}
           {isPending ? "Сохраняем передачу..." : "Записать передачу"}
         </Button>
+        <Button type="button" variant="ghost" size="sm" disabled={isPending} onClick={() => { setShowForm(false); requestAnimationFrame(() => triggerRef.current?.focus()); }}>Свернуть</Button>
       </div>
     </form>
   );

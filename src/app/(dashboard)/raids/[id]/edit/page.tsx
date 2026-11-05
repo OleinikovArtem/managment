@@ -31,6 +31,9 @@ async function EditRaidContent({ params }: EditRaidPageProps) {
     }
     throw error;
   }
+  if (raid.lockedAt || raid.lootDrops.some(drop => drop.saleTransactions.length > 0)) {
+    return <section className="max-w-2xl"><header className="page-header"><h1>Рейд недоступен для редактирования</h1><p className="mt-3">В рейде уже есть продажи. Состав и количество добычи сохранены в финансовой истории.</p></header><Link href={`/raids/${raid.id}`} className="inline-flex min-h-11 items-center text-sm underline underline-offset-4">К рейду и оставшейся добыче</Link></section>;
+  }
   const setup = await getRaidSetup(workspace.partyId);
 
   return (
@@ -39,15 +42,15 @@ async function EditRaidContent({ params }: EditRaidPageProps) {
         <ArrowLeft aria-hidden="true" size={16} />
         К рейду
       </Link>
-      <header>
-        <p className="text-sm font-medium text-primary">{workspace.partyName}</p>
+      <header className="page-header ">
+
         <h1 className="mt-2 text-3xl font-semibold tracking-tight">Редактирование рейда</h1>
       </header>
       <Card>
         <CardHeader>
           <CardTitle>{raid.name}</CardTitle>
           <CardDescription>
-            Attendance можно изменить только для участников исходного снимка. Существующие выпадения сохраняются; новые добавляются отдельными строками.
+            Отметьте присутствующих и уточните добычу. После первой продажи редактирование будет закрыто.
           </CardDescription>
         </CardHeader>
         <CardContent>

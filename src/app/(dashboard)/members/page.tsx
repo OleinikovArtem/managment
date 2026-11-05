@@ -1,3 +1,4 @@
+import { SectionNavigation } from "@/components/layout/section-navigation";
 import { Suspense } from "react";
 import { io } from "next/cache";
 import { MemberManager } from "@/features/members/member-manager";
@@ -35,13 +36,13 @@ async function MembersContent() {
 
   return (
     <div className="space-y-7">
-      <header>
-        <p className="text-sm font-medium text-primary">{workspace.partyName}</p>
+      <header className="page-header ">
+
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">Участники</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Ведите постоянный состав и сохраняйте историю, когда персонаж перестаёт участвовать.
         </p>
-      </header>
+      </header><SectionNavigation section="group" active="/members" />
       <MemberManager members={members} />
     </div>
   );

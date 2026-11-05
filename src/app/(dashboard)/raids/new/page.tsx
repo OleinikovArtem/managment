@@ -25,8 +25,8 @@ async function NewRaidContent() {
         <ArrowLeft aria-hidden="true" size={16} />
         К рейдам
       </Link>
-      <header>
-        <p className="text-sm font-medium text-primary">{workspace.partyName}</p>
+      <header className="page-header ">
+
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">Новый рейд</h1>
       </header>
       <RaidForm

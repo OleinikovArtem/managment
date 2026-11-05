@@ -152,6 +152,9 @@ async function createPartySaleRecord(
       id: participant.id,
       memberId: participant.memberId,
       nicknameSnapshot: participant.nicknameSnapshot,
+      // Preserve historical metadata required by the snapshot integrity checks;
+      // current distribution still uses equal calculation weights below.
+      sourceWeight: participant.distributionWeight,
       weight: 1,
     })),
   );
@@ -180,7 +183,7 @@ async function createPartySaleRecord(
       raidParticipantId: participant.id,
       memberId: participant.memberId,
       nicknameSnapshot: participant.nicknameSnapshot,
-      weightSnapshot: 1,
+      weightSnapshot: participant.sourceWeight,
       distributionMethod: DistributionMethod.WEIGHTED,
       algorithmVersion: DISTRIBUTION_ALGORITHM_VERSION,
       amount,

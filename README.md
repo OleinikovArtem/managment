@@ -1,118 +1,80 @@
 # Party Bank Manager
 
-Local-first management application for a Lineage 2 farming party.
+Локальное приложение для фарм-группы Lineage 2. Участники и игровые профили →
+состав рейда → добыча → полученная оплата → равные доли → передачи Adena.
+Интерфейс русский, тёмный. Данные хранятся на компьютере пользователя.
 
-## Overview
+## Запуск
 
-Party Bank Manager helps manage:
-- Party members.
-- Dungeon raids and historical attendance.
-- Separate loot-drop acquisition records.
-- Unique item catalog.
-- Item acquisition history.
-- Received sales, equal member shares, Party cash and outstanding member balances.
+Нужны Node.js 22.12+ или 24+ и npm. Команды выполняются из корня проекта.
 
-The financial workflow is intentionally simple: record sold items, see each
-participant's share, record Adena handed to members, and track the shared Party
-bank. Returns, refunds and accounting workflows are not part of the product.
-
-## Technology
-
-- Next.js
-- React
-- TypeScript
-- Tailwind CSS
-- shadcn/ui
-- Prisma
-- SQLite
-
-## Local Development
-
-Requirements:
-- Node.js 22.12+ or 24+
-- npm
-- Visual Studio Code
-
-Setup from the project directory (PowerShell):
+Для существующей базы:
 
 ```powershell
 npm install
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 npm run db:generate
-npm run db:sync
 npm run dev
 ```
 
-Open `http://localhost:3000`. The development and production servers bind to
-`127.0.0.1`. On the first application request, a local User, Party and OWNER
-membership are created in a transaction. Repeated requests reuse those records.
-The checked-in [High Five item dump](./prisma/seeds/lineage2-high-five-items.json)
-contains 130 curated names across armor, weapons, materials, skill books and
-enchant scrolls. During workspace initialization,
-missing names are restored idempotently for the local Party, and legacy group
-labels are migrated to structured classifications once. Later edits to an
-item's classification and Rare status are preserved. The JSON source remains
-in Git if the development database is cleared. After recreating the schema with
-`npm run db:sync`, the first application request recreates the local workspace
-and restores the catalog. Catalog entries show separate item group, grade, item
-type, variant (for example armor type) and Rare status. The dump contains
-curated item names rather than a full game database.
+Открыть [локальное приложение](http://localhost:3000). Сервер слушает `127.0.0.1`.
+`DATABASE_URL` в `.env` указывает на SQLite; стандартный путь — `prisma/dev.db`.
 
-The SQLite database is stored at `prisma/dev.db`. Application requests do not
-reset or recreate the database; workspace initialization only restores missing
-names from the checked-in base item dump without overwriting existing catalog
-entries. `npm run db:sync` uses Prisma `db push` and
-then installs SQLite integrity triggers from
-[`prisma/financial-constraints.sql`](./prisma/financial-constraints.sql). This is
-a local development workflow, not a versioned migration, and should only be used
-with a disposable development database. The Phase 4 schema has not been added to
-Prisma migration history; `prisma migrate status` does not certify this schema,
-and `db:migrate:deploy` must not be used on a database initialized with `db:sync`.
-A reviewed migration path is required before distributing or releasing Phase 4.
-Back up valuable data before any schema change. The local database and backups
-belong under `prisma/` and `data/backups/` and are excluded from Git. Screenshot
-uploads are not implemented in the UI yet; existing files under `data/uploads/`
-are included in local backups and remain outside the public static directory.
+Только для новой, пустой или заведомо ненужной базы перед запуском:
 
-Phase 1 provides the local dashboard, party settings and member workflows. Phase 2
-adds the party-scoped item catalog with normalized duplicate protection,
-debounced live search, server-side pagination, category filtering, structured
-item classification and item details. Phase 3 adds party-scoped raid creation,
-editing and history; an attendance snapshot of the active roster; separate
-LootDrop records; and acquisition history on item details.
+```powershell
+npm run db:sync
+```
 
-Raid creation, its complete attendance snapshot and submitted loot records are
-written in one database transaction. Loot records select existing catalog
-items; create new items in the item catalog before adding them to a raid.
-Attendance edits update the original rows;
-the roster cannot be replaced. Historical records have no hard-delete UI or
-server action, and SQLite restricts deleting referenced raids, members and items.
-Raid times are entered in the browser's local time zone, converted to UTC for
-storage and rendered back in the browser's local time zone. Nonexistent or
-ambiguous local times during daylight-saving transitions are rejected.
+`db:sync` применяет Prisma `db push` и финансовые SQL-триггеры. Это не миграция
+для базы с ценными данными. Не использовать reset или sync для диагностики ошибок.
+Проверяемые миграции в Git не воспроизводят всю текущую финансовую схему;
+`db:migrate:deploy` не является способом обновления базы, созданной через sync.
 
-Screenshot path fields are reserved, but screenshot uploads/storage are not
-implemented in the UI. Phase 4.2 records partial or repeated LootDrop sales only
-after Adena is received, distributes each sale among PRESENT participants using
-the Raid's snapshotted weights, and updates the Party bank and member balances.
-Raid attendance and loot become locked after its first sale.
-Partial payments update the remaining amount for each participant. An immutable
-internal record is used to calculate balances, but the interface shows sales,
-participant shares and payments rather than accounting entries.
+При первом запросе создаются локальный пользователь, одна группа и OWNER membership.
+Отсутствующие базовые предметы восстанавливаются из каталога High Five из 130 имён;
+существующие записи не перезаписываются.
 
-Phase 5 provides local ZIP backups of a consistent SQLite snapshot and files in
-`data/uploads/`, with a SHA-256 manifest, archive/path limits, SQLite integrity
-and foreign-key checks, and validation of required financial triggers. The
-settings page can validate backups and prepare a restore candidate under
-`data/restore-candidates/`. Preparation never replaces the active database.
-Switching `DATABASE_URL` and restoring candidate uploads are manual steps after
-stopping the application; preserve the current database and uploads before doing
-so. The sales-and-payments history page exports sales, participant shares and
-payments as UTF-8 CSV with exact Adena integer strings.
-Upload UI, automatic restore activation and remaining polish are not implemented
-yet. SaaS functionality remains a future plan.
+## Разделы приложения
 
-Useful checks:
+| Раздел | Возможности |
+| --- | --- |
+| Обзор | Банк, остатки, последние рейды, раскрываемая аналитика продаж |
+| Рейды | Создание, посещаемость, добыча, частичные продажи и доли |
+| Финансы | Остатки участников, передачи Adena, журнал операций и CSV |
+| Группа | Участники, игровые профили, сохранённые составы до 36 слотов |
+| Каталог | Поиск, классификация, создание предметов и история поступлений |
+| Настройки | Название группы, резервные копии, подготовка восстановления, очистка данных |
+
+Продажа фиксирует уже полученную оплату. Доход делится поровну между присутствовавшими
+в исходном рейде. Передача участнику может превышать начисления; отрицательный
+остаток показывает переплату. Полные правила — в [описании продукта](./PROJECT_SPEC.md).
+
+## Резервные копии и восстановление
+
+В настройках можно создать и скачать ZIP-копию, проверить архив и подготовить
+кандидата восстановления. В архив входят согласованный снимок SQLite и существующие
+файлы `data/uploads/`. Подготовка не заменяет текущие данные.
+
+Для ручной активации проверенного кандидата:
+
+1. Остановить приложение и отдельно сохранить текущую БД вместе с её сопутствующими
+   SQLite-файлами, если они есть, и `data/uploads/`.
+2. Использовать путь кандидата, показанный настройками. Указать в `.env`
+   `DATABASE_URL="file:./data/restore-candidates/<candidate-id>/database.sqlite"`.
+3. При необходимости восстановить содержимое подпапки `uploads` кандидата
+   в `data/uploads/`, сохранив предыдущие файлы отдельно.
+4. Запустить приложение и проверить данные. Кандидат, на который указывает
+   `DATABASE_URL`, теперь является рабочей базой; его нельзя удалять как временный.
+
+Архивы: `data/backups/`. Подготовленные копии: `data/restore-candidates/`.
+Загрузка скриншотов через интерфейс отсутствует. Очистка данных группы — отдельное
+разрушительное действие с ручным подтверждением, не способ восстановления.
+
+## Разработка и проверки
+
+Next.js App Router, React, TypeScript strict, Tailwind CSS 4, shadcn/Base UI,
+Prisma + SQLite, Zod, React Hook Form, Vitest. Версии закреплены в `package-lock.json`.
 
 ```powershell
 npm run lint
@@ -121,22 +83,17 @@ npm test
 npm run build
 ```
 
-## Documentation
+Финансовые и backup integration tests используют копии существующей `prisma/dev.db`
+с актуальной схемой. Рабочую базу они не сбрасывают. На чистом checkout без такой
+базы эти тесты не воспроизводятся автоматически.
 
-- [docs/PROJECT_CONTEXT.md](./docs/PROJECT_CONTEXT.md) — compact implementation map and development context.
-- [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) — current data flows, financial invariants and operational limitations.
-- [docs/UI_UX_AUDIT.md](./docs/UI_UX_AUDIT.md) — evidence-backed UI/UX audit and prioritized redesign brief.
+`npm run db:seed:demo` — отдельный инструмент записи демонстрационных данных;
+не запускать его на рабочей базе для проверки интерфейса.
 
-- `PROJECT_SPEC.md` — product requirements and architecture.
-- `DEVELOPMENT_PLAN.md` — implementation roadmap.
-- `COPILOT_INSTRUCTIONS.md` — GitHub Copilot development rules.
+## Документация
 
-## Project Status
-
-Phase 5 — Local backups, validation, restore-candidate preparation and financial
-history CSV export (implemented; automatic activation and remaining polish are
-pending).
-
-## Future Plans
-
-The project is designed to evolve into a multi-tenant SaaS application with party owners, managers, invitations and Telegram integration.
+- [Правила продукта](./PROJECT_SPEC.md) — функции, денежный ввод и границы приложения.
+- [Карта проекта](./docs/PROJECT_CONTEXT.md) — навигация по исходникам.
+- [Архитектура](./docs/ARCHITECTURE.md) — данные, транзакции, хранение и ограничения.
+- [Правила интерфейса](./docs/UI_RULES.md) — композиция, действия и доступность.
+- [Правила изменений](./AGENTS.md) — инструкции для работы с репозиторием.

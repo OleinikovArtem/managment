@@ -22,6 +22,7 @@ export async function registerSaleAction(payload: unknown): Promise<SaleActionRe
   try {
     const sale = await registerSale(partyId, parsed.data);
     revalidatePath("/sales");
+    revalidatePath("/ledger");
     revalidatePath("/dashboard");
     revalidatePath("/raids");
     return { ok: true, message: "Продажа записана, доли Adena рассчитаны.", sale };

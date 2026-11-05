@@ -6,7 +6,6 @@ import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { CheckCheck, MoreHorizontal, Plus, Save, Trash2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DateInput } from "@/components/ui/date-input";
@@ -101,6 +100,7 @@ export function RaidForm({
   const allPresent = members.length > 0 && presentCount === members.length;
 
   function applyComposition(compositionId: string) {
+    if (form.formState.dirtyFields.participants && !window.confirm("Заменить ручной выбор участников и профилей выбранным составом?")) return;
     const composition = compositions.find((item) => item.id === compositionId);
     form.setValue("compositionId", compositionId || undefined, { shouldDirty: true });
     if (!composition) return;
@@ -175,7 +175,7 @@ export function RaidForm({
           </label>
           <DateInput id="raid-occurred-at" value={occurredAt} withTime aria-invalid={Boolean(form.formState.errors.occurredAt)} onChange={(value) => form.setValue("occurredAt", value, { shouldDirty: true, shouldValidate: true })} />
           <p className="text-xs text-muted-foreground">
-            При сохранении время переводится из часового пояса браузера в UTC.
+            Время в часовом поясе этого устройства.
           </p>
           {form.formState.errors.occurredAt && (
             <p className="text-xs text-destructive">
@@ -221,7 +221,8 @@ export function RaidForm({
               const isPresent = participantValues[index]?.status === "PRESENT";
               return (
                 <li key={participants.fields[index]?.id ?? member.id}>
-                  <label className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border px-3 transition-colors ${isPresent ? "border-primary/40 bg-primary/5" : "hover:bg-muted/40"}`}>
+                  <div className={`attendance-row ${isPresent ? "bg-muted/40" : ""}`}>
+                  <label className="flex min-w-0 cursor-pointer items-center gap-3">
                     <input
                       type="checkbox"
                       aria-label={`${isPresent ? "Убрать присутствие" : "Отметить присутствие"}: ${member.nickname}`}
@@ -235,12 +236,10 @@ export function RaidForm({
                         )
                       }
                     />
-                    <span className="min-w-0 flex-1"><span className="block truncate">{member.nickname}</span>{(member.className || member.role || member.level) && <span className="block truncate text-[11px] text-muted-foreground">{[member.className, member.role, member.level ? `Lv. ${member.level}` : null].filter(Boolean).join(" · ")}</span>}</span>
-                    {isPresent && (member.profiles?.length ?? 0) > 0 && <select aria-label={`Профиль ${member.nickname}`} className="h-8 max-w-44 rounded-md border border-input bg-background px-2 text-xs" value={participantValues[index]?.profileId ?? ""} disabled={isPending} onChange={(event) => form.setValue(`participants.${index}.profileId`, event.target.value || undefined, { shouldDirty: true, shouldValidate: true })}><option value="">Базовый профиль</option>{member.profiles?.map((profile) => <option key={profile.id} value={profile.id}>{profile.name} · {profile.className}</option>)}</select>}
-                    <Badge variant={isPresent ? "secondary" : "outline"}>
-                      {isPresent ? "Был" : "Отсутствовал"}
-                    </Badge>
+                    <span className="min-w-0 flex-1"><span className="block break-words text-sm">{member.nickname}</span>{(member.className || member.role || member.level) && <span className="mt-1 block text-xs text-muted-foreground">{[member.className, member.role, member.level ? `Lv. ${member.level}` : null].filter(Boolean).join(" · ")}</span>}</span>
                   </label>
+                    {isPresent && (member.profiles?.length ?? 0) > 0 && <select aria-label={`Профиль ${member.nickname}`} className="min-w-0 w-full" value={participantValues[index]?.profileId ?? ""} disabled={isPending} onChange={(event) => form.setValue(`participants.${index}.profileId`, event.target.value || undefined, { shouldDirty: true, shouldValidate: true })}><option value="">Базовый профиль</option>{member.profiles?.map((profile) => <option key={profile.id} value={profile.id}>{profile.name} · {profile.className}</option>)}</select>}
+                  </div>
                 </li>
               );
             })}
@@ -256,7 +255,7 @@ export function RaidForm({
         )}
       </section>
 
-      <section className="space-y-3 rounded-xl border border-border/70 bg-card/40 p-4 sm:p-5">
+      <section className="space-y-3 border-t border-border pt-5">
         <div>
           <div className="flex items-center gap-2"><h2 className="font-medium">Лут</h2><span className="text-xs text-muted-foreground">{lootDrops.fields.length} предметов</span></div>
           <p className="text-sm text-muted-foreground">Выберите предмет — он сразу появится в компактной строке.</p>
@@ -286,12 +285,15 @@ export function RaidForm({
         )}
       </section>
 
-      <div className="space-y-2">
-        <label htmlFor="raid-comment" className="text-sm font-medium">
+      <details className="disclosure">
+        <summary className="text-sm">Заметка к рейду</summary>
+      <div className="space-y-2 pt-3">
+        <label htmlFor="raid-comment" className="sr-only">
           Комментарий <span className="text-xs text-muted-foreground">(необязательно)</span>
         </label>
         <Textarea id="raid-comment" rows={3} maxLength={1000} {...form.register("comment")} />
       </div>
+      </details>
 
       {message && <p role="alert" className="text-sm text-destructive">{message}</p>}
       <div className="flex flex-wrap gap-2">
@@ -299,7 +301,7 @@ export function RaidForm({
           {initialValues ? <Save aria-hidden="true" /> : <Plus aria-hidden="true" />}
           {isPending ? "Сохранение..." : submitLabel}
         </Button>
-        <Button type="button" variant="ghost" onClick={() => router.back()} disabled={isPending}>
+        <Button type="button" variant="ghost" onClick={() => { if (form.formState.isDirty && !window.confirm("Выйти без сохранения изменений рейда?")) return; router.push(raidId ? `/raids/${raidId}` : "/raids"); }} disabled={isPending}>
           Отмена
         </Button>
       </div>

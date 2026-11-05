@@ -26,6 +26,7 @@ export async function registerPaymentAction(
   try {
     const payment = await registerPayment(partyId, parsed.data);
     revalidatePath("/sales");
+    revalidatePath("/ledger");
     revalidatePath("/dashboard");
     return { ok: true, message: "Передача Adena записана.", payment };
   } catch (error) {

@@ -2,96 +2,59 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Suspense } from "react";
-import {
-  LayoutDashboard,
-  Layers3,
-  ListOrdered,
-  ScrollText,
-  Settings2,
-  Swords,
-  UsersRound,
-  WalletCards,
-} from "lucide-react";
+import { Suspense, useState } from "react";
+import { Menu, Landmark, LayoutDashboard, Swords, UsersRound, WalletCards, BookOpen, Settings2 } from "lucide-react";
+import { EditorDialog } from "@/components/ui/editor-dialog";
 
-const navigation = [
-  { href: "/dashboard", label: "Дашборд", icon: LayoutDashboard },
-  { href: "/members", label: "Участники", icon: UsersRound },
-  { href: "/compositions", label: "Составы", icon: Layers3 },
-  { href: "/items", label: "Предметы", icon: ScrollText },
-  { href: "/raids", label: "Рейды", icon: Swords },
-  { href: "/sales", label: "Финансы", icon: WalletCards },
-  { href: "/ledger", label: "История", icon: ListOrdered },
-  { href: "/settings", label: "Настройки", icon: Settings2 },
+const mainLinks = [
+  { href: "/dashboard", label: "Обзор", icon: LayoutDashboard, routes: ["/dashboard"] },
+  { href: "/raids", label: "Рейды", icon: Swords, routes: ["/raids"] },
+  { href: "/sales", label: "Финансы", icon: WalletCards, routes: ["/sales", "/ledger"] },
+  { href: "/members", label: "Группа", icon: UsersRound, routes: ["/members", "/compositions"] },
+];
+const secondaryLinks = [
+  { href: "/items", label: "Каталог предметов", icon: BookOpen, routes: ["/items"] },
+  { href: "/settings", label: "Настройки", icon: Settings2, routes: ["/settings"] },
 ];
 
 export function Sidebar() {
-  return (
-    <aside className="flex w-full shrink-0 flex-col border-b border-sidebar-border bg-sidebar px-4 py-3 md:min-h-screen md:w-56 md:border-r md:border-b-0 md:px-4 md:py-5">
-      <Link href="/dashboard" className="mb-5 flex items-center gap-2.5 md:mb-8">
-        <span className="flex size-9 items-center justify-center rounded-lg bg-primary/15 text-primary">
-          <WalletCards aria-hidden="true" size={21} />
-        </span>
-        <span>
-          <span className="block text-sm font-semibold tracking-tight text-sidebar-foreground">
-            Party Bank
-          </span>
-          <span className="block text-xs text-muted-foreground">Менеджер группы</span>
-        </span>
-      </Link>
-
-      <Suspense fallback={<NavigationFallback />}>
-        <SidebarNavigation />
-      </Suspense>
-
-      <div className="mt-auto hidden border-t border-sidebar-border pt-4 md:block">
-        <p className="text-xs font-medium text-sidebar-foreground">Локальный режим</p>
-        <p className="mt-1 text-xs text-muted-foreground">Данные на этом компьютере</p>
-      </div>
-    </aside>
-  );
+  return <Suspense fallback={<div className="h-24 lg:h-screen lg:w-52" />}><Navigation /></Suspense>;
 }
 
-function SidebarNavigation() {
+function Navigation() {
   const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
+  function links(items: typeof mainLinks, mobile = false) {
+    return items.map(({ href, label, icon: Icon, routes }) => {
+      const active = routes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
+      return <Link href={href} key={href} aria-current={active ? "page" : undefined} onClick={() => setMenuOpen(false)} className={mobile ? "mobile-nav-link" : "sidebar-link"}>
+        <Icon size={17} aria-hidden="true" /><span>{label}</span>
+      </Link>;
+    });
+  }
+  const brand = <Link href="/dashboard" className="flex min-h-11 items-center gap-3" onClick={() => setMenuOpen(false)}>
+    <Landmark size={24} strokeWidth={1.5} className="text-[#e6be67]" aria-hidden="true" />
+    <span><span className="block text-sm font-semibold tracking-tight">Party Bank</span><span className="block text-xs text-muted-foreground">Казна группы</span></span>
+  </Link>;
 
-  return (
-    <nav aria-label="Основная навигация" className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 md:mx-0 md:flex-col md:overflow-visible md:px-0 md:pb-0">
-        {navigation.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || pathname.startsWith(`${href}/`);
-          return (
-            <Link
-              key={href}
-              href={href}
-              aria-current={active ? "page" : undefined}
-              className={`flex min-h-10 items-center gap-3 rounded-lg px-3 text-sm transition-colors ${
-                active
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-muted-foreground hover:bg-sidebar-accent/70 hover:text-sidebar-foreground"
-              }`}
-            >
-              <Icon aria-hidden="true" size={17} />
-              {label}
-            </Link>
-          );
-        })}
-    </nav>
-  );
-}
-
-function NavigationFallback() {
-  return (
-    <nav aria-label="Основная навигация" className="flex gap-2 md:flex-col">
-      {navigation.map(({ href, label, icon: Icon }) => (
-        <Link
-          key={href}
-          href={href}
-          className="flex min-h-10 items-center gap-3 rounded-lg px-3 text-sm text-muted-foreground"
-        >
-          <Icon aria-hidden="true" size={17} />
-          {label}
-        </Link>
-      ))}
-    </nav>
-  );
+  return <>
+    <aside className="app-sidebar">
+      <div className="mb-9">{brand}</div>
+      <nav aria-label="Основная навигация" className="space-y-1">{links(mainLinks)}</nav>
+      <nav aria-label="Справочник и настройки" className="mt-8 space-y-1">{links(secondaryLinks)}</nav>
+      <p className="mt-auto pt-10 text-xs leading-5 text-muted-foreground">Локальное приложение<br />Данные на этом компьютере</p>
+    </aside>
+    <header className="mobile-shell">
+      <div className="flex items-center justify-between px-4 py-2">{brand}<button type="button" className="inline-flex min-h-11 items-center gap-2 px-2 text-sm" onClick={() => setMenuOpen(true)}><Menu size={18} aria-hidden="true" />Меню</button></div>
+      <nav aria-label="Основная навигация" className="grid grid-cols-4 border-t border-border">{links(mainLinks, true)}</nav>
+    </header>
+    <EditorDialog open={menuOpen} onClose={() => setMenuOpen(false)} title="Навигация">
+      <nav aria-label="Все разделы" className="space-y-1">
+        {links(mainLinks)}
+        <Link href="/compositions" onClick={() => setMenuOpen(false)} className="sidebar-link pl-10">Составы</Link>
+        <Link href="/ledger" onClick={() => setMenuOpen(false)} className="sidebar-link pl-10">Операции</Link>
+        <div className="pt-4">{links(secondaryLinks)}</div>
+      </nav>
+    </EditorDialog>
+  </>;
 }

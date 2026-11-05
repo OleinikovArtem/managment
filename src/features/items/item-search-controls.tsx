@@ -25,6 +25,16 @@ export function ItemSearchControls({
   const [category, setCategory] = useState(initialCategory);
 
   useEffect(() => {
+    const restore = () => {
+      const params = new URLSearchParams(window.location.search);
+      setQuery(params.get("q") ?? "");
+      setCategory(params.get("category") ?? "");
+    };
+    window.addEventListener("popstate", restore);
+    return () => window.removeEventListener("popstate", restore);
+  }, []);
+
+  useEffect(() => {
     if (query === currentQuery && category === currentCategory) return;
 
     const timeout = window.setTimeout(() => {

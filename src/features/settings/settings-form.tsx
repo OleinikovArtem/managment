@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
-import { Database, Save } from "lucide-react";
+import { Save } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -50,60 +50,15 @@ export function SettingsForm({ partyName }: { partyName: string }) {
     });
   });
 
-  return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      <Card className="h-fit">
-        <CardHeader>
-          <CardTitle>Параметры группы</CardTitle>
-          <CardDescription>Название отображается в локальном приложении.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form className="space-y-4" onSubmit={onSubmit} noValidate>
-            <div className="space-y-2">
-              <label htmlFor="party-name" className="text-sm font-medium">
-                Название группы
-              </label>
-              <Input
-                id="party-name"
-                maxLength={80}
-                aria-invalid={Boolean(form.formState.errors.name)}
-                {...form.register("name")}
-              />
-              {form.formState.errors.name && (
-                <p className="text-xs text-destructive">
-                  {form.formState.errors.name.message}
-                </p>
-              )}
-            </div>
-            {message && (
-              <p role="status" className="text-sm text-muted-foreground">
-                {message}
-              </p>
-            )}
-            <Button type="submit" disabled={isPending}>
-              <Save aria-hidden="true" />
-              {isPending ? "Сохранение..." : "Сохранить"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      <Card className="h-fit">
-        <CardHeader className="flex-row items-start gap-3">
-          <span className="rounded-lg bg-primary/10 p-2 text-primary">
-            <Database aria-hidden="true" size={18} />
-          </span>
-          <div className="space-y-1">
-            <CardTitle>Локальное хранение</CardTitle>
-            <CardDescription>База данных SQLite</CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent className="text-sm leading-6 text-muted-foreground">
-          Изменения сохраняются в локальной базе приложения. Обычный запуск не удаляет и не
-          пересоздаёт базу данных.
-        </CardContent>
-      </Card>
-
-    </div>
-  );
+  return <Card>
+    <CardHeader><CardTitle>Группа</CardTitle><CardDescription>Название вашего рабочего пространства.</CardDescription></CardHeader>
+    <CardContent><form className="max-w-xl space-y-4" onSubmit={onSubmit} noValidate>
+      <label htmlFor="party-name" className="block text-sm font-medium">Название группы</label>
+      <Input id="party-name" maxLength={80} aria-invalid={Boolean(form.formState.errors.name)} aria-describedby={form.formState.errors.name ? "party-name-error" : undefined} {...form.register("name")} />
+      {form.formState.errors.name && <p id="party-name-error" className="text-sm text-destructive">{form.formState.errors.name.message}</p>}
+      {message && <p role="status" className="text-sm text-muted-foreground">{message}</p>}
+      <Button type="submit" disabled={isPending}><Save aria-hidden="true" />{isPending ? "Сохранение…" : "Сохранить"}</Button>
+      <p className="text-xs leading-5 text-muted-foreground">Данные хранятся на этом компьютере. Сохраняйте резервные копии, чтобы защитить историю группы.</p>
+    </form></CardContent>
+  </Card>;
 }

@@ -1,0 +1,146 @@
+.raidDetail-workspace {
+  --raid-detail-ink: #f0f1f2;
+  --raid-detail-muted: #a8afb6;
+  --raid-detail-surface: #151719;
+  --raid-detail-rule: #2b2e32;
+  --raid-detail-gold: #e6be67;
+  color: var(--raid-detail-ink);
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  max-width: 1200px;
+  margin-inline: auto;
+  container: raid-detail / inline-size;
+}
+
+.raidDetail-workspace :is(a, button, summary, input, textarea):focus-visible {
+  outline: 2px solid #9ec5ff;
+  outline-offset: 4px;
+}
+
+.raidDetail-breadcrumb { display: flex; align-items: center; gap: 12px; color: var(--raid-detail-muted); font-size: 12px; }
+.raidDetail-breadcrumb a { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; }
+.raidDetail-breadcrumb a:hover { color: var(--raid-detail-ink); }
+.raidDetail-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; padding-block: 20px 32px; }
+.raidDetail-identity { min-width: 0; }
+.raidDetail-identity h1 { font-size: 30px; line-height: 1.2; font-weight: 600; letter-spacing: -.025em; overflow-wrap: anywhere; }
+.raidDetail-metadata { display: flex; flex-wrap: wrap; gap: 4px 20px; margin-top: 12px; color: var(--raid-detail-muted); font-size: 13px; }
+.raidDetail-edit { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; gap: 8px; min-height: 36px; padding-inline: 12px; border: 1px solid var(--raid-detail-rule); border-radius: 6px; font-size: 13px; }
+.raidDetail-edit:hover { background: var(--raid-detail-surface); }
+.raidDetail-lock { display: flex; align-items: center; flex-shrink: 0; gap: 8px; color: var(--raid-detail-muted); padding-top: 6px; font-size: 12px; }
+.raidDetail-columns { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 40px; align-items: start; }
+.raidDetail-loot { min-width: 0; }
+.raidDetail-sectionHeading { display: flex; align-items: baseline; gap: 12px; padding-bottom: 16px; }
+.raidDetail-sectionHeading h2 { font-size: 16px; font-weight: 600; }
+.raidDetail-sectionHeading > span { color: var(--raid-detail-muted); font-size: 12px; }
+.raidDetail-dropList { list-style: none; }
+.raidDetail-drop { padding: 20px 0; border-top: 1px solid var(--raid-detail-rule); }
+.raidDetail-dropHeading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+.raidDetail-dropHeading > a { min-width: 0; font-size: 17px; font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
+.raidDetail-dropHeading > a:hover { text-decoration: underline; text-underline-offset: 4px; }
+.raidDetail-sold { color: var(--raid-detail-muted); font-size: 12px; flex-shrink: 0; }
+.raidDetail-originalName { color: var(--raid-detail-muted); font-size: 12px; margin-top: 4px; overflow-wrap: anywhere; }
+.raidDetail-quantities { display: flex; gap: 32px; margin-block: 14px; font-variant-numeric: tabular-nums; }
+.raidDetail-quantities dt { color: var(--raid-detail-muted); font-size: 12px; }
+.raidDetail-quantities dd { margin-top: 3px; font-weight: 500; font-size: 17px; }
+.raidDetail-quantities dd span { font-size: 12px; color: var(--raid-detail-muted); font-weight: 400; }
+.raidDetail-remaining dd { color: var(--raid-detail-gold); }
+.raidDetail-note { color: var(--raid-detail-muted); font-size: 13px; margin-block: 8px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.raidDetail-history { margin-top: 16px; }
+.raidDetail-workspace summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; list-style: none; min-height: 36px; }
+.raidDetail-workspace summary::-webkit-details-marker { display: none; }
+.raidDetail-workspace summary svg { flex-shrink: 0; transition: transform 140ms ease; }
+.raidDetail-workspace details[open] > summary > svg { transform: rotate(180deg); }
+.raidDetail-history > summary { justify-content: flex-start; color: var(--raid-detail-muted); font-size: 13px; }
+.raidDetail-history > summary:hover, .raidDetail-shares > summary:hover { color: var(--raid-detail-ink); }
+.raidDetail-count { margin-left: 6px; color: var(--raid-detail-ink); font-variant-numeric: tabular-nums; }
+.raidDetail-latestAmount { margin-left: auto; color: var(--raid-detail-gold); font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.raidDetail-latestAmount > span { color: var(--raid-detail-muted); font-size: 12px; font-weight: 400; margin-right: 6px; }
+.raidDetail-history[open] .raidDetail-latestAmount { visibility: hidden; }
+.raidDetail-dropNote > summary { justify-content: flex-start; color: var(--raid-detail-muted); font-size: 12px; }
+.raidDetail-dropNote > summary:hover { color: var(--raid-detail-ink); }
+.raidDetail-saleList { margin-top: 12px; }
+.raidDetail-saleList > li { padding-block: 16px; border-top: 1px solid var(--raid-detail-rule); }
+.raidDetail-saleHeading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; align-items: baseline; }
+.raidDetail-saleMetadata { display: flex; flex-wrap: wrap; gap: 4px 16px; color: var(--raid-detail-muted); font-size: 12px; }
+.raidDetail-saleMetadata > span { color: var(--raid-detail-ink); font-size: 14px; }
+.raidDetail-saleAmount { font-size: 17px; font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; min-width: 0; }
+.raidDetail-saleAmount > span, .raidDetail-shareAmount > span:first-child { color: var(--raid-detail-gold) !important; }
+.raidDetail-exact { text-align: right; font-size: 12px; color: var(--raid-detail-muted); margin-top: 4px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.raidDetail-shares { margin-top: 12px; }
+.raidDetail-shares > summary { justify-content: flex-start; color: var(--raid-detail-muted); font-size: 12px; }
+.raidDetail-shares ul { padding-top: 8px; }
+.raidDetail-shares li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, auto); align-items: start; gap: 16px; padding-block: 8px; }
+.raidDetail-shares li > span:first-child { overflow-wrap: anywhere; }
+.raidDetail-shareAmount { display: flex; flex-direction: column; text-align: right; font-variant-numeric: tabular-nums; }
+.raidDetail-shareAmount > span:last-child { color: var(--raid-detail-muted); font-size: 12px; overflow-wrap: anywhere; }
+.raidDetail-context { border-left: 1px solid var(--raid-detail-rule); padding-left: 24px; }
+.raidDetail-roster > summary { align-items: flex-start; }
+.raidDetail-rosterTitle { display: block; font-size: 14px; font-weight: 600; }
+.raidDetail-rosterCount { display: block; color: var(--raid-detail-muted); font-size: 12px; margin-top: 4px; }
+.raidDetail-roster ul { margin-top: 20px; }
+.raidDetail-roster li { padding-block: 10px; }
+.raidDetail-participantName { display: block; font-weight: 500; overflow-wrap: anywhere; }
+.raidDetail-participantProfile { display: block; color: var(--raid-detail-muted); font-size: 12px; line-height: 1.6; margin-top: 3px; overflow-wrap: anywhere; }
+.raidDetail-absent .raidDetail-participantName { color: var(--raid-detail-muted); }
+.raidDetail-snapshot { color: var(--raid-detail-muted); font-size: 12px; margin-top: 20px; }
+.raidDetail-raidNote { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--raid-detail-rule); }
+.raidDetail-raidNote h2 { font-size: 13px; font-weight: 500; }
+.raidDetail-raidNote p { color: var(--raid-detail-muted); font-size: 13px; margin-top: 8px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.raidDetail-empty { border-top: 1px solid var(--raid-detail-rule); padding-block: 32px; }
+.raidDetail-empty h3 { font-size: 16px; font-weight: 500; }
+.raidDetail-empty p { color: var(--raid-detail-muted); margin-top: 8px; }
+.raidDetail-empty a { display: inline-flex; align-items: center; min-height: 44px; margin-top: 12px; text-decoration: underline; text-underline-offset: 4px; }
+
+/* Sale form styling stays scoped to the raid detail workspace. */
+.raidDetail-saleEntry { --primary: #f0f1f2; --primary-foreground: #101112; --secondary: #f0f1f2; --secondary-foreground: #101112; --ring: #9ec5ff; }
+.raidDetail-saleEntry > div { border: 0; background: transparent; padding: 0; margin-top: 12px; justify-content: flex-start; }
+.raidDetail-saleEntry > div > p { display: none; } /* The same remaining quantity is visible immediately above. */
+.raidDetail-saleEntry [data-slot="button"] { border-radius: 6px; min-height: 36px; font-size: 13px; box-shadow: none; }
+.raidDetail-saleEntry > form { background: var(--raid-detail-surface); padding: 20px; border: 0; border-radius: 6px; margin-top: 16px; gap: 16px; }
+.raidDetail-saleEntry [data-slot="input"], .raidDetail-saleEntry [data-slot="textarea"] { border-radius: 6px; border-color: #68717a; font-family: inherit; }
+.raidDetail-saleEntry > div [data-slot="button"]:hover { background: #dce0e3; }
+
+@media (max-width: 1100px) {
+  .raidDetail-columns { grid-template-columns: minmax(0, 1fr) 220px; gap: 24px; }
+  .raidDetail-context { padding-left: 20px; }
+}
+
+@media (max-width: 767px) {
+  .raidDetail-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 12px; align-items: center; padding-block: 12px 24px; }
+  .raidDetail-identity { display: contents; }
+  .raidDetail-identity h1 { grid-column: 1 / -1; font-size: 24px; line-height: 1.25; }
+  .raidDetail-metadata { font-size: 12px; gap: 4px 12px; margin-top: 0; }
+  .raidDetail-lock { grid-column: 1 / -1; }
+  .raidDetail-columns { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+  .raidDetail-context { border-left: 0; border-top: 1px solid var(--raid-detail-rule); padding: 20px 0 0; }
+  .raidDetail-dropHeading { flex-direction: column; gap: 6px; }
+  .raidDetail-dropHeading > a { font-size: 16px; }
+  .raidDetail-quantities { gap: 28px; }
+  .raidDetail-drop { padding-block: 18px; }
+  .raidDetail-workspace summary, .raidDetail-edit, .raidDetail-breadcrumb a { min-height: 44px; }
+  .raidDetail-saleEntry [data-slot="button"] { min-height: 44px; }
+  .raidDetail-saleEntry [data-slot="input"], .raidDetail-saleEntry [data-slot="textarea"] { min-height: 44px; font-size: 16px; }
+  .raidDetail-saleEntry > form { padding: 16px; }
+  .raidDetail-roster ul { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .raidDetail-workspace *, .raidDetail-workspace *::before, .raidDetail-workspace *::after { transition: none !important; animation: none !important; }
+}
+
+/* The existing shell takes 224px at tablet widths; use available content width. */
+@container raid-detail (max-width: 800px) {
+  .raidDetail-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; }
+  .raidDetail-identity { display: contents; }
+  .raidDetail-identity h1 { grid-column: 1 / -1; }
+  .raidDetail-lock { grid-column: 1 / -1; }
+  .raidDetail-columns { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+  .raidDetail-context { border-left: 0; border-top: 1px solid var(--raid-detail-rule); padding: 20px 0 0; }
+  .raidDetail-roster ul { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px 20px; }
+}
+
+@container raid-detail (max-width: 480px) {
+  .raidDetail-shares li { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 12px; }
+  .raidDetail-shareAmount { overflow-wrap: anywhere; }
+}

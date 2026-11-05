@@ -1,3 +1,5 @@
+import { Package, Shield } from "lucide-react";
+
 const ITEM_ICON_BASE = "https://l2db.info/uploads/images/icons";
 const CLASS_ICON_BASE = "https://l2revolution.fandom.com/wiki/Special:FilePath";
 
@@ -51,5 +53,9 @@ export function classIconUrl(className: string) {
 export function GameIcon({ kind, name, category, size = "md" }: { kind: "item" | "class"; name: string; category?: string | null; size?: "sm" | "md" | "lg" }) {
   const url = kind === "item" ? itemIconUrl(name, category) : classIconUrl(name);
   const sizeClass = size === "sm" ? "size-7" : size === "lg" ? "size-12" : "size-9";
-  return <span role="img" aria-label={`${kind === "item" ? "Иконка предмета" : "Иконка класса"}: ${name}`} className={`${sizeClass} inline-block shrink-0 rounded-md border border-border/70 bg-muted/40 bg-contain bg-center bg-no-repeat`} style={{ backgroundImage: `url("${url}")` }} />;
+  const Fallback = kind === "item" ? Package : Shield;
+  return <span role="img" aria-label={`${kind === "item" ? "Предмет" : "Класс"}: ${name}`} className={`${sizeClass} relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-sm text-muted-foreground`}>
+    <Fallback size={18} strokeWidth={1.5} aria-hidden="true" />
+    <span aria-hidden="true" className="absolute inset-0 bg-contain bg-center bg-no-repeat" style={{ backgroundImage: `url("${url}")` }} />
+  </span>;
 }

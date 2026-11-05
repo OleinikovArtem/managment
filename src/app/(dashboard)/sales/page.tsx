@@ -1,27 +1,38 @@
-import Link from "next/link";
 import { Suspense } from "react";
 import { io } from "next/cache";
-import { Banknote } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LocalDateTimeDisplay } from "@/features/raids/local-date-time-display";
-import { PaymentForm } from "@/features/sales/payment-form";
-import { SalesTabs } from "@/features/sales/sales-tabs";
+import { SectionNavigation } from "@/components/layout/section-navigation";
+import { AdenaAmount } from "@/components/ui/adena-amount";
+import { PayoutList } from "@/features/sales/payout-list";
 import { ensureLocalWorkspace } from "@/server/bootstrap/local-workspace";
 import { getPartyBalances, getSales } from "@/server/services/sale-service";
 import { getPayments } from "@/server/services/payment-service";
-import { AdenaAmount } from "@/components/ui/adena-amount";
 
-export default function SalesPage() { return <Suspense fallback={<div className="h-96 animate-pulse rounded-2xl bg-muted/50" />}><SalesContent /></Suspense>; }
+export default function SalesPage() {
+  return <Suspense fallback={<p role="status" className="empty-state">Загрузка остатков…</p>}><SalesContent /></Suspense>;
+}
 
 async function SalesContent() {
-  await io(); const workspace = await ensureLocalWorkspace();
+  await io();
+  const workspace = await ensureLocalWorkspace();
   const [sales, balances, payments] = await Promise.all([getSales(workspace.partyId), getPartyBalances(workspace.partyId), getPayments(workspace.partyId)]);
-  const totalSales = sales.reduce((sum, sale) => sum + sale.totalPrice, 0n); const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0n); const outstanding = balances.memberBalances.reduce((sum, member) => sum + member.payable, 0n);
-  const payouts = <Card><CardHeader><CardTitle>К выплате участникам</CardTitle><CardDescription>Остаток доли и действие для передачи Adena.</CardDescription></CardHeader><CardContent>{balances.memberBalances.length === 0 ? <Empty text="Участников пока нет." /> : <ul className="divide-y divide-border">{balances.memberBalances.map((member) => <li key={member.memberId} className="py-2.5 first:pt-0 last:pb-0"><div className="flex items-center justify-between gap-3"><span className="flex min-w-0 items-center gap-2 truncate text-sm font-medium">{member.nickname}{!member.isActive && <Badge variant="outline">Неактивен</Badge>}</span><AdenaAmount amount={member.payable} /></div>{member.payable > 0n && <PaymentForm memberId={member.memberId} nickname={member.nickname} remaining={member.payable.toString()} partyCash={balances.partyCash.toString()} totalOutstanding={outstanding.toString()} />}</li>)}</ul>}</CardContent></Card>;
-  const paymentHistory = <Card><CardHeader><CardTitle>Передачи Adena</CardTitle><CardDescription>{payments.length} операций.</CardDescription></CardHeader><CardContent>{payments.length === 0 ? <Empty text="Передач пока нет." /> : <ul className="divide-y divide-border">{payments.map((payment) => <li key={payment.id} className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0"><div className="min-w-0"><p className="truncate text-sm font-medium">{payment.nicknameSnapshot}</p><p className="text-xs text-muted-foreground"><LocalDateTimeDisplay value={payment.paidAt.toISOString()} />{payment.comment ? ` · ${payment.comment}` : ""}</p></div><AdenaAmount amount={payment.amount} /></li>)}</ul>}</CardContent></Card>;
-  const salesHistory = <Card><CardHeader><CardTitle>Продажи предметов</CardTitle><CardDescription>{sales.length} операций.</CardDescription></CardHeader><CardContent>{sales.length === 0 ? <div className="rounded-xl border border-dashed px-6 py-10 text-center"><Banknote aria-hidden="true" className="mx-auto text-primary" /><p className="mt-3 text-sm text-muted-foreground">Продаж пока нет.</p><Link href="/raids" className="mt-3 inline-flex text-sm font-medium text-primary hover:underline">Перейти к рейдам</Link></div> : <ul className="divide-y divide-border">{sales.map((sale) => <li key={sale.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2.5 first:pt-0 last:pb-0"><div className="min-w-0"><p className="truncate text-sm font-medium">{sale.lootDrop.item.displayName || sale.lootDrop.item.canonicalName} <span className="font-normal text-muted-foreground">· {sale.quantitySold} шт.</span></p><p className="text-xs text-muted-foreground"><Link href={`/raids/${sale.raid.id}`} className="text-primary hover:underline">{sale.raid.name}</Link> · <LocalDateTimeDisplay value={sale.receivedAt.toISOString()} /></p></div><AdenaAmount amount={sale.totalPrice} /></li>)}</ul>}</CardContent></Card>;
-  return <div className="space-y-5"><header><p className="text-xs font-medium text-primary">{workspace.partyName}</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Финансы</h1><p className="mt-1 max-w-2xl text-sm text-muted-foreground">Банк группы, выплаты участникам и продажи.</p></header><div className="grid grid-cols-2 border-y border-border/70 sm:grid-cols-4"><Metric label="Получено" value={<AdenaAmount amount={totalSales} />} /><Metric label="В банке" value={<AdenaAmount amount={balances.partyCash} />} /><Metric label="К выплате" value={<AdenaAmount amount={outstanding} />} /><Metric label="Передано" value={<AdenaAmount amount={totalPaid} />} /></div><SalesTabs payouts={payouts} payments={paymentHistory} sales={salesHistory} /></div>;
+  const totalSales = sales.reduce((sum, sale) => sum + sale.totalPrice, 0n);
+  const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0n);
+  const outstanding = balances.memberBalances.reduce((sum, member) => sum + member.payable, 0n);
+  // Preserve the existing signed total used by payment recommendations.
+  const positive = balances.memberBalances.reduce((sum, member) => sum + (member.payable > 0n ? member.payable : 0n), 0n);
+  const overpaid = balances.memberBalances.reduce((sum, member) => sum + (member.payable < 0n ? -member.payable : 0n), 0n);
+  const rows = [...balances.memberBalances].sort((a, b) => a.payable > b.payable ? -1 : a.payable < b.payable ? 1 : a.nickname.localeCompare(b.nickname));
+
+  return <div className="space-y-6">
+    <header className="page-header"><h1>Финансы</h1><p className="mt-2">Банк группы и фактические передачи Adena.</p></header>
+    <SectionNavigation section="finance" active="/sales" />
+    <dl className="money-strip border-b border-border">
+      <div><dt>{balances.partyCash < 0n ? "Дефицит банка" : "В банке"}</dt><dd className="lead-amount"><AdenaAmount amount={balances.partyCash} /></dd></div>
+      <div><dt>К выплате</dt><dd><AdenaAmount amount={positive} /></dd></div>
+      {overpaid > 0n && <div><dt>Переплаты участникам</dt><dd><AdenaAmount amount={overpaid} /></dd></div>}
+      <div><dt>Получено за всё время</dt><dd><AdenaAmount amount={totalSales} /></dd></div>
+      <div><dt>Передано</dt><dd><AdenaAmount amount={totalPaid} /></dd></div>
+    </dl>
+    <PayoutList members={rows.map(member => ({ ...member, payable: member.payable.toString() }))} partyCash={balances.partyCash.toString()} totalOutstanding={outstanding.toString()} />
+  </div>;
 }
-function Empty({ text }: { text: string }) { return <p className="rounded-lg border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">{text}</p>; }
-function Metric({ label, value }: { label: string; value: React.ReactNode }) { return <div className="min-w-0 border-r border-border/60 px-3 py-3 first:pl-0 last:border-r-0 sm:px-4"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 truncate text-base font-semibold tabular-nums">{value}</p></div>; }

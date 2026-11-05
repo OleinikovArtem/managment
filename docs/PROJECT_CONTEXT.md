@@ -1,74 +1,56 @@
-# Контекст проекта
+# Карта проекта
 
-Сверено с кодом 2026-11-02. Это навигация по текущей реализации; требования —
-в `PROJECT_SPEC.md`, порядок работ и открытые задачи — в `DEVELOPMENT_PLAN.md`.
-При расхождении проверять исходники и актуализировать эти заметки.
+Party Bank Manager — локальный русский интерфейс для группы Lineage 2.
+Участники → состав рейда → добыча → полученная оплата → доли → передачи Adena.
+Продуктовые правила: [PROJECT_SPEC.md](../PROJECT_SPEC.md).
+Запуск и восстановление: [README.md](../README.md).
 
-## Назначение и состояние
+## Навигация и исходники
 
-Party Bank Manager — локальное приложение для фарм-группы Lineage 2:
-участники → рейды и посещаемость → отдельные поступления лута → продажи → доли → выплаты.
-Интерфейс русский, тёмный. Сейчас фаза 5: бэкапы, подготовка восстановления,
-CSV истории продаж и выплат. Авторизации и пользовательского выбора групп нет;
-SaaS, Telegram и OCR — будущие задачи, не текущий объём работ.
-
-## Быстрая навигация
-
-| Задача | Основные исходники |
+| Задача | Основные файлы |
 | --- | --- |
-| Маршруты, загрузка данных, действия | `src/app/(dashboard)/` |
-| Формы, Zod, результаты действий | `src/features/{members,items,raids,sales,settings}/` |
-| Общие UI-компоненты и навигация | `src/components/ui/`, `src/components/layout/sidebar.tsx` |
-| Правила предметной области | `src/server/services/` |
-| Запросы, транзакции продаж и выплат | `src/server/repositories/` |
-| Локальный владелец, группа, базовый каталог | `src/server/bootstrap/` |
-| Схема, защита финансов, клиент БД | `prisma/schema.prisma`, `prisma/financial-constraints.sql`, `src/lib/db/prisma.ts` |
-| Бэкапы и подготовка восстановления | `src/server/services/backup-service.ts`, `src/features/settings/backup-manager.tsx` |
+| Маршруты, загрузка, Server Actions | `src/app/(dashboard)/` |
+| Shell и связь разделов | `src/components/layout/sidebar.tsx`, `section-navigation.tsx` |
+| Общий стиль и UI | `src/app/globals.css`, `src/components/ui/` |
+| Обзор и аналитика | `src/features/dashboard/dashboard-analytics.tsx` |
+| Участники и профили | `src/features/members/` |
+| Сохранённые составы | `src/features/compositions/` |
+| Каталог, поиск, редактирование | `src/features/items/` |
+| Создание и редактирование рейда | `src/features/raids/raid-form.tsx`, `item-combobox.tsx` |
+| Detail рейда, история и продажа | `raid-detail-view.tsx`, `raid-detail-view.css`, `raid-sale-workspace.tsx` в `src/features/raids/` |
+| Передачи и получатели | `src/features/sales/payment-form.tsx`, `payout-list.tsx` |
+| Продажа и валидация финансов | `src/features/sales/sale-form.tsx`, `sale-schema.ts`, `payment-schema.ts` |
+| Журнал | `src/features/ledger/history-list.tsx` |
+| Настройки и резервные копии | `src/features/settings/`, `src/server/services/backup-service.ts` |
+| Правила и транзакции | `src/server/services/`, `src/server/repositories/` |
+| Локальная группа и базовый каталог | `src/server/bootstrap/`, `prisma/seeds/lineage2-high-five-items.json` |
+| Схема и финансовые защиты | `prisma/schema.prisma`, `prisma/financial-constraints.sql` |
+| Клиент БД | `src/lib/db/prisma.ts` |
+| Parser и короткие суммы | `src/lib/adena.ts`, `src/components/ui/adena-amount.tsx` |
 | CSV | `src/server/services/financial-history-csv.ts`, `src/app/api/ledger/export/route.ts` |
 
-Участники отображаются компактными карточками с полями класса, уровня и роли.
-У одного участника может быть несколько профилей (например, основной SE и
-замена Bishop). Для рейдов доступны именованные профили состава: профиль
-хранит до 36 слотов «участник + выбранная профа» (для обычной партии
-рекомендуется до 9), фокус и описание, а при
-создании/редактировании рейда одним выбором подставляет посещаемость и профы.
-Рейд сохраняет выбранный профиль отдельно от исторического снимка участников.
-Предметы и профили показывают реальные High Five-style иконки: предметные asset
-keys берутся из L2DB icon path, а профили используют иконки соответствующего
-классового семейства.
+## Технические ориентиры
 
-Денежный ввод принимает целые значения и компактную запись (`750к`, `5.25м`,
-`1.2б`). На экране суммы показываются теми же короткими единицами и окрашиваются
-от золотого к красному; внутреннее хранение, расчёты и CSV остаются точными целыми Adena.
+- Next.js App Router, React, TypeScript strict, Tailwind 4, shadcn/Base UI,
+  React Hook Form + Zod, Prisma + better-sqlite3, Vitest. Версии — в lockfile.
+- Алиас `@/` ведёт в `src/`. Сгенерированный Prisma client — `src/generated/prisma/`;
+  его не редактируют и не добавляют в Git.
+- Динамические части страниц используют `Suspense` и `await io()`. Перед изменением
+  Next.js API читать документацию установленной версии в `node_modules/next/dist/docs/`.
+- Денежные правила, snapshot weights, идемпотентность и защита истории описаны
+  в [ARCHITECTURE.md](./ARCHITECTURE.md). Не выводить их из UI или старых данных.
+- Формы продажи и передачи имеют разный смысл числа без суффикса; не унифицировать
+  его попутно с правками интерфейса. Контракт — в спецификации продукта.
+- UI-правила и адаптивность: [UI_RULES.md](./UI_RULES.md).
 
-## Стек и команды
+## Проверки и данные
 
-Next.js 16.4.3, React 19.3, TypeScript strict, Tailwind 4, shadcn/Base UI,
-React Hook Form + Zod 4, Prisma 7 + better-sqlite3, Vitest 5.
-Версии — из `package.json`; установленные версии уточнять по lockfile.
-Алиас `@/` ведёт в `src/`. Prisma генерируется в `src/generated/prisma/`, вне Git.
+Команды: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`.
+Тесты лежат рядом с исходниками, среда Vitest — Node. Финансовые и backup integration
+тесты создают копии текущей `prisma/dev.db`; на чистом checkout нужна актуальная
+тестовая схема. Автоматического браузерного набора в репозитории нет.
 
-- Запуск: `npm run dev` (127.0.0.1), `/` перенаправляет на `/dashboard`.
-- Проверки: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`.
-- Первый запуск: инструкции в README; перед Next.js-изменениями читать локальные
-  руководства в `node_modules/next/dist/docs/` по соответствующей теме.
-- `db:sync` применяет `db push` и SQL-триггеры, предназначен для disposable dev DB.
-  Для ценных данных и релиза нужен отдельный проверенный путь миграции.
-
-## Что ещё не завершено
-
-- История продаж непосредственно в карточке предмета.
-- Загрузка скриншотов: поля путей существуют, интерфейса загрузки нет.
-- Активация восстановления: сейчас создаётся отдельный кандидат, рабочая БД не заменяется.
-- Расширенная статистика dashboard, адаптивность и оставшаяся полировка.
-- Версионированная миграция финансовой схемы и проверка реальной многоклиентской нагрузки.
-
-## Проверенная отправная точка
-
-2026-11-02: lint и typecheck прошли; 18 файлов тестов, 94 теста прошли.
-Сборка и браузерные сценарии в рамках этого ознакомления не запускались.
-Финансовые и backup-интеграционные тесты требуют существующую `prisma/dev.db`
-с актуальной схемой: они работают с её копиями и удаляют свои временные артефакты.
-Это ограничение воспроизводимости тестов на чистом checkout.
-
-Подробности устройства и инварианты: [ARCHITECTURE.md](./ARCHITECTURE.md).
+Рабочую базу не сбрасывают для расследований. `db:sync` предназначен для disposable
+базы, а не миграции ценных данных. БД, uploads, backups и кандидаты восстановления
+не являются временными файлами для уборки. `scripts/seed-demo-data.cjs` — используемый
+npm-инструмент записи demo-данных, не production bootstrap.

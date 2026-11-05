@@ -5,22 +5,22 @@ import { Button } from "@/components/ui/button";
 
 export default function DashboardError({
   error,
-  reset,
+  retry,
 }: {
-  error: Error & { digest?: string };
-  reset: () => void;
+  error: unknown;
+  retry: () => void;
 }) {
   useEffect(() => {
     console.error("Dashboard route failed to render.", error);
   }, [error]);
 
   return (
-    <section className="mx-auto max-w-xl rounded-2xl border border-destructive/30 bg-card p-7">
-      <p className="text-sm font-medium text-destructive">Не удалось загрузить страницу</p>
+    <section className="max-w-xl py-8" role="alert">
+      <h1 className="text-xl font-semibold">Не удалось загрузить страницу</h1>
       <p className="mt-2 text-sm leading-6 text-muted-foreground">
-        Проверьте локальную базу данных и повторите попытку. Данные не сбрасывались.
+        Повторите попытку. Если ошибка сохраняется, проверьте доступ к локальной базе данных.
       </p>
-      <Button className="mt-5" onClick={reset}>
+      <Button className="mt-5" onClick={retry}>
         Повторить
       </Button>
     </section>

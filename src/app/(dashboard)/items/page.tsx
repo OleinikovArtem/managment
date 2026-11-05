@@ -39,7 +39,7 @@ async function ItemsContent({ searchParams }: ItemsPageProps) {
     : { query: "", category: "", page: 1 };
   const query = params.query ?? "";
   const category = params.category || undefined;
-  const { partyId, partyName } = await ensureLocalWorkspace();
+  const { partyId } = await ensureLocalWorkspace();
 
   const [records, categories] = await Promise.all([
     searchItems(partyId, query, category, params.page),
@@ -61,8 +61,8 @@ async function ItemsContent({ searchParams }: ItemsPageProps) {
 
   return (
     <div className="space-y-7">
-      <header>
-        <p className="text-sm font-medium text-primary">{partyName}</p>
+      <header className="page-header ">
+
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">Предметы</h1>
         <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
           Справочник уникальных предметов группы. Добыча и продажи хранятся отдельно как история.
@@ -75,15 +75,12 @@ async function ItemsContent({ searchParams }: ItemsPageProps) {
         categories={categories}
       />
 
-      <p className="text-sm text-muted-foreground" aria-live="polite">
-        {records.total === 0
+      <ItemManager items={items} summary={records.total === 0
           ? "Найдено: 0"
           : `Показано ${(records.page - 1) * ITEM_PAGE_SIZE + 1}–${Math.min(
               records.page * ITEM_PAGE_SIZE,
               records.total,
-            )} из ${records.total}`}
-      </p>
-      <ItemManager items={items} />
+            )} из ${records.total}`} />
       {records.total > ITEM_PAGE_SIZE && (
         <nav
           aria-label="Страницы каталога предметов"

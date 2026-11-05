@@ -2,9 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, CheckCircle2, Download, RefreshCw, ShieldCheck } from "lucide-react";
+import { Archive, Download, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ActionMenu } from "@/components/ui/action-menu";
 import { Badge } from "@/components/ui/badge";
 import { LocalDateTimeDisplay } from "@/features/raids/local-date-time-display";
 import {
@@ -94,13 +95,13 @@ export function BackupManager({ backups }: BackupManagerProps) {
     <Card>
       <CardHeader>
         <div className="flex items-start gap-3">
-          <span className="rounded-lg bg-primary/10 p-2 text-primary">
+          <span className="text-muted-foreground">
             <Archive aria-hidden="true" size={18} />
           </span>
           <div className="space-y-1">
             <CardTitle>Резервные копии</CardTitle>
             <CardDescription>
-              Архив SQLite и локальных файлов скриншотов с SHA-256 manifest.
+              История группы и локальные файлы в одном архиве.
             </CardDescription>
           </div>
         </div>
@@ -113,7 +114,7 @@ export function BackupManager({ backups }: BackupManagerProps) {
         </p>
         <Button type="button" onClick={createBackup} disabled={isPending}>
           <Archive aria-hidden="true" />
-          {isPending ? "Создание копии..." : "Создать резервную копию"}
+          Создать резервную копию
         </Button>
 
         {message && (
@@ -152,37 +153,13 @@ export function BackupManager({ backups }: BackupManagerProps) {
                     {formatBytes(backup.size)}
                   </p>
                 </div>
-                <div className="flex shrink-0 flex-wrap gap-2">
-                  <a
-                    className="inline-flex h-7 shrink-0 items-center justify-center gap-1 rounded-lg border border-border bg-background px-2.5 text-[0.8rem] font-medium transition-colors hover:bg-muted"
-                    href={`/api/backups/${encodeURIComponent(backup.name)}`}
-                  >
-                    <Download aria-hidden="true" size={14} />
-                    Скачать
-                  </a>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={isPending}
-                    onClick={() => validateBackup(backup.name)}
-                  >
-                    {validatingName === backup.name ? (
-                      <RefreshCw aria-hidden="true" className="animate-spin" />
-                    ) : (
-                      <CheckCircle2 aria-hidden="true" />
-                    )}
-                    Проверить
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="secondary"
-                    disabled={isPending}
-                    onClick={() => prepareRestore(backup.name)}
-                  >
-                    Подготовить восстановление
-                  </Button>
+                <div className="flex shrink-0 items-center gap-2">
+                  {validatingName === backup.name && <span className="text-xs text-muted-foreground" role="status">Проверка…</span>}
+                  <a className="inline-flex min-h-10 items-center gap-2 px-2 text-sm hover:underline" href={`/api/backups/${encodeURIComponent(backup.name)}`}><Download size={14} aria-hidden="true" />Скачать</a>
+                  <ActionMenu label={`Действия копии ${backup.name}`} disabled={isPending} items={[
+                    { label: "Проверить копию", onClick: () => validateBackup(backup.name) },
+                    { label: "Подготовить восстановление", onClick: () => prepareRestore(backup.name) },
+                  ]} />
                 </div>
               </li>
             ))}

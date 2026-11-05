@@ -4,17 +4,10 @@ import { useState, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
-import { Pencil, Plus, UserRound, UserRoundMinus, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
+import { ActionMenu } from "@/components/ui/action-menu";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { MemberActionResult } from "@/features/members/member-action-result";
@@ -171,159 +164,35 @@ export function MemberManager({ members }: { members: MemberRow[] }) {
   const router = useRouter();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState("all");
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const activeCount = members.filter((member) => member.isActive).length;
-
-  function refreshAfterSave(successMessage: string) {
-    setMessage(successMessage);
-    setEditingId(null);
-    setIsCreateOpen(false);
-    router.refresh();
-  }
-
-  function handleDeactivate(member: MemberRow) {
-    if (!window.confirm(`Деактивировать участника «${member.nickname}»? История будет сохранена.`)) {
-      return;
-    }
-
-    setMessage(null);
+  const filtered = members.filter(member => (status === "all" || member.isActive === (status === "active")) && `${member.nickname} ${member.className ?? ""} ${member.role ?? ""}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
+  function saved() { setEditingId(null); setIsCreateOpen(false); router.refresh(); }
+  function deactivate(member: MemberRow) {
+    if (!window.confirm(`Деактивировать участника «${member.nickname}»? История будет сохранена.`)) return;
     startTransition(async () => {
       const result = await deactivateMemberAction(member.id);
-      if (!result.ok) {
-        setMessage(result.message);
-        toast.error(result.message);
-        return;
-      }
-      toast.success(result.message);
-      refreshAfterSave(result.message);
+      setMessage(result.message);
+      if (result.ok) { toast.success(result.message); router.refresh(); } else toast.error(result.message);
     });
   }
 
-  return (
-    <div className="mx-auto max-w-5xl">
-      <Card size="sm" className="h-fit">
-        <CardHeader className="flex-row items-start justify-between gap-4">
-          <div className="space-y-1">
-            <CardTitle>Состав группы</CardTitle>
-            <CardDescription>
-              Ники уникальны внутри группы без учёта регистра и лишних пробелов.
-            </CardDescription>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <Badge variant="outline" className="hidden border-emerald-400/30 text-emerald-300 sm:inline-flex">
-              {activeCount} активных
-            </Badge>
-            <Button type="button" size="sm" onClick={() => setIsCreateOpen((open) => !open)} aria-expanded={isCreateOpen}>
-              <Plus aria-hidden="true" />
-              {isCreateOpen ? "Скрыть форму" : "Добавить участника"}
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {message && (
-            <p role="status" className="rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm">
-              {message}
-            </p>
-          )}
-
-          {isCreateOpen && (
-            <div className="rounded-xl border border-primary/25 bg-primary/5 p-4">
-              <div className="mb-4 flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="font-medium">Новый участник</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">Заполните только данные, которые нужны для распределения.</p>
-                </div>
-                <Button type="button" variant="ghost" size="icon-sm" onClick={() => setIsCreateOpen(false)} aria-label="Закрыть форму добавления">
-                  <X aria-hidden="true" />
-                </Button>
-              </div>
-              <MemberForm
-                submitLabel="Добавить участника"
-                action={createMemberAction}
-                onSuccess={() => refreshAfterSave("Участник добавлен.")}
-                onCancel={() => setIsCreateOpen(false)}
-              />
-            </div>
-          )}
-
-          {members.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border px-6 py-10 text-center">
-              <span className="mx-auto flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <UserRound aria-hidden="true" size={20} />
-              </span>
-              <h2 className="mt-4 font-medium">Пока нет участников</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Добавьте первого персонажа, чтобы начать вести состав.
-              </p>
-            </div>
-          ) : (
-            <ul className="grid gap-3 md:grid-cols-2">
-              {members.map((member) => (
-                <li key={member.id} className="rounded-xl border border-border/70 bg-background/20 p-3">
-                  {editingId === member.id ? (
-                    <MemberForm
-                      initialValues={{
-                        nickname: member.nickname,
-                        distributionWeight: member.distributionWeight,
-                        comment: member.comment ?? "",
-                        className: member.className ?? "",
-                        level: member.level,
-                        role: member.role ?? "",
-                      }}
-                      submitLabel="Сохранить"
-                      action={(values) => updateMemberAction(member.id, values)}
-                      onSuccess={() => refreshAfterSave("Изменения участника сохранены.")}
-                      onCancel={() => setEditingId(null)}
-                    />
-                  ) : (
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-medium">{member.nickname}</span>
-                          <Badge variant={member.isActive ? "secondary" : "outline"}>
-                            {member.isActive ? "Активен" : "Неактивен"}
-                          </Badge>
-                        </div>
-                        <p className="mt-1 text-xs text-muted-foreground">{[member.className, member.role, member.level ? `Lv. ${member.level}` : null].filter(Boolean).join(" · ") || "Профиль не заполнен"}</p>
-                        <p className="mt-1 text-[11px] text-muted-foreground">Равная доля · {member.createdAt}{member.comment ? ` · ${member.comment}` : ""}</p>
-                      </div>
-                      <div className="flex shrink-0 gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setMessage(null);
-                            setEditingId(member.id);
-                          }}
-                        >
-                          <Pencil aria-hidden="true" />
-                          Изменить
-                        </Button>
-                        {member.isActive && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            disabled={isPending}
-                            onClick={() => handleDeactivate(member)}
-                          >
-                            <UserRoundMinus aria-hidden="true" />
-                            Отключить
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  {member.isActive && editingId !== member.id && <MemberProfileManager memberId={member.id} profiles={member.profiles} />}
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
-
-    </div>
-  );
+  return <section>
+    <div className="toolbar"><Input aria-label="Поиск участников" placeholder="Ник, класс или роль" value={query} onChange={e => setQuery(e.target.value)} /><select aria-label="Статус участников" value={status} onChange={e => setStatus(e.target.value)}><option value="all">Все участники</option><option value="active">Активные</option><option value="inactive">Неактивные</option></select>{!isCreateOpen && <Button className="sm:ml-auto" onClick={() => { setIsCreateOpen(true); setEditingId(null); }}>Добавить участника</Button>}</div>
+    {message && <p className="mb-4 text-sm text-muted-foreground" role="status">{message}</p>}
+    {isCreateOpen && <div className="editor-surface mb-6"><h2 className="section-heading mb-4">Новый участник</h2><MemberForm submitLabel="Добавить участника" action={createMemberAction} onSuccess={saved} onCancel={() => setIsCreateOpen(false)} /></div>}
+    <p className="mb-3 text-xs text-muted-foreground" role="status">Показано: {filtered.length} из {members.length} · активных: {members.filter(member => member.isActive).length}</p>
+    {filtered.length === 0 ? <p className="empty-state">{members.length ? "Участники не найдены. Измените поиск или статус." : "Добавьте первого участника, чтобы собрать группу для рейда."}</p> : <ul className="data-list">{filtered.map(member => <li key={member.id} className="relative pr-12">
+      <div className="absolute top-3 right-0"><ActionMenu label={`Действия: ${member.nickname}`} disabled={isPending} items={[
+        { label: "Изменить участника", onClick: () => { setEditingId(member.id); setIsCreateOpen(false); } },
+        ...(member.isActive ? [{ label: "Деактивировать", destructive: true, onClick: () => deactivate(member) }] : []),
+      ]} /></div>
+      {editingId === member.id ? <div className="editor-surface"><MemberForm initialValues={{ nickname: member.nickname, distributionWeight: member.distributionWeight, comment: member.comment ?? "", className: member.className ?? "", level: member.level, role: member.role ?? "" }} submitLabel="Сохранить" action={values => updateMemberAction(member.id, values)} onSuccess={saved} onCancel={() => setEditingId(null)} /></div> : <details className="disclosure" name="member-profiles">
+        <summary><span className="min-w-0"><span className="block text-sm font-medium">{member.nickname}{!member.isActive && <span className="ml-2 text-xs font-normal text-muted-foreground">Неактивен</span>}</span><span className="mt-1 block text-xs text-muted-foreground">{[member.className, member.role, member.level ? `Lv. ${member.level}` : null].filter(Boolean).join(" · ") || "Класс не указан"} · профилей: {member.profiles.length}</span></span></summary>
+        <div className="pt-3">{member.comment && <p className="mb-3 whitespace-pre-wrap text-sm text-muted-foreground">{member.comment}</p>}{member.isActive ? <MemberProfileManager memberId={member.id} profiles={member.profiles} /> : <p className="text-sm text-muted-foreground">Участник неактивен. Данные его рейдов и начислений сохранены.</p>}</div>
+      </details>}
+    </li>)}</ul>}
+  </section>;
 }

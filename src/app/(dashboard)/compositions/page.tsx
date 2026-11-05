@@ -1,3 +1,4 @@
+import { SectionNavigation } from "@/components/layout/section-navigation";
 import { Suspense } from "react";
 import { io } from "next/cache";
 import { CompositionManager } from "@/features/compositions/composition-manager";
@@ -32,5 +33,5 @@ async function CompositionsContent() {
       profile: profile ? { id: profile.id, name: profile.name, className: profile.className, role: profile.role, level: profile.level } : null,
     })),
   }));
-  return <div className="space-y-7"><header><p className="text-sm font-medium text-primary">{workspace.partyName}</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Составы</h1><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Готовые сетки для melee, mage, арчерских и рейдовых групп. В каждом слоте видно, кто идёт и какой 3-й профой.</p></header><CompositionManager compositions={rows} members={members} /></div>;
+  return <div className="space-y-7"><header className="page-header "><h1 className="mt-1 text-2xl font-semibold tracking-tight">Составы</h1><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Готовые сетки для melee, mage, арчерских и рейдовых групп. В каждом слоте видно, кто идёт и какой 3-й профой.</p></header><SectionNavigation section="group" active="/compositions" /><CompositionManager compositions={rows} members={members} /></div>;
 }

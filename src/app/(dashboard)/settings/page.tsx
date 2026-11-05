@@ -24,9 +24,9 @@ async function SettingsContent() {
   ]);
 
   return (
-    <div className="space-y-7">
-      <header>
-        <p className="text-sm font-medium text-primary">Рабочее пространство</p>
+    <div className="settings-page max-w-5xl space-y-8">
+      <header className="page-header ">
+
         <h1 className="mt-2 text-3xl font-semibold tracking-tight">Настройки</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Основные параметры локальной группы.

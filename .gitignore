@@ -23,6 +23,7 @@
 # local application data
 /data/uploads/
 /data/backups/
+/data/restore-candidates/
 /prisma/dev.db
 /prisma/dev.db-*
 /src/generated/prisma/
