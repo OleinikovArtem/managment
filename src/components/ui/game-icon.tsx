@@ -1,53 +1,149 @@
 import { Package, Shield } from "lucide-react";
 
 const ITEM_ICON_BASE = "https://l2db.info/uploads/images/icons";
-const CLASS_ICON_BASE = "https://l2revolution.fandom.com/wiki/Special:FilePath";
+const CLASS_ICON_BASE = "https://l2tools.org/images/class-tier-list/v3";
+
+const classPortraitByThirdProfession: Record<string, string> = {
+  dreadnought: "warlord",
+  duelist: "gladiator",
+  "phoenix knight": "paladin",
+  "hell knight": "dark-avenger",
+  adventurer: "treasure-hunter",
+  sagittarius: "hawkeye",
+  archmage: "sorcerer",
+  soultaker: "necromancer",
+  "arcana lord": "warlock",
+  cardinal: "bishop",
+  hierophant: "prophet",
+  "eva's templar": "temple-knight",
+  "sword muse": "swordsinger",
+  "moonlight sentinel": "silver-ranger",
+  "wind rider": "plains-walker",
+  "mystic muse": "spellsinger",
+  "elemental master": "elemental-summoner",
+  "eva's saint": "elven-elder",
+  "shillien templar": "shillien-knight",
+  "spectral dancer": "bladedancer",
+  "ghost hunter": "abyss-walker",
+  "ghost sentinel": "phantom-ranger",
+  "storm screamer": "spellhowler",
+  "spectral master": "phantom-summoner",
+  "shillien saint": "shillien-elder",
+  titan: "destroyer",
+  "grand khavatari": "tyrant",
+  dominator: "overlord",
+  doomcryer: "warcryer",
+  "fortune seeker": "bounty-hunter",
+  maestro: "warsmith",
+  doombringer: "berserker",
+  "male soul hound": "soul-breaker-m",
+  "female soul hound": "soul-breaker-f",
+  trickster: "arbalester",
+  inspector: "inspector",
+  judicator: "inspector",
+};
+
+const armorSets: { match: RegExp; code: string; variant?: string }[] = [
+  { match: /^imperial crusader\b/i, code: "t88" },
+  { match: /^draconic leather\b/i, code: "t86" },
+  { match: /^major arcana\b/i, code: "t90" },
+  { match: /^dynasty\b/i, code: "t91" },
+  { match: /^elegia\b/i, code: "t97" },
+  { match: /^vesper noble\b/i, code: "t94", variant: "01" },
+];
+
+function armorIconKey(name: string) {
+  const set = armorSets.find(({ match }) => match.test(name));
+  if (!set) return null;
+  const slots: [RegExp, string][] = [
+    [/\b(robe|tunic)\b/i, "ul"],
+    [/\b(breastplate|leather armor)\b/i, "u"],
+    [/\b(gaiters|leggings|stockings)\b/i, "l"],
+    [/\b(gauntlets|gloves)\b/i, "g"],
+    [/\b(boots|shoes)\b/i, "b"],
+    [/\b(helmet|circlet)\b/i, "h"],
+  ];
+  const slot = slots.find(([pattern]) => pattern.test(name))?.[1];
+  if (!slot) return null;
+  if (slot === "h") return "armor_helmet_i00";
+  if (slot === "ul") return `armor_${set.code}_ul_i${set.variant ?? "00"}`;
+  return `armor_${set.code}_${slot}_i${set.variant ?? "00"}`;
+}
+
+const namedItemIcons: Record<string, string> = {
+  "giant's codex": "etc_codex_of_giant_i00",
+  "giant's codex - oblivion": "etc_codex_of_giant_i01",
+  "giant's codex - discipline": "etc_codex_of_giant_i02",
+  "giant's codex - mastery": "etc_codex_of_giant_i03",
+  "neolithic crystal - s": "etc_warding_orb_red_i00",
+  "neolithic crystal - s80": "etc_warding_orb_black_i00",
+  "neolithic crystal - s84": "etc_warding_orb_gold_i00",
+  "vesper cutter": "weapon_vesper_cutter_i00",
+  "vesper shaper": "weapon_vesper_shaper_i00",
+  "vesper thrower": "weapon_vesper_thrower_i00",
+  "vesper caster": "weapon_vesper_burster_i00",
+  "vesper retributer": "weapon_vesper_retributer_i00",
+  "tallum blade": "weapon_tallum_blade_i00",
+  "dark legion's edge": "weapon_dark_legions_edge_i00",
+  "sword of miracles": "weapon_sword_of_miracles_i00",
+  "forgotten blade": "weapon_forgotten_blade_i00",
+  "angel slayer": "weapon_angel_slayer_i00",
+  "draconic bow": "weapon_draconic_bow_i00",
+  "shyeed's bow": "weapon_shyeed_bow_i00",
+  "basalt battlehammer": "weapon_basalt_battlehammer_i00",
+  "dragon hunter axe": "weapon_dragon_hunter_axe_i00",
+  "arcana mace": "weapon_arcana_mace_i00",
+  "imperial staff": "weapon_imperial_staff_i00",
+  "soul separator": "weapon_soul_separator_i00",
+  "naga storm": "weapon_naga_storm_i00",
+  "demon splinter": "weapon_demon_splinter_i00",
+  "heaven's divider": "weapon_heavens_divider_i00",
+  "dynasty sword": "weapon_dynasty_blade_i00",
+  "dynasty bow": "weapon_dynasty_bow_i00",
+  "dynasty knife": "weapon_dynasty_knife_i00",
+  "elegia cutter": "weapon_elegia_cutter_i00",
+};
 
 function itemIconKey(name: string, category?: string | null) {
-  const value = name.toLocaleLowerCase();
-  if (value.includes("life stone")) return "etc_mineral_i00";
-  if (value.includes("crystal")) return "etc_crystal_i00";
-  if (value.includes("scroll") || value.includes("enchant")) return value.includes("weapon") ? "etc_scroll_of_enchant_weapon_i00" : "etc_scroll_of_enchant_armor_i00";
-  if (value.includes("book") || value.includes("codex") || value.includes("spellbook")) return "etc_spellbook_i00";
+  const value = name.trim().toLocaleLowerCase();
+  const namedIcon = namedItemIcons[value];
+  if (namedIcon) return namedIcon;
+
   if (category === "Armor" || /armor|breastplate|gaiters|boots|helmet|circlet|gloves|robe|stockings|shoes|tunic/i.test(name)) {
-    if (/major arcana/i.test(name)) return "armor_t86_m_i00";
-    if (/dynasty/i.test(name)) return "armor_t88_u_i00";
-    if (/elegia/i.test(name)) return "armor_t91_u_i00";
-    if (/vesper/i.test(name)) return "armor_t95_u_i00";
-    if (/draconic/i.test(name)) return "armor_t86_l_i00";
-    return "armor_t86_u_i00";
+    return armorIconKey(name);
   }
-  if (category === "Weapon" || /sword|blade|cutter|bow|axe|hammer|staff|mace|knife|dagger|splitter|edge|retributer|shaper|thrower/i.test(name)) {
-    if (/bow/i.test(name)) return "weapon_bow_i00";
-    if (/staff|mace/i.test(name)) return "weapon_staff_i00";
-    if (/axe|hammer/i.test(name)) return "weapon_blunt_i00";
-    if (/knife|dagger/i.test(name)) return "weapon_dagger_i00";
-    return "weapon_sword_i00";
+
+  if (/life stone/i.test(value)) {
+    const grade = /top-grade/i.test(value) ? "legend" : /high-grade/i.test(value) ? "rare" : /mid-grade/i.test(value) ? "special" : null;
+    const level = Number(/lv\.\s*(\d+)/i.exec(value)?.[1] ?? 0);
+    const tier = level >= 80 ? "03" : level >= 70 ? "02" : level >= 58 ? "01" : "00";
+    return `etc_mineral_${grade ? `${grade}_` : ""}i${tier}`;
   }
-  return "etc_jewel_i00";
+
+  if (/neolithic crystal/i.test(value)) return "etc_warding_orb_gold_i00";
+  if (/enchant weapon/i.test(value)) return "etc_scroll_of_enchant_weapon_i05";
+  if (/enchant armor/i.test(value)) return "etc_scroll_of_enchant_armor_i05";
+  if (/spellbook|skill book|forgotten book/i.test(value)) return "etc_spellbook_i00";
+
+  if (/vesper/i.test(value) && category === "Weapon") {
+    if (/retributer/i.test(value)) return "weapon_vesper_retributer_i00";
+    if (/shaper/i.test(value)) return "weapon_vesper_shaper_i00";
+    if (/thrower/i.test(value)) return "weapon_vesper_thrower_i00";
+    if (/caster/i.test(value)) return "weapon_vesper_burster_i00";
+    if (/cutter/i.test(value)) return "weapon_vesper_cutter_i00";
+  }
+
+  return null;
 }
 
 export function itemIconUrl(name: string, category?: string | null) {
-  return `${ITEM_ICON_BASE}/${itemIconKey(name, category)}.png`;
-}
-
-function classIconFile(className: string) {
-  const value = className.toLocaleLowerCase();
-  if (/cardinal/.test(value)) return "Bishop.png";
-  if (/saint|elder/.test(value)) return "Elder.png";
-  if (/sword muse/.test(value)) return "Swordsinger.png";
-  if (/dancer/.test(value)) return "Bladedancer.png";
-  if (/screamer|mystic muse|archmage|soultaker|arcana lord/.test(value)) return "Spellhowler.png";
-  if (/sentinel|sagittarius|ranger|trickster/.test(value)) return "Silver Ranger.png";
-  if (/dagger|hunter|wind rider|adventurer/.test(value)) return "Treasure Hunter.png";
-  if (/tank|templar|knight|phoenix|hell knight/.test(value)) return "Temple Knight.png";
-  if (/dreadnought|titan|duelist|khavatari|warrior/.test(value)) return "Warlord.png";
-  if (/maestro|fortune seeker|scavenger/.test(value)) return "Scavenger.png";
-  return "Sage.png";
+  const key = itemIconKey(name, category);
+  return key ? `${ITEM_ICON_BASE}/${key}.png` : null;
 }
 
 export function classIconUrl(className: string) {
-  return `${CLASS_ICON_BASE}/${encodeURIComponent(classIconFile(className))}`;
+  const fileName = classPortraitByThirdProfession[className.trim().toLocaleLowerCase()];
+  return fileName ? `${CLASS_ICON_BASE}/${fileName}.webp` : null;
 }
 
 export function GameIcon({ kind, name, category, size = "md" }: { kind: "item" | "class"; name: string; category?: string | null; size?: "sm" | "md" | "lg" }) {
@@ -56,6 +152,6 @@ export function GameIcon({ kind, name, category, size = "md" }: { kind: "item" |
   const Fallback = kind === "item" ? Package : Shield;
   return <span role="img" aria-label={`${kind === "item" ? "Предмет" : "Класс"}: ${name}`} className={`${sizeClass} relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-sm text-muted-foreground`}>
     <Fallback size={18} strokeWidth={1.5} aria-hidden="true" />
-    <span aria-hidden="true" className="absolute inset-0 bg-contain bg-center bg-no-repeat" style={{ backgroundImage: `url("${url}")` }} />
+    {url && <span aria-hidden="true" className="absolute inset-0 bg-contain bg-center bg-no-repeat" style={{ backgroundImage: `url("${url}")` }} />}
   </span>;
 }

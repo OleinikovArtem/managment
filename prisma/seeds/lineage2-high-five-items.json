@@ -49,6 +49,9 @@
     { "canonicalName": "Top-grade Life Stone - Lv. 76", "category": "Materials" },
 
     { "canonicalName": "Neolithic Crystal", "category": "Materials" },
+    { "canonicalName": "Neolithic Crystal - S", "category": "Materials" },
+    { "canonicalName": "Neolithic Crystal - S80", "category": "Materials" },
+    { "canonicalName": "Neolithic Crystal - S84", "category": "Materials" },
 
     { "canonicalName": "Imperial Crusader Breastplate", "category": "Armor" },
     { "canonicalName": "Imperial Crusader Gaiters", "category": "Armor" },
