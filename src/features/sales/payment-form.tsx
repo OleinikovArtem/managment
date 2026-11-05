@@ -139,8 +139,7 @@ export function PaymentForm({
         <label className="space-y-1.5 text-xs font-medium">
           Передать Adena
           <Input
-            inputMode="numeric"
-            pattern="[0-9.,]*"
+            inputMode="text"
             minLength={1}
             required
             value={amount}

@@ -34,12 +34,21 @@ export async function createPartyComposition(partyId: string, input: Composition
         description: input.description || null,
         focus: input.focus || null,
         maxMembers: 36,
-        members: { create: input.slots.map(({ memberId, profileId }, slotOrder) => ({ partyId, memberId, profileId: profileId || null, slotOrder })) },
+        members: { create: input.slots.map(({ memberId, profileId }, slotOrder) => ({
+          member: { connect: { partyId_id: { partyId, id: memberId } } },
+          ...(profileId ? { profile: { connect: { partyId_id: { partyId, id: profileId } } } } : {}),
+          slotOrder,
+        })) },
       },
     });
   });
 }
 
 export async function deletePartyComposition(partyId: string, id: string) {
-  return prisma.partyComposition.deleteMany({ where: { id, partyId } });
+  return prisma.$transaction(async (transaction) => {
+    const referencedByRaid = await transaction.raid.findFirst({ where: { partyId, compositionId: id }, select: { id: true } });
+    if (referencedByRaid) return { count: 0, inUse: true };
+    const result = await transaction.partyComposition.deleteMany({ where: { id, partyId } });
+    return { ...result, inUse: false };
+  });
 }

@@ -37,7 +37,11 @@ export async function resetPartyDataAction(payload: unknown): Promise<PartyActio
   }
 
   const { partyId } = await ensureLocalWorkspace();
-  await resetPartyData(partyId);
+  try {
+    await resetPartyData(partyId);
+  } catch {
+    return { ok: false, message: "Не удалось очистить данные. Изменения отменены; проверьте резервную копию и повторите." };
+  }
   for (const path of ["/settings", "/dashboard", "/raids", "/sales", "/ledger", "/members"]) {
     revalidatePath(path);
   }

@@ -116,7 +116,7 @@ function MemberForm({
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="space-y-1.5 text-xs font-medium">Класс<select className="h-9 w-full rounded-lg border border-input bg-background/35 px-3 text-sm" {...form.register("className")}><option value="">Не выбран</option>{LINEAGE2_HIGH_FIVE_CLASSES.map((className) => <option key={className} value={className}>{className}</option>)}</select></label>
         <label className="space-y-1.5 text-xs font-medium">Роль<Input maxLength={40} {...form.register("role")} placeholder="Healer, Buffer, DPS" /></label>
-        <label className="space-y-1.5 text-xs font-medium">Уровень<Input type="number" min={1} max={99} {...form.register("level", { setValueAs: (value) => value === "" ? null : Number(value) })} placeholder="85" /></label>
+        <label className="space-y-1.5 text-xs font-medium">Уровень<Input type="number" min={1} max={99} aria-invalid={Boolean(form.formState.errors.level)} {...form.register("level", { setValueAs: (value) => value === "" || value == null ? undefined : Number(value) })} placeholder="85" />{form.formState.errors.level && <span className="block text-xs text-destructive">{form.formState.errors.level.message}</span>}</label>
       </div>
 
       <div className="space-y-2">

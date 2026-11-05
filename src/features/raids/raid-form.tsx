@@ -78,7 +78,7 @@ export function RaidForm({
         }
       : {
           name: "",
-          compositionId: "",
+          compositionId: undefined,
           instanceName: "",
           occurredAt: toLocalDateTimeInput(new Date()),
           comment: "",
