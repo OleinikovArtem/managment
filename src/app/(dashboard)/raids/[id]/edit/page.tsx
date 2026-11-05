@@ -56,17 +56,24 @@ async function EditRaidContent({ params }: EditRaidPageProps) {
               id: participant.memberId,
               nickname: participant.nicknameSnapshot,
               status: participant.status,
+              className: participant.classSnapshot,
+              role: participant.roleSnapshot,
+              level: participant.levelSnapshot,
+              profiles: setup.members.find((member) => member.id === participant.memberId)?.profiles ?? [],
             }))}
             items={setup.items}
+            compositions={setup.compositions.map((composition) => ({ id: composition.id, name: composition.name, focus: composition.focus, slots: composition.members.map(({ memberId, profileId }) => ({ memberId, profileId })) }))}
             raidId={raid.id}
             initialValues={{
               name: raid.name,
+              compositionId: raid.compositionId ?? "",
               instanceName: raid.instanceName ?? "",
               occurredAt: raid.occurredAt.toISOString(),
               comment: raid.comment ?? "",
-              participants: raid.participants.map(({ memberId, status }) => ({
+              participants: raid.participants.map(({ memberId, status, profileId }) => ({
                 memberId,
                 status,
+                profileId: profileId ?? undefined,
               })),
               lootDrops: raid.lootDrops.map(({ id, itemId, quantity, comment }) => ({
                 id,

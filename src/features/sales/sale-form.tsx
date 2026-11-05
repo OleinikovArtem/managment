@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Banknote, Check, LoaderCircle, MessageSquarePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Textarea } from "@/components/ui/textarea";
 import type { SaleActionResult } from "@/features/sales/sale-action-result";
 import { registerSaleAction } from "@/app/(dashboard)/sales/actions";
@@ -134,13 +135,7 @@ export function SaleForm({ lootDropId, remainingQuantity }: SaleFormProps) {
         </label>
         <label className="space-y-1.5 text-xs font-medium">
           Дата получения
-          <Input
-            type="datetime-local"
-            required
-            value={receivedAt}
-            onChange={(event) => setReceivedAt(event.target.value)}
-            aria-label="Дата получения Adena"
-          />
+          <DateInput required value={receivedAt} withTime onChange={setReceivedAt} aria-label="Дата получения Adena" />
         </label>
       </div>
       <div>

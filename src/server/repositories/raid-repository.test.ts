@@ -127,7 +127,7 @@ describe("raid repository", () => {
           memberId: "member-1",
           nicknameSnapshot: "Current One",
           status: "PRESENT",
-          distributionWeight: 2,
+          distributionWeight: 1,
         }),
       }),
     );

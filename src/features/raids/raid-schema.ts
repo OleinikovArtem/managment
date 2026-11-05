@@ -6,6 +6,7 @@ const text = (max: number, label: string) =>
 const participantSchema = z.object({
   memberId: z.string().trim().min(1, "Некорректный участник."),
   status: z.enum(["PRESENT", "ABSENT"]),
+  profileId: z.string().trim().min(1).optional(),
 }).strict();
 
 const lootDropSchema = z.object({
@@ -18,6 +19,7 @@ const lootDropSchema = z.object({
 }).strict();
 
 const raidFields = {
+  compositionId: z.string().trim().min(1).optional(),
   name: z.string().trim().min(1, "Введите название рейда.").max(120),
   instanceName: text(120, "Название инстанса"),
   comment: text(1000, "Комментарий"),

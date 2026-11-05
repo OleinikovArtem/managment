@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { Check, ChevronDown, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import type { RaidItemOption } from "@/features/raids/raid-form";
+import { GameIcon } from "@/components/ui/game-icon";
 
 type ItemComboboxProps = {
   id: string;
@@ -83,6 +84,7 @@ export function ItemCombobox({ id, items, value, onChange, disabled }: ItemCombo
         <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-xl border border-border bg-popover p-1 shadow-2xl" role="listbox" id={`${id}-listbox`}>
           {visibleItems.length > 0 ? visibleItems.map((item, index) => (
             <button type="button" role="option" aria-selected={item.id === value} id={`${id}-option-${item.id}`} key={item.id} className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${index === activeIndex ? "bg-accent text-accent-foreground" : "hover:bg-muted"}`} onMouseDown={(event) => event.preventDefault()} onClick={() => choose(item)}>
+              <GameIcon kind="item" name={item.displayName || item.canonicalName} size="sm" />
               <span className="min-w-0 flex-1 truncate">{item.displayName || item.canonicalName}</span>
               {item.displayName && <span className="hidden max-w-[42%] truncate text-xs text-muted-foreground sm:block">{item.canonicalName}</span>}
               {item.id === value && <Check aria-hidden="true" className="size-4 shrink-0 text-primary" />}

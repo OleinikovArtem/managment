@@ -28,6 +28,8 @@ import {
   deactivateMemberAction,
   updateMemberAction,
 } from "@/app/(dashboard)/members/actions";
+import { MemberProfileManager, type MemberProfileRow } from "@/features/members/member-profile-manager";
+import { LINEAGE2_HIGH_FIVE_CLASSES } from "@/features/members/lineage2-classes";
 
 type MemberRow = {
   id: string;
@@ -36,6 +38,10 @@ type MemberRow = {
   isActive: boolean;
   comment: string | null;
   createdAt: string;
+  className: string | null;
+  level: number | null;
+  role: string | null;
+  profiles: MemberProfileRow[];
 };
 
 type MemberFormProps = {
@@ -61,6 +67,9 @@ function MemberForm({
       nickname: "",
       distributionWeight: 1,
       comment: "",
+      className: "",
+      level: null,
+      role: "",
     },
   });
 
@@ -72,7 +81,6 @@ function MemberForm({
         setMessage(result.message);
         toast.error(result.message);
         const nicknameError = result.fieldErrors?.nickname?.[0];
-        const weightError = result.fieldErrors?.distributionWeight?.[0];
         const commentError = result.fieldErrors?.comment?.[0];
         if (nicknameError) {
           form.setError("nickname", { message: nicknameError });
@@ -80,16 +88,13 @@ function MemberForm({
         if (commentError) {
           form.setError("comment", { message: commentError });
         }
-        if (weightError) {
-          form.setError("distributionWeight", { message: weightError });
-        }
         return;
       }
 
       toast.success(result.message);
       onSuccess();
       if (!initialValues) {
-        form.reset({ nickname: "", distributionWeight: 1, comment: "" });
+        form.reset({ nickname: "", distributionWeight: 1, comment: "", className: "", role: "", level: null });
       }
     });
   });
@@ -115,30 +120,10 @@ function MemberForm({
         )}
       </div>
 
-      <div className="space-y-2">
-        <label
-          htmlFor={initialValues ? "edit-distribution-weight" : "new-distribution-weight"}
-          className="text-sm font-medium"
-        >
-          Вес распределения
-        </label>
-        <Input
-          id={initialValues ? "edit-distribution-weight" : "new-distribution-weight"}
-          type="number"
-          min={1}
-          max={2_147_483_647}
-          step={1}
-          aria-invalid={Boolean(form.formState.errors.distributionWeight)}
-          {...form.register("distributionWeight", { valueAsNumber: true })}
-        />
-        <p className="text-xs text-muted-foreground">
-          Доля участника в распределении Adena относительно остальных PRESENT.
-        </p>
-        {form.formState.errors.distributionWeight && (
-          <p className="text-xs text-destructive">
-            {form.formState.errors.distributionWeight.message}
-          </p>
-        )}
+      <div className="grid gap-3 sm:grid-cols-3">
+        <label className="space-y-1.5 text-xs font-medium">Класс<select className="h-9 w-full rounded-lg border border-input bg-background/35 px-3 text-sm" {...form.register("className")}><option value="">Не выбран</option>{LINEAGE2_HIGH_FIVE_CLASSES.map((className) => <option key={className} value={className}>{className}</option>)}</select></label>
+        <label className="space-y-1.5 text-xs font-medium">Роль<Input maxLength={40} {...form.register("role")} placeholder="Healer, Buffer, DPS" /></label>
+        <label className="space-y-1.5 text-xs font-medium">Уровень<Input type="number" min={1} max={99} {...form.register("level", { setValueAs: (value) => value === "" ? null : Number(value) })} placeholder="85" /></label>
       </div>
 
       <div className="space-y-2">
@@ -217,7 +202,7 @@ export function MemberManager({ members }: { members: MemberRow[] }) {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <Card className="h-fit">
+      <Card size="sm" className="h-fit">
         <CardHeader className="flex-row items-start justify-between gap-4">
           <div className="space-y-1">
             <CardTitle>Состав группы</CardTitle>
@@ -273,15 +258,18 @@ export function MemberManager({ members }: { members: MemberRow[] }) {
               </p>
             </div>
           ) : (
-            <ul className="divide-y divide-border">
+            <ul className="grid gap-3 md:grid-cols-2">
               {members.map((member) => (
-                <li key={member.id} className="py-4 first:pt-0 last:pb-0">
+                <li key={member.id} className="rounded-xl border border-border/70 bg-background/20 p-3">
                   {editingId === member.id ? (
                     <MemberForm
                       initialValues={{
                         nickname: member.nickname,
                         distributionWeight: member.distributionWeight,
                         comment: member.comment ?? "",
+                        className: member.className ?? "",
+                        level: member.level,
+                        role: member.role ?? "",
                       }}
                       submitLabel="Сохранить"
                       action={(values) => updateMemberAction(member.id, values)}
@@ -289,7 +277,7 @@ export function MemberManager({ members }: { members: MemberRow[] }) {
                       onCancel={() => setEditingId(null)}
                     />
                   ) : (
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="font-medium">{member.nickname}</span>
@@ -297,10 +285,8 @@ export function MemberManager({ members }: { members: MemberRow[] }) {
                             {member.isActive ? "Активен" : "Неактивен"}
                           </Badge>
                         </div>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          Вес: {member.distributionWeight} · Добавлен {member.createdAt}
-                          {member.comment ? ` · ${member.comment}` : ""}
-                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">{[member.className, member.role, member.level ? `Lv. ${member.level}` : null].filter(Boolean).join(" · ") || "Профиль не заполнен"}</p>
+                        <p className="mt-1 text-[11px] text-muted-foreground">Равная доля · {member.createdAt}{member.comment ? ` · ${member.comment}` : ""}</p>
                       </div>
                       <div className="flex shrink-0 gap-2">
                         <Button
@@ -330,6 +316,7 @@ export function MemberManager({ members }: { members: MemberRow[] }) {
                       </div>
                     </div>
                   )}
+                  {member.isActive && editingId !== member.id && <MemberProfileManager memberId={member.id} profiles={member.profiles} />}
                 </li>
               ))}
             </ul>

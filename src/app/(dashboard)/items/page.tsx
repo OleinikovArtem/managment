@@ -63,8 +63,8 @@ async function ItemsContent({ searchParams }: ItemsPageProps) {
     <div className="space-y-7">
       <header>
         <p className="text-sm font-medium text-primary">{partyName}</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">Каталог предметов</h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Предметы</h1>
+        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
           Справочник уникальных предметов группы. Добыча и продажи хранятся отдельно как история.
         </p>
       </header>

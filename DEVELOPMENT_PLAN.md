@@ -101,8 +101,9 @@ Approved rules:
 
 ### Phase 4.1 — Financial Schema Foundation (complete for local development)
 
-- [x] Add PartyMember.distributionWeight with a default of 1.
-- [x] Snapshot nickname and distributionWeight into every new RaidParticipant.
+- [x] Keep PartyMember.distributionWeight at 1 for schema compatibility; hide the
+  old control and distribute every new sale equally.
+- [x] Snapshot nickname and equal distribution into every new RaidParticipant.
 - [x] Add Raid.lockedAt and financial models for sales, shares, payments,
   allocations and double-entry ledger transactions/entries.
 - [x] Add party/raid/member composite relations, idempotency unique constraints
@@ -125,7 +126,7 @@ Approved rules:
 ### Phase 4.2 — Sales and Distribution
 
 - [x] Implement idempotent partial sale registration against LootDrop.
-- [x] Implement weighted Largest Remainder distribution and SaleShare snapshots.
+- [x] Implement equal-share Largest Remainder distribution and SaleShare snapshots.
 - [x] Atomically post balanced sale ledger and lock the Raid.
 - [x] Add sale history and ledger-derived member/Party balance queries.
 - [x] Verify repeated idempotency requests, oversell protection and concurrent
@@ -201,6 +202,42 @@ Not part of the MVP.
 - [ ] OCR screenshot processing.
 
 ## Current Status
+
+UI/UX redesign pass (2026-11-03): compact dark operational layout implemented across
+the shared shell, dashboard, raid entry, item/member lists and finance summary. Large
+decorative cards and gradient background were reduced; loot entry now uses a focused
+combobox, compact editable rows, progressive disclosure for comments and immediate
+remove actions. User-facing date inputs now display `ДД.ММ.ГГГГ` and
+`ДД.ММ.ГГГГ ЧЧ:ММ` while preserving the existing local-to-UTC storage behavior.
+Lint, typecheck, 19 test files / 97 tests, production build and static state coverage
+passed. Browser smoke returned HTTP 200; screenshot capture was skipped because no
+browser driver is installed in the environment.
+
+Roster composition pass (2026-11-03): replaced the plain participant list with
+compact participant cards containing class, level and role fields. Added multiple
+profiles per participant and a compact composition grid where every slot selects
+both the participant and the profile they attend as. Added reusable named
+composition profiles with up to 36 slots (nine recommended for a standard party),
+focus and description; raid create/edit
+now applies a selected profile to attendance and stores the selected profile
+reference alongside the immutable participant snapshot. Added the
+`ДД.ММ.ГГГГ` picker format across date fields. Database sync, financial
+constraints, lint, typecheck, 19 test files / 97 tests and production build pass.
+
+Composition workspace pass (2026-11-03): moved composition management to the
+dedicated `/compositions` tab and added it to the main navigation. The participant
+profile form now uses a High Five third-profession dropdown. Demo seed now creates
+24 profiles, four reusable party grids and links seeded raids to those grids.
+
+Profile editing and equal-share pass (2026-11-03): every participant profile can
+be opened in an edit modal; the member weight control was removed from the UI and
+new sales now split Adena equally. Composition grids accept up to 36 slots while
+showing nine as the standard-party recommendation.
+
+Lineage 2 icon pass (2026-11-03): added real High Five-style item icon mapping for
+the full catalog (materials, scrolls, books, armor and weapons) and class-family
+icons for participant profiles, compositions and loot rows. Runtime pages expose
+the icon asset URLs without server errors; lint, typecheck, tests and build pass.
 
 Financial display improvement (2026-11-02): added compact Adena input/output
 (`к`, `м`, `б`) with exact integer parsing and value-based gold-to-red coloring

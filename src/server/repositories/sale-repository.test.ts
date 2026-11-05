@@ -75,7 +75,7 @@ const lootDrop = {
         id: "participant-a",
         memberId: "member-a",
         nicknameSnapshot: "A",
-        distributionWeight: 2,
+        distributionWeight: 1,
       },
       {
         id: "participant-b",
@@ -105,7 +105,7 @@ describe("sale repository", () => {
     });
   });
 
-  it("writes sale, weighted shares, ledger and posting in one party-scoped transaction", async () => {
+  it("writes equal shares, ledger and posting in one party-scoped transaction", async () => {
     await registerPartySale("party-1", input);
 
     expect(mocks.$transaction).toHaveBeenCalledOnce();
@@ -127,13 +127,13 @@ describe("sale repository", () => {
       data: expect.arrayContaining([
         expect.objectContaining({
           memberId: "member-a",
-          amount: 67n,
+          amount: 51n,
           nicknameSnapshot: "A",
-          weightSnapshot: 2,
+          weightSnapshot: 1,
         }),
         expect.objectContaining({
           memberId: "member-b",
-          amount: 34n,
+          amount: 50n,
           nicknameSnapshot: "B",
           weightSnapshot: 1,
         }),

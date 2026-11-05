@@ -3,6 +3,7 @@ import { io } from "next/cache";
 import { MemberManager } from "@/features/members/member-manager";
 import { listPartyMembers } from "@/server/repositories/party-member-repository";
 import { ensureLocalWorkspace } from "@/server/bootstrap/local-workspace";
+import { listPartyMemberProfiles } from "@/server/repositories/member-profile-repository";
 
 export default function MembersPage() {
   return (
@@ -15,13 +16,20 @@ export default function MembersPage() {
 async function MembersContent() {
   await io();
   const workspace = await ensureLocalWorkspace();
-  const records = await listPartyMembers(workspace.partyId);
+  const [records, profiles] = await Promise.all([
+    listPartyMembers(workspace.partyId),
+    listPartyMemberProfiles(workspace.partyId),
+  ]);
   const members = records.map((member) => ({
     id: member.id,
     nickname: member.nickname,
     distributionWeight: member.distributionWeight,
     isActive: member.isActive,
     comment: member.comment,
+    className: member.className,
+    level: member.level,
+    role: member.role,
+    profiles: profiles.filter((profile) => profile.memberId === member.id).map(({ id, name, className, role, level, note }) => ({ id, name, className, role, level, note })),
     createdAt: member.createdAt.toLocaleDateString("ru-RU"),
   }));
 
@@ -29,7 +37,7 @@ async function MembersContent() {
     <div className="space-y-7">
       <header>
         <p className="text-sm font-medium text-primary">{workspace.partyName}</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">Участники</h1>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight">Участники</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Ведите постоянный состав и сохраняйте историю, когда персонаж перестаёт участвовать.
         </p>

@@ -7,7 +7,10 @@ const subscribe = () => () => {};
 export function LocalDateTimeDisplay({ value }: { value: string }) {
   const formatted = useSyncExternalStore(
     subscribe,
-    () => new Date(value).toLocaleString("ru-RU"),
+    () => {
+      const date = new Date(value);
+      return `${date.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric" })} ${date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}`;
+    },
     () => "Локальное время",
   );
 

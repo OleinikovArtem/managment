@@ -49,12 +49,14 @@ model User {
 }
 
 model Party {
-  id                 String              @id @default(cuid())
+  id                 String               @id @default(cuid())
   name               String
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
   memberships        PartyMembership[]
   members            PartyMember[]
+  memberProfiles     PartyMemberProfile[]
+  compositions       PartyComposition[]
   items              Item[]
   raids              Raid[]
   saleTransactions   SaleTransaction[]
@@ -87,17 +89,83 @@ model PartyMember {
   isActive           Boolean  @default(true)
   comment            String?
   distributionWeight Int      @default(1)
+  className          String?
+  level              Int?
+  role               String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  party            Party             @relation(fields: [partyId], references: [id], onDelete: Restrict)
-  raidParticipants RaidParticipant[]
-  memberPayments   MemberPayment[]
-  saleShares       SaleShare[]
-  ledgerEntries    LedgerEntry[]
+  party              Party                    @relation(fields: [partyId], references: [id], onDelete: Restrict)
+  raidParticipants   RaidParticipant[]
+  memberPayments     MemberPayment[]
+  saleShares         SaleShare[]
+  ledgerEntries      LedgerEntry[]
+  compositionMembers PartyCompositionMember[]
+  profiles           PartyMemberProfile[]
 
   @@unique([partyId, normalizedNickname])
   @@unique([partyId, id])
+}
+
+model PartyMemberProfile {
+  id        String   @id @default(cuid())
+  partyId   String
+  memberId  String
+  name      String
+  className String
+  role      String?
+  level     Int?
+  note      String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  party              Party                    @relation(fields: [partyId], references: [id], onDelete: Restrict)
+  member             PartyMember              @relation(fields: [partyId, memberId], references: [partyId, id], onDelete: Restrict)
+  compositionMembers PartyCompositionMember[]
+  raidParticipants   RaidParticipant[]
+
+  @@unique([partyId, id])
+  @@unique([partyId, memberId, name])
+  @@index([partyId, memberId, isActive])
+}
+
+model PartyComposition {
+  id          String   @id @default(cuid())
+  partyId     String
+  name        String
+  description String?
+  focus       String?
+  maxMembers  Int      @default(36)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  party   Party                    @relation(fields: [partyId], references: [id], onDelete: Restrict)
+  members PartyCompositionMember[]
+  raids   Raid[]
+
+  @@unique([partyId, id])
+  @@unique([partyId, name])
+  @@index([partyId, updatedAt])
+}
+
+model PartyCompositionMember {
+  id            String   @id @default(cuid())
+  partyId       String
+  compositionId String
+  memberId      String
+  profileId     String?
+  slotOrder     Int      @default(0)
+  roleOverride  String?
+  note          String?
+  createdAt     DateTime @default(now())
+
+  composition PartyComposition    @relation(fields: [partyId, compositionId], references: [partyId, id], onDelete: Cascade)
+  member      PartyMember         @relation(fields: [partyId, memberId], references: [partyId, id], onDelete: Restrict)
+  profile     PartyMemberProfile? @relation(fields: [partyId, profileId], references: [partyId, id], onDelete: Restrict)
+
+  @@unique([partyId, compositionId, memberId])
+  @@index([partyId, memberId])
 }
 
 model Item {
@@ -133,10 +201,12 @@ model Raid {
   screenshotPath String?
   comment        String?
   lockedAt       DateTime?
+  compositionId  String?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
   party            Party             @relation(fields: [partyId], references: [id], onDelete: Restrict)
+  composition      PartyComposition? @relation(fields: [partyId, compositionId], references: [partyId, id], onDelete: Restrict)
   participants     RaidParticipant[]
   lootDrops        LootDrop[]
   saleTransactions SaleTransaction[]
@@ -150,13 +220,20 @@ model RaidParticipant {
   partyId            String
   raidId             String
   memberId           String
+  profileId          String?
   nicknameSnapshot   String
   status             RaidParticipantStatus
   distributionWeight Int
+  classSnapshot      String?
+  roleSnapshot       String?
+  profileSnapshot    String?
+  levelSnapshot      Int?
+  compositionSlot    Int?
   createdAt          DateTime              @default(now())
 
-  raid       Raid        @relation(fields: [partyId, raidId], references: [partyId, id], onDelete: Restrict)
-  member     PartyMember @relation(fields: [partyId, memberId], references: [partyId, id], onDelete: Restrict)
+  raid       Raid                @relation(fields: [partyId, raidId], references: [partyId, id], onDelete: Restrict)
+  member     PartyMember         @relation(fields: [partyId, memberId], references: [partyId, id], onDelete: Restrict)
+  profile    PartyMemberProfile? @relation(fields: [partyId, profileId], references: [partyId, id], onDelete: Restrict)
   saleShares SaleShare[]
 
   @@unique([partyId, raidId, memberId])

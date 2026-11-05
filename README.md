@@ -10,7 +10,7 @@ Party Bank Manager helps manage:
 - Separate loot-drop acquisition records.
 - Unique item catalog.
 - Item acquisition history.
-- Received sales, weighted member shares, Party cash and outstanding member balances.
+- Received sales, equal member shares, Party cash and outstanding member balances.
 
 The financial workflow is intentionally simple: record sold items, see each
 participant's share, record Adena handed to members, and track the shared Party

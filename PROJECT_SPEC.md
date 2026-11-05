@@ -388,12 +388,12 @@ item sale, show each raid participant's share, record Adena actually handed to a
 member, and show both the remaining member balances and the total party bank.
 This is not accounting software.
 
-Distribute each sale among PRESENT participants of the originating Raid, using
-the RaidParticipant weight and nickname snapshots. ABSENT participants receive
-no share. The current PartyMember roster must never be used to calculate a
-historical sale.
+Distribute each sale equally among PRESENT participants of the originating Raid,
+using the RaidParticipant and nickname snapshots. ABSENT participants receive no
+share. The current PartyMember roster must never be used to calculate a historical
+sale.
 
-Use weighted integer distribution with the Largest Remainder Method. Break equal
+Use equal integer distribution with the Largest Remainder Method. Break equal
 remainder ties deterministically by RaidParticipant.id. Each sale is calculated
 independently, and the total of all SaleShare amounts must equal totalPrice
 exactly. The Party's share of a sale is 0%.
@@ -532,7 +532,7 @@ Write tests for:
 - Reusing an existing item across raids.
 - Acquisition history.
 - Raid participant selection.
-- Weighted Largest Remainder distribution.
+- Equal-share Largest Remainder distribution.
 - Idempotent sale and payout processing.
 - Partial sales.
 - Multiple sales per LootDrop.

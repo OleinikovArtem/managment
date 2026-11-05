@@ -11,6 +11,7 @@ import {
   listPartyItemLootDrops,
   listPartyRaidItems,
   listPartyRaids,
+  listPartyCompositions,
   updatePartyRaidRecord,
 } from "@/server/repositories/raid-repository";
 import { RaidOperationError } from "@/features/raids/raid-errors";
@@ -67,11 +68,12 @@ export async function listRaids(partyId: string) {
 }
 
 export async function getRaidSetup(partyId: string) {
-  const [members, items] = await Promise.all([
+  const [members, items, compositions] = await Promise.all([
     listActivePartyMembers(partyId),
     listPartyRaidItems(partyId),
+    listPartyCompositions(partyId),
   ]);
-  return { members, items };
+  return { members, items, compositions };
 }
 
 export async function getRaid(partyId: string, raidId: string) {

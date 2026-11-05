@@ -20,8 +20,11 @@ export async function createPartyMemberRecord(
       partyId,
       nickname: input.nickname,
       normalizedNickname,
-      distributionWeight: input.distributionWeight,
+      distributionWeight: 1,
       comment: input.comment || null,
+      className: input.className || null,
+      level: input.level ?? null,
+      role: input.role || null,
     },
   });
 }
@@ -37,8 +40,11 @@ export async function updatePartyMemberRecord(
     data: {
       nickname: input.nickname,
       normalizedNickname,
-      distributionWeight: input.distributionWeight,
+      distributionWeight: 1,
       comment: input.comment || null,
+      className: input.className || null,
+      level: input.level ?? null,
+      role: input.role || null,
     },
   });
 

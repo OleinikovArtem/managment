@@ -29,6 +29,9 @@ export const memberInputSchema = z.object({
     .trim()
     .max(500, "Комментарий должен содержать не более 500 символов.")
     .optional(),
+  className: z.string().trim().max(80, "Класс не должен превышать 80 символов.").optional(),
+  level: z.number().int().min(1).max(99).optional().nullable(),
+  role: z.string().trim().max(40, "Роль не должна превышать 40 символов.").optional(),
 });
 
 export const memberIdSchema = z.string().trim().min(1, "Member ID is required.");

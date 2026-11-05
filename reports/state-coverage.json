@@ -1,6 +1,6 @@
 {
   "root": "C:\\code\\managment",
-  "files_scanned": 126,
+  "files_scanned": 133,
   "passed": true,
   "states": {
     "loading": {
@@ -40,7 +40,8 @@
     "selected": {
       "present": true,
       "matched_terms": [
-        "/selected/i"
+        "/selected/i",
+        "/aria-selected/i"
       ]
     },
     "submitting": {

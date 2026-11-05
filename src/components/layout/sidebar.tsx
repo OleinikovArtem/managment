@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Suspense } from "react";
 import {
   LayoutDashboard,
+  Layers3,
   ListOrdered,
   ScrollText,
   Settings2,
@@ -16,6 +17,7 @@ import {
 const navigation = [
   { href: "/dashboard", label: "Дашборд", icon: LayoutDashboard },
   { href: "/members", label: "Участники", icon: UsersRound },
+  { href: "/compositions", label: "Составы", icon: Layers3 },
   { href: "/items", label: "Предметы", icon: ScrollText },
   { href: "/raids", label: "Рейды", icon: Swords },
   { href: "/sales", label: "Финансы", icon: WalletCards },
@@ -25,9 +27,9 @@ const navigation = [
 
 export function Sidebar() {
   return (
-    <aside className="flex w-full shrink-0 flex-col border-b border-sidebar-border/80 bg-sidebar/95 px-4 py-4 backdrop-blur-xl md:min-h-screen md:w-64 md:border-r md:border-b-0 md:px-5 md:py-7">
-      <Link href="/dashboard" className="mb-5 flex items-center gap-3 md:mb-10">
-        <span className="flex size-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
+    <aside className="flex w-full shrink-0 flex-col border-b border-sidebar-border bg-sidebar px-4 py-3 md:min-h-screen md:w-56 md:border-r md:border-b-0 md:px-4 md:py-5">
+      <Link href="/dashboard" className="mb-5 flex items-center gap-2.5 md:mb-8">
+        <span className="flex size-9 items-center justify-center rounded-lg bg-primary/15 text-primary">
           <WalletCards aria-hidden="true" size={21} />
         </span>
         <span>
@@ -42,11 +44,9 @@ export function Sidebar() {
         <SidebarNavigation />
       </Suspense>
 
-      <div className="mt-auto hidden rounded-xl border border-sidebar-border bg-background/40 p-4 md:block">
+      <div className="mt-auto hidden border-t border-sidebar-border pt-4 md:block">
         <p className="text-xs font-medium text-sidebar-foreground">Локальный режим</p>
-        <p className="mt-1 text-xs leading-5 text-muted-foreground">
-          Данные хранятся на этом компьютере.
-        </p>
+        <p className="mt-1 text-xs text-muted-foreground">Данные на этом компьютере</p>
       </div>
     </aside>
   );

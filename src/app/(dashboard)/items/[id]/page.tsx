@@ -15,6 +15,7 @@ import { LocalDateTimeDisplay } from "@/features/raids/local-date-time-display";
 import { ensureLocalWorkspace } from "@/server/bootstrap/local-workspace";
 import { getItem, ItemNotFoundError } from "@/server/services/item-service";
 import { getItemLootHistory } from "@/server/services/raid-service";
+import { GameIcon } from "@/components/ui/game-icon";
 
 type ItemDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -55,9 +56,7 @@ async function ItemDetailContent({ params }: ItemDetailPageProps) {
           К каталогу
         </Link>
         <p className="mt-5 text-sm font-medium text-primary">{workspace.partyName}</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">
-          {item.displayName || item.canonicalName}
-        </h1>
+        <div className="mt-2 flex items-center gap-3"><GameIcon kind="item" name={item.displayName || item.canonicalName} category={item.category} size="lg" /><h1 className="text-3xl font-semibold tracking-tight">{item.displayName || item.canonicalName}</h1></div>
         {item.displayName && (
           <p className="mt-2 text-sm text-muted-foreground">
             Оригинальное название: {item.canonicalName}

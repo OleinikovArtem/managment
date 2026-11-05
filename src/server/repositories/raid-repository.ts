@@ -36,6 +36,11 @@ async function assertPartyReferences(
     throw new RaidOperationError("Один или несколько предметов не найдены в каталоге этой группы.");
   }
 
+  if (input.compositionId) {
+    const composition = await transaction.partyComposition.findFirst({ where: { partyId, id: input.compositionId }, select: { id: true } });
+    if (!composition) throw new RaidOperationError("Профиль состава не найден. Обновите страницу и повторите попытку.");
+  }
+
   return activeMembers;
 }
 
@@ -54,7 +59,15 @@ export async function listActivePartyMembers(partyId: string) {
   return prisma.partyMember.findMany({
     where: { partyId, isActive: true },
     orderBy: { nickname: "asc" },
-    select: { id: true, nickname: true },
+    include: { profiles: { where: { isActive: true }, orderBy: { name: "asc" } } },
+  });
+}
+
+export function listPartyCompositions(partyId: string) {
+  return prisma.partyComposition.findMany({
+    where: { partyId },
+    include: { members: { include: { member: true, profile: true }, orderBy: { slotOrder: "asc" } } },
+    orderBy: [{ updatedAt: "desc" }, { name: "asc" }],
   });
 }
 
@@ -96,6 +109,7 @@ export async function createPartyRaidRecord(partyId: string, input: RaidInput) {
         instanceName: input.instanceName || null,
         occurredAt: new Date(input.occurredAt),
         comment: input.comment || null,
+        compositionId: input.compositionId || null,
       },
     });
 
@@ -104,14 +118,23 @@ export async function createPartyRaidRecord(partyId: string, input: RaidInput) {
       if (!member) {
         throw new RaidOperationError("Состав группы изменился. Обновите страницу и повторите попытку.");
       }
+      const profile = attendance.profileId
+        ? await transaction.partyMemberProfile.findFirst({ where: { partyId, id: attendance.profileId, memberId: member.id, isActive: true } })
+        : null;
+      if (attendance.profileId && !profile) throw new RaidOperationError("Профиль участника не найден. Обновите страницу и повторите попытку.");
       await transaction.raidParticipant.create({
         data: {
           partyId,
           raidId: raid.id,
           memberId: member.id,
+          profileId: attendance.profileId || null,
           nicknameSnapshot: member.nickname,
           status: attendance.status,
-          distributionWeight: member.distributionWeight,
+          distributionWeight: 1,
+          classSnapshot: profile?.className ?? null,
+          roleSnapshot: profile?.role ?? null,
+          profileSnapshot: profile?.name ?? null,
+          levelSnapshot: profile?.level ?? null,
         },
       });
     }
@@ -165,6 +188,15 @@ export async function updatePartyRaidRecord(
       }
     }
     await assertPartyItemsExist(transaction, partyId, input);
+    if (input.compositionId) {
+      const composition = await transaction.partyComposition.findFirst({
+        where: { partyId, id: input.compositionId },
+        select: { id: true },
+      });
+      if (!composition) {
+        throw new RaidOperationError("Профиль состава не найден. Обновите страницу и повторите попытку.");
+      }
+    }
 
     await transaction.raid.updateMany({
       where: { id: raidId, partyId },
@@ -173,13 +205,22 @@ export async function updatePartyRaidRecord(
         instanceName: input.instanceName || null,
         occurredAt: new Date(input.occurredAt),
         comment: input.comment || null,
+        compositionId: input.compositionId || null,
       },
     });
 
     for (const attendance of input.participants) {
+      const member = attendance.profileId
+        ? await transaction.partyMember.findFirst({ where: { partyId, id: attendance.memberId }, include: { profiles: { where: { isActive: true } } } })
+        : null;
+      const profile = attendance.profileId ? member?.profiles.find(({ id }) => id === attendance.profileId) : null;
+      if (attendance.profileId && !profile) throw new RaidOperationError("Профиль участника не найден. Обновите страницу и повторите попытку.");
+      const attendanceData = attendance.profileId
+        ? { status: attendance.status, profileId: attendance.profileId, classSnapshot: profile?.className ?? null, roleSnapshot: profile?.role ?? null, profileSnapshot: profile?.name ?? null, levelSnapshot: profile?.level ?? null }
+        : { status: attendance.status };
       const result = await transaction.raidParticipant.updateMany({
         where: { partyId, raidId, memberId: attendance.memberId },
-        data: { status: attendance.status },
+        data: attendanceData,
       });
       if (result.count !== 1) {
         throw new RaidOperationError("Исторический состав рейда изменился. Обновите страницу.");

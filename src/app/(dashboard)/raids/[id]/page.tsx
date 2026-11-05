@@ -83,7 +83,7 @@ async function RaidDetailContent({ params }: RaidDetailPageProps) {
           <ul className="grid gap-2 sm:grid-cols-2">
             {raid.participants.map((participant) => (
               <li key={participant.id} className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
-                <span>{participant.nicknameSnapshot}</span>
+                <span className="min-w-0"><span className="block truncate">{participant.nicknameSnapshot}</span>{(participant.profileSnapshot || participant.classSnapshot || participant.roleSnapshot || participant.levelSnapshot) && <span className="block truncate text-xs text-muted-foreground">{[participant.profileSnapshot, participant.classSnapshot, participant.roleSnapshot, participant.levelSnapshot ? `Lv. ${participant.levelSnapshot}` : null].filter(Boolean).join(" · ")}</span>}</span>
                 <Badge variant={participant.status === "PRESENT" ? "secondary" : "outline"}>
                   {participant.status === "PRESENT" ? "Присутствовал" : "Отсутствовал"}
                 </Badge>

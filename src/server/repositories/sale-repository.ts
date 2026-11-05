@@ -152,7 +152,7 @@ async function createPartySaleRecord(
       id: participant.id,
       memberId: participant.memberId,
       nicknameSnapshot: participant.nicknameSnapshot,
-      weight: participant.distributionWeight,
+      weight: 1,
     })),
   );
   const now = new Date();
@@ -180,7 +180,7 @@ async function createPartySaleRecord(
       raidParticipantId: participant.id,
       memberId: participant.memberId,
       nicknameSnapshot: participant.nicknameSnapshot,
-      weightSnapshot: participant.weight,
+      weightSnapshot: 1,
       distributionMethod: DistributionMethod.WEIGHTED,
       algorithmVersion: DISTRIBUTION_ALGORITHM_VERSION,
       amount,

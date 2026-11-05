@@ -16,6 +16,7 @@ import {
 import { ItemForm } from "@/features/items/item-form";
 import type { ItemInput } from "@/features/items/item-schema";
 import { createItemAction, updateItemAction } from "@/app/(dashboard)/items/actions";
+import { GameIcon } from "@/components/ui/game-icon";
 
 export type ItemListRow = ItemInput & {
   id: string;
@@ -42,7 +43,7 @@ export function ItemManager({ items }: { items: ItemListRow[] }) {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <Card className="h-fit">
+      <Card size="sm" className="h-fit">
         <CardHeader className="flex-row items-start justify-between gap-4">
           <div className="space-y-1">
             <CardTitle>Каталог предметов</CardTitle>
@@ -88,7 +89,7 @@ export function ItemManager({ items }: { items: ItemListRow[] }) {
           ) : (
             <ul className="divide-y divide-border">
               {items.map((item) => (
-                <li key={item.id} className="py-4 first:pt-0 last:pb-0">
+                <li key={item.id} className="py-3 first:pt-0 last:pb-0">
                   {editingId === item.id ? (
                     <ItemForm
                       initialValues={{
@@ -108,8 +109,10 @@ export function ItemManager({ items }: { items: ItemListRow[] }) {
                       onCancel={() => setEditingId(null)}
                     />
                   ) : (
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="min-w-0">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <GameIcon kind="item" name={item.displayName || item.canonicalName} category={item.category} />
+                        <div className="min-w-0">
                         <Link
                           href={`/items/${item.id}`}
                           className="font-medium hover:text-primary"
@@ -121,7 +124,7 @@ export function ItemManager({ items }: { items: ItemListRow[] }) {
                             Оригинальное название: {item.canonicalName}
                           </p>
                         )}
-                        <div className="mt-2 flex flex-wrap gap-2">
+                        <div className="mt-1 flex flex-wrap gap-1.5">
                           {item.category && (
                             <Badge variant="secondary">{item.category}</Badge>
                           )}
@@ -140,6 +143,7 @@ export function ItemManager({ items }: { items: ItemListRow[] }) {
                           {item.gameVersion && (
                             <Badge variant="outline">{item.gameVersion}</Badge>
                           )}
+                        </div>
                         </div>
                       </div>
                       <div className="flex shrink-0 gap-2">

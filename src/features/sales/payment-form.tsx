@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Check, LoaderCircle, MessageSquarePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Textarea } from "@/components/ui/textarea";
 import type { PaymentActionResult } from "@/features/sales/payment-action-result";
 import { registerPaymentAction } from "@/app/(dashboard)/sales/payment-actions";
@@ -143,13 +144,7 @@ export function PaymentForm({
         </label>
         <label className="space-y-1.5 text-xs font-medium">
           Дата передачи
-          <Input
-            type="datetime-local"
-            required
-            value={paidAt}
-            onChange={(event) => setPaidAt(event.target.value)}
-            aria-label={`Дата передачи Adena для ${nickname}`}
-          />
+          <DateInput required value={paidAt} withTime onChange={setPaidAt} aria-label={`Дата передачи Adena для ${nickname}`} />
         </label>
       </div>
       <div>
