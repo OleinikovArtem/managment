@@ -6,7 +6,7 @@ import { ArrowLeft } from "lucide-react";
 
 
 import { LocalDateTimeDisplay } from "@/features/raids/local-date-time-display";
-import { ensureLocalWorkspace } from "@/server/bootstrap/local-workspace";
+import { requirePartyPageAccess } from "@/server/auth/party-access";
 import { getItem, ItemNotFoundError } from "@/server/services/item-service";
 import { getItemLootHistory } from "@/server/services/raid-service";
 import { GameIcon } from "@/components/ui/game-icon";
@@ -26,7 +26,7 @@ export default async function ItemDetailPage({ params }: ItemDetailPageProps) {
 async function ItemDetailContent({ params }: ItemDetailPageProps) {
   await io();
   const { id } = await params;
-  const workspace = await ensureLocalWorkspace();
+  const workspace = await requirePartyPageAccess();
 
   let item;
   try {

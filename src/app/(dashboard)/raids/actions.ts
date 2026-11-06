@@ -5,7 +5,8 @@ import { Prisma } from "@/generated/prisma/client";
 import { raidIdSchema, raidInputSchema } from "@/features/raids/raid-schema";
 import type { RaidActionResult } from "@/features/raids/raid-action-result";
 import { RaidOperationError } from "@/features/raids/raid-errors";
-import { ensureLocalWorkspace } from "@/server/bootstrap/local-workspace";
+import { requirePartyActionAccess } from "@/server/auth/party-access";
+import { recordPartyAuditEvent } from "@/server/services/party-audit-service";
 import {
   createRaid,
   updateRaid,
@@ -26,9 +27,11 @@ export async function createRaidAction(payload: unknown): Promise<RaidActionResu
     };
   }
 
-  const { partyId } = await ensureLocalWorkspace();
+  const access = await requirePartyActionAccess("ADMIN");
+  const { partyId } = access;
   try {
     const raidId = await createRaid(partyId, parsed.data);
+    await recordPartyAuditEvent(access, { action: "CREATE", entityType: "raid", entityId: raidId, summary: `Добавил рейд «${parsed.data.name}» (${parsed.data.lootDrops.length} поступлений).` });
     revalidatePath("/raids");
     revalidatePath("/dashboard");
     return { ok: true, message: "Рейд сохранён.", raidId };
@@ -61,9 +64,11 @@ export async function updateRaidAction(
     };
   }
 
-  const { partyId } = await ensureLocalWorkspace();
+  const access = await requirePartyActionAccess("ADMIN");
+  const { partyId } = access;
   try {
     const updatedId = await updateRaid(partyId, raidId.data, parsed.data);
+    await recordPartyAuditEvent(access, { action: "UPDATE", entityType: "raid", entityId: updatedId, summary: `Изменил рейд «${parsed.data.name}».` });
     revalidatePath("/raids");
     revalidatePath(`/raids/${updatedId}`);
     for (const itemId of new Set(parsed.data.lootDrops.map(({ itemId }) => itemId))) {

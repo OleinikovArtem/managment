@@ -10,17 +10,23 @@ flowchart TD
   S --> R[Repositories]
   P --> R
   R --> DB[Prisma / PostgreSQL + SQL constraints]
-  A --> W[Local workspace bootstrap]
-  P --> W
-  W --> DB
+  A --> AUTH[Better Auth / party access]
+  P --> AUTH
+  AUTH --> DB
 ```
 
 Страницы — серверные компоненты; интерактивные формы находятся в `src/features/`.
 Чтение местами идёт из страницы прямо в repository. Изменения проходят через
-Server Actions: Zod-проверка, определение локальной группы, сервис/репозиторий,
+Server Actions: Zod-проверка, определение активной группы и роли, сервис/репозиторий,
 преобразование ожидаемых ошибок в типизированный результат, `revalidatePath`.
 Атомарные финансовые операции находятся в repositories, чистое распределение —
 в `src/server/services/sale-distribution.ts`.
+
+Журнал действий группы записывается отдельным запросом после изменения данных.
+Сбой записи журнала логируется на сервере и не превращает уже завершённое изменение
+в ошибочный ответ Server Action: повтор запроса мог бы создать дубликат или повторить
+необратимую операцию. Поэтому журнал помогает установить автора действий, но не
+является транзакционным источником истории.
 
 В `next.config.ts` включены `cacheComponents` и `partialPrefetching`.
 Динамические части страниц используют `Suspense` и `await io()` из `next/cache`.
@@ -40,6 +46,10 @@ API установленной версии Next.js проверяют по `nod
 | `/sales` | Остатки и передачи участникам |
 | `/ledger` | Журнал продаж, долей и передач |
 | `/settings` | Название группы, сведения о резервировании базы и очистка |
+| `/settings/access` | Ссылки приглашения и управление доступом |
+| `/settings/telegram` | Зашифрованный bot token; только владелец |
+| `/settings/activity` | Последние 100 действий менеджеров группы |
+| `/profile` | Имя аккаунта для отображения |
 | `/api/ledger/export` | CSV всех операций группы |
 | `/api/backups/[name]` | Legacy endpoint; возвращает `410 Gone` для SQLite-архивов |
 
@@ -48,10 +58,11 @@ API установленной версии Next.js проверяют по `nod
 
 ## Workspace и модель данных
 
-`ensureLocalWorkspace()` в транзакции создаёт/находит `local-user`, одну Party и
-OWNER membership. Несколько membership, неверная роль или группа без локального
-владельца приводят к ошибке. Это bootstrap локальных данных, не авторизация.
-`partyId` определяется сервером; операции группы ограничены группой. `Item` —
+Better Auth хранит пользователей и сессии в PostgreSQL. Авторизованное действие
+создаёт группу и OWNER membership; активная группа читается из HttpOnly cookie и
+принимается только при наличии членства. Серверный access helper проверяет сессию,
+членство и роль. Клиентский `partyId` не является разрешением. Подробности:
+[аккаунты и группы](./ACCOUNTS_AND_PARTIES_SPEC.md). `Item` —
 общий каталог и намеренно не имеет `partyId`; рейдовый запрос проверяет предмет по
 общему идентификатору, а история добычи остаётся scoped к группе.
 
@@ -66,19 +77,20 @@ OWNER membership. Несколько membership, неверная роль ил�
 | `SaleTransaction` / `SaleShare` | Полученная оплата и рассчитанные доли |
 | `MemberPayment` / `PaymentAllocation` | Реальная передача и покрытие имеющихся долей |
 | `LedgerTransaction` / `LedgerEntry` | Внутренний журнал — источник банка и остатков |
+| `PartyAuditEvent` | Автор, дата и краткое описание изменения в конкретной группе |
 
 Ник, профиль, класс, роль и уровень сохраняются в снимке рейда. Деактивация
 участника/профиля не переписывает снимок. При редактировании посещаемости обновляются
 исходные строки. Обычного hard-delete исторических сущностей нет; связи используют
-RESTRICT. Подтверждённая очистка всей группы — отдельная административная операция
-в `party-repository.ts`; транзакция устанавливает локальную настройку `app.party_reset`,
-которую PostgreSQL guards проверяют перед временным разрешением удаления. Общий
-каталог предметов очистка партии не меняет.
+RESTRICT. Владелец может подтвердить очистку данных группы. Она удаляет участников и
+профили, составы, рейды, добычу и финансовую историю; сохраняет аккаунты, саму группу,
+членства, приглашения, Telegram-настройки, журнал действий и общий каталог предметов.
+Операция выполняется транзакционно в `party-repository.ts`; PostgreSQL guards
+разрешают её через локальную настройку `app.party_reset`.
 
-Bootstrap восстанавливает отсутствующие имена из `prisma/seeds/lineage2-high-five-items.json`
-(130 названий). Существующие записи не перезаписывает; однократная миграция старой
-классификации не заменяет последующие пользовательские правки. Загрузка страницы
-может инициировать bootstrap-запись, даже если её основная операция — чтение.
+При создании группы отсутствующие базовые предметы добавляются из
+`prisma/seeds/lineage2-high-five-items.json` (130 названий). Существующие записи
+не перезаписываются обычным открытием страницы.
 
 ## Финансовые инварианты
 
@@ -129,6 +141,8 @@ connection pool. Local development connects to the Docker Compose PostgreSQL
 service; production connects to Neon through server-only environment variables.
 SQLite legacy data is retained only as the source for the one-time item catalog
 import. The importer opens it read-only and transfers no party or financial rows.
+Authentication requires `BETTER_AUTH_URL` and `BETTER_AUTH_SECRET`. Encrypted
+Telegram bot tokens require the server-only `PARTY_TOKEN_ENCRYPTION_KEY`.
 
 Production backup and restore are managed through the selected PostgreSQL provider.
 Local dumps use `pg_dump`; do not point PostgreSQL restore procedures at legacy

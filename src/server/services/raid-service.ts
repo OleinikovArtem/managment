@@ -7,6 +7,7 @@ import {
 import {
   createPartyRaidRecord,
   getPartyRaidById,
+  getLootDropAuditContext,
   listActivePartyMembers,
   listPartyItemLootDrops,
   listPartyRaidItems,
@@ -82,6 +83,10 @@ export async function getRaid(partyId: string, raidId: string) {
     throw new RaidNotFoundError();
   }
   return raid;
+}
+
+export async function getLootDropAuditInfo(partyId: string, lootDropId: string) {
+  return getLootDropAuditContext(partyId, lootDropId);
 }
 
 export async function createRaid(partyId: string, input: unknown) {

@@ -5,7 +5,7 @@ import { CompositionManager } from "@/features/compositions/composition-manager"
 import { listPartyCompositions } from "@/server/repositories/composition-repository";
 import { listPartyMembers } from "@/server/repositories/party-member-repository";
 import { listPartyMemberProfiles } from "@/server/repositories/member-profile-repository";
-import { ensureLocalWorkspace } from "@/server/bootstrap/local-workspace";
+import { requirePartyPageAccess } from "@/server/auth/party-access";
 
 export default function CompositionsPage() {
   return <Suspense fallback={<div className="h-96 animate-pulse rounded-2xl bg-muted/50" />}><CompositionsContent /></Suspense>;
@@ -13,7 +13,7 @@ export default function CompositionsPage() {
 
 async function CompositionsContent() {
   await io();
-  const workspace = await ensureLocalWorkspace();
+  const workspace = await requirePartyPageAccess();
   const [records, compositions, profiles] = await Promise.all([
     listPartyMembers(workspace.partyId),
     listPartyCompositions(workspace.partyId),
@@ -33,5 +33,5 @@ async function CompositionsContent() {
       profile: profile ? { id: profile.id, name: profile.name, className: profile.className, role: profile.role, level: profile.level } : null,
     })),
   }));
-  return <div className="space-y-7"><header className="page-header "><h1 className="mt-1 text-2xl font-semibold tracking-tight">Составы</h1><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Готовые сетки для melee, mage, арчерских и рейдовых групп. В каждом слоте видно, кто идёт и какой 3-й профой.</p></header><SectionNavigation section="group" active="/compositions" /><CompositionManager compositions={rows} members={members} /></div>;
+  return <div className="space-y-7"><header className="page-header "><h1 className="mt-1 text-2xl font-semibold tracking-tight">Составы</h1><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Готовые сетки для melee, mage, арчерских и рейдовых групп. В каждом слоте видно, кто идёт и какой 3-й профой.</p></header><SectionNavigation section="group" active="/compositions" /><CompositionManager compositions={rows} members={members} canManage={workspace.canManage} /></div>;
 }

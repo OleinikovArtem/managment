@@ -3,10 +3,11 @@
 import { revalidatePath } from "next/cache";
 import type { PartyActionResult } from "@/features/settings/party-action-result";
 import { partySettingsSchema } from "@/features/settings/party-schema";
-import { ensureLocalWorkspace } from "@/server/bootstrap/local-workspace";
+import { requirePartyActionAccess } from "@/server/auth/party-access";
 import { updatePartyName } from "@/server/services/party-service";
 import { resetPartyData } from "@/server/repositories/party-repository";
 import { RESET_PARTY_CONFIRMATION } from "@/features/settings/reset-confirmation";
+import { recordPartyAuditEvent } from "@/server/services/party-audit-service";
 
 export async function updatePartySettingsAction(
   payload: unknown,
@@ -20,8 +21,10 @@ export async function updatePartySettingsAction(
     };
   }
 
-  const { partyId } = await ensureLocalWorkspace();
+  const access = await requirePartyActionAccess("ADMIN");
+  const { partyId } = access;
   await updatePartyName(partyId, parsed.data.name);
+  await recordPartyAuditEvent(access, { action: "UPDATE", entityType: "party", entityId: partyId, summary: `Переименовал группу в «${parsed.data.name}».` });
 
   revalidatePath("/settings");
   revalidatePath("/dashboard");
@@ -36,9 +39,11 @@ export async function resetPartyDataAction(payload: unknown): Promise<PartyActio
     return { ok: false, message: `Введите точно: ${RESET_PARTY_CONFIRMATION}.` };
   }
 
-  const { partyId } = await ensureLocalWorkspace();
+  const access = await requirePartyActionAccess("OWNER");
+  const { partyId } = access;
   try {
     await resetPartyData(partyId);
+    await recordPartyAuditEvent(access, { action: "RESET", entityType: "party", entityId: partyId, summary: "Очистил данные группы; общий каталог предметов сохранён." });
   } catch {
     return { ok: false, message: "Не удалось очистить данные. Изменения отменены; проверьте резервную копию и повторите." };
   }

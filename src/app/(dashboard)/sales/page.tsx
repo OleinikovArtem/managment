@@ -3,7 +3,7 @@ import { io } from "next/cache";
 import { SectionNavigation } from "@/components/layout/section-navigation";
 import { AdenaAmount } from "@/components/ui/adena-amount";
 import { PayoutList } from "@/features/sales/payout-list";
-import { ensureLocalWorkspace } from "@/server/bootstrap/local-workspace";
+import { requirePartyPageAccess } from "@/server/auth/party-access";
 import { getPartyBalances, getSales } from "@/server/services/sale-service";
 import { getPayments } from "@/server/services/payment-service";
 
@@ -13,7 +13,7 @@ export default function SalesPage() {
 
 async function SalesContent() {
   await io();
-  const workspace = await ensureLocalWorkspace();
+  const workspace = await requirePartyPageAccess();
   const [sales, balances, payments] = await Promise.all([getSales(workspace.partyId), getPartyBalances(workspace.partyId), getPayments(workspace.partyId)]);
   const totalSales = sales.reduce((sum, sale) => sum + sale.totalPrice, 0n);
   const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0n);
@@ -33,6 +33,6 @@ async function SalesContent() {
       <div><dt>Получено за всё время</dt><dd><AdenaAmount amount={totalSales} /></dd></div>
       <div><dt>Передано</dt><dd><AdenaAmount amount={totalPaid} /></dd></div>
     </dl>
-    <PayoutList members={rows.map(member => ({ ...member, payable: member.payable.toString() }))} partyCash={balances.partyCash.toString()} totalOutstanding={outstanding.toString()} />
+    <PayoutList members={rows.map(member => ({ ...member, payable: member.payable.toString() }))} partyCash={balances.partyCash.toString()} totalOutstanding={outstanding.toString()} canManage={workspace.canManage} />
   </div>;
 }

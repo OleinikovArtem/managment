@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { itemIdSchema, itemInputSchema } from "@/features/items/item-schema";
 import type { ItemActionResult } from "@/features/items/item-action-result";
-import { ensureLocalWorkspace } from "@/server/bootstrap/local-workspace";
+import { requirePartyActionAccess } from "@/server/auth/party-access";
+import { recordPartyAuditEvent } from "@/server/services/party-audit-service";
 import {
   createItem,
   DuplicateItemError,
@@ -21,9 +22,11 @@ export async function createItemAction(payload: unknown): Promise<ItemActionResu
     };
   }
 
-  const { partyId } = await ensureLocalWorkspace();
+  const access = await requirePartyActionAccess("ADMIN");
+  const { partyId } = access;
   try {
     const item = await createItem(partyId, parsed.data);
+    await recordPartyAuditEvent(access, { action: "CREATE", entityType: "item", entityId: item.id, summary: `Добавил предмет «${parsed.data.displayName || parsed.data.canonicalName}» в общий каталог.` });
     revalidatePath("/items");
     revalidatePath("/dashboard");
     return {
@@ -57,9 +60,11 @@ export async function updateItemAction(
     };
   }
 
-  const { partyId } = await ensureLocalWorkspace();
+  const access = await requirePartyActionAccess("ADMIN");
+  const { partyId } = access;
   try {
     await updateItem(partyId, itemId.data, parsed.data);
+    await recordPartyAuditEvent(access, { action: "UPDATE", entityType: "item", entityId: itemId.data, summary: `Изменил предмет «${parsed.data.displayName || parsed.data.canonicalName}» в общем каталоге.` });
   } catch (error) {
     if (error instanceof DuplicateItemError) {
       return {

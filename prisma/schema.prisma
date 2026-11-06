@@ -10,6 +10,8 @@ datasource db {
 enum PartyRole {
   OWNER
   MANAGER
+  ADMIN
+  MEMBER
 }
 
 enum RaidParticipantStatus {
@@ -41,19 +43,81 @@ enum LedgerAccountType {
 }
 
 model User {
-  id          String            @id @default(cuid())
-  email       String?           @unique
-  displayName String
-  createdAt   DateTime          @default(now())
-  memberships PartyMembership[]
+  id                      String            @id @default(cuid())
+  email                   String?           @unique
+  username                String?           @unique
+  emailVerified           Boolean           @default(false)
+  image                   String?
+  displayName             String
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+  accounts                Account[]
+  sessions                Session[]
+  memberships             PartyMembership[]
+  createdPartyInvitations PartyInvitation[]
+  auditEvents             PartyAuditEvent[]
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}
+
+model RateLimit {
+  id          String @id
+  key         String @unique
+  count       Int
+  lastRequest BigInt
 }
 
 model Party {
-  id                 String               @id @default(cuid())
+  id                 String                  @id @default(cuid())
   name               String
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
   memberships        PartyMembership[]
+  invitations        PartyInvitation[]
+  telegramBotConfig  PartyTelegramBotConfig?
+  auditEvents        PartyAuditEvent[]
   members            PartyMember[]
   memberProfiles     PartyMemberProfile[]
   compositions       PartyComposition[]
@@ -64,6 +128,34 @@ model Party {
   paymentAllocations PaymentAllocation[]
   ledgerTransactions LedgerTransaction[]
   ledgerEntries      LedgerEntry[]
+}
+
+model PartyTelegramBotConfig {
+  partyId              String   @id
+  encryptedToken       String
+  initializationVector String
+  authenticationTag    String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  party                Party    @relation(fields: [partyId], references: [id], onDelete: Restrict)
+}
+
+model PartyAuditEvent {
+  id                    String   @id @default(cuid())
+  partyId               String
+  actorUserId           String?
+  actorNameSnapshot     String
+  actorUsernameSnapshot String?
+  action                String
+  entityType            String
+  entityId              String?
+  summary               String
+  createdAt             DateTime @default(now())
+  party                 Party    @relation(fields: [partyId], references: [id], onDelete: Restrict)
+  actor                 User?    @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([partyId, createdAt])
+  @@index([actorUserId, createdAt])
 }
 
 model PartyMembership {
@@ -78,6 +170,23 @@ model PartyMembership {
 
   @@unique([partyId, userId])
   @@index([userId])
+}
+
+model PartyInvitation {
+  id              String    @id @default(cuid())
+  partyId         String
+  tokenHash       String    @unique
+  createdByUserId String
+  role            PartyRole @default(MEMBER)
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  revokedAt       DateTime?
+  createdAt       DateTime  @default(now())
+
+  party     Party @relation(fields: [partyId], references: [id], onDelete: Restrict)
+  createdBy User  @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([partyId, createdAt])
 }
 
 model PartyMember {

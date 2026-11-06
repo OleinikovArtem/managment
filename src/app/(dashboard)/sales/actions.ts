@@ -5,8 +5,10 @@ import { Prisma } from "@/generated/prisma/client";
 import { SaleOperationError } from "@/features/sales/sale-errors";
 import { saleInputSchema } from "@/features/sales/sale-schema";
 import type { SaleActionResult } from "@/features/sales/sale-action-result";
-import { ensureLocalWorkspace } from "@/server/bootstrap/local-workspace";
+import { requirePartyActionAccess } from "@/server/auth/party-access";
 import { registerSale } from "@/server/services/sale-service";
+import { getLootDropAuditInfo } from "@/server/services/raid-service";
+import { recordPartyAuditEvent } from "@/server/services/party-audit-service";
 
 export async function registerSaleAction(payload: unknown): Promise<SaleActionResult> {
   const parsed = saleInputSchema.safeParse(payload);
@@ -18,9 +20,13 @@ export async function registerSaleAction(payload: unknown): Promise<SaleActionRe
     };
   }
 
-  const { partyId } = await ensureLocalWorkspace();
+  const access = await requirePartyActionAccess("ADMIN");
+  const { partyId } = access;
   try {
+    const context = await getLootDropAuditInfo(partyId, parsed.data.lootDropId);
     const sale = await registerSale(partyId, parsed.data);
+    const itemName = context?.item.displayName || context?.item.canonicalName || "предмет";
+    await recordPartyAuditEvent(access, { action: "CREATE", entityType: "sale", entityId: sale.id, summary: `Отметил продажу: ${itemName} × ${sale.quantitySold} за ${new Intl.NumberFormat("ru-RU").format(BigInt(sale.totalPrice))} Adena.` });
     revalidatePath("/sales");
     revalidatePath("/ledger");
     revalidatePath("/dashboard");

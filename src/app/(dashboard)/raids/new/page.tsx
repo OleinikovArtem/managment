@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { io } from "next/cache";
+import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { RaidForm } from "@/features/raids/raid-form";
-import { ensureLocalWorkspace } from "@/server/bootstrap/local-workspace";
+import { requirePartyPageAccess } from "@/server/auth/party-access";
 import { getRaidSetup } from "@/server/services/raid-service";
 
 export default function NewRaidPage() {
@@ -16,7 +17,8 @@ export default function NewRaidPage() {
 
 async function NewRaidContent() {
   await io();
-  const workspace = await ensureLocalWorkspace();
+  const workspace = await requirePartyPageAccess();
+  if (!workspace.canManage) redirect("/dashboard");
   const setup = await getRaidSetup(workspace.partyId);
 
   return (

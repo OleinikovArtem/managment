@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { io } from "next/cache";
 import { SettingsForm } from "@/features/settings/settings-form";
 import { ResetDataCard } from "@/features/settings/reset-data-card";
-import { ensureLocalWorkspace } from "@/server/bootstrap/local-workspace";
+import { requirePartyPageAccess } from "@/server/auth/party-access";
 import { getPartySettings } from "@/server/services/party-service";
 
 export default function SettingsPage() {
@@ -15,7 +15,7 @@ export default function SettingsPage() {
 
 async function SettingsContent() {
   await io();
-  const workspace = await ensureLocalWorkspace();
+  const workspace = await requirePartyPageAccess();
   const party = await getPartySettings(workspace.partyId);
 
   return (
@@ -24,10 +24,13 @@ async function SettingsContent() {
 
         <h1 className="mt-2 text-3xl font-semibold tracking-tight">Настройки</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Основные параметры локальной группы.
+          Основные параметры группы.
         </p>
       </header>
-      <SettingsForm partyName={party.name} />
+      <SettingsForm partyName={party.name} canManage={workspace.canManage} />
+      {workspace.canManage && <a className="text-sm underline underline-offset-4" href="/settings/access">Управление доступом к группе</a>}
+      {workspace.isOwner && <a className="ml-5 text-sm underline underline-offset-4" href="/settings/telegram">Настроить Telegram-бота</a>}
+      <a className="ml-5 text-sm underline underline-offset-4" href="/settings/activity">История действий</a>
       <section className="rounded-xl border border-border p-5">
         <h2 className="text-base font-semibold">Резервные копии базы</h2>
         <p className="mt-2 text-sm text-muted-foreground">
@@ -35,7 +38,7 @@ async function SettingsContent() {
           сохраните dump командой <code>docker compose exec -T postgres pg_dump -U party_bank party_bank</code>.
         </p>
       </section>
-      <ResetDataCard />
+      {workspace.isOwner && <ResetDataCard />}
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { io } from "next/cache";
 import { SectionNavigation } from "@/components/layout/section-navigation";
 
-import { ensureLocalWorkspace } from "@/server/bootstrap/local-workspace";
+import { requirePartyPageAccess } from "@/server/auth/party-access";
 import { getFinancialHistory } from "@/server/services/sale-service";
 import { HistoryList, type HistoryEntry } from "@/features/ledger/history-list";
 
@@ -12,7 +12,7 @@ export default function LedgerPage() {
 
 async function HistoryContent() {
   await io();
-  const workspace = await ensureLocalWorkspace();
+  const workspace = await requirePartyPageAccess();
   const transactions = await getFinancialHistory(workspace.partyId);
   const entries: HistoryEntry[] = transactions.map((transaction) => {
     const sale = transaction.saleTransaction; const payment = transaction.memberPayment;

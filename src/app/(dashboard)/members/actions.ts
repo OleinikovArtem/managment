@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { memberIdSchema, memberInputSchema } from "@/features/members/member-schema";
 import type { MemberActionResult } from "@/features/members/member-action-result";
-import { ensureLocalWorkspace } from "@/server/bootstrap/local-workspace";
+import { requirePartyActionAccess } from "@/server/auth/party-access";
+import { recordPartyAuditEvent } from "@/server/services/party-audit-service";
 import {
   createPartyMember,
   deactivatePartyMember,
@@ -24,9 +25,11 @@ export async function createMemberAction(
     };
   }
 
-  const { partyId } = await ensureLocalWorkspace();
+  const access = await requirePartyActionAccess("ADMIN");
+  const { partyId } = access;
   try {
     await createPartyMember(partyId, parsed.data);
+    await recordPartyAuditEvent(access, { action: "CREATE", entityType: "member", summary: `Добавил участника «${parsed.data.nickname}».` });
   } catch (error) {
     if (error instanceof DuplicateNicknameError) {
       return {
@@ -57,9 +60,11 @@ export async function updateMemberAction(
     };
   }
 
-  const { partyId } = await ensureLocalWorkspace();
+  const access = await requirePartyActionAccess("ADMIN");
+  const { partyId } = access;
   try {
     await updatePartyMember(partyId, memberId.data, parsed.data);
+    await recordPartyAuditEvent(access, { action: "UPDATE", entityType: "member", entityId: memberId.data, summary: `Изменил данные участника «${parsed.data.nickname}».` });
   } catch (error) {
     if (error instanceof DuplicateNicknameError) {
       return {
@@ -86,9 +91,11 @@ export async function deactivateMemberAction(
     return { ok: false, message: "Некорректный идентификатор участника." };
   }
 
-  const { partyId } = await ensureLocalWorkspace();
+  const access = await requirePartyActionAccess("ADMIN");
+  const { partyId } = access;
   try {
     await deactivatePartyMember(partyId, memberId.data);
+    await recordPartyAuditEvent(access, { action: "DEACTIVATE", entityType: "member", entityId: memberId.data, summary: "Деактивировал участника." });
   } catch (error) {
     if (error instanceof PartyMemberNotFoundError) {
       return { ok: false, message: error.message };

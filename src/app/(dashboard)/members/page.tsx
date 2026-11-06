@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { io } from "next/cache";
 import { MemberManager } from "@/features/members/member-manager";
 import { listPartyMembers } from "@/server/repositories/party-member-repository";
-import { ensureLocalWorkspace } from "@/server/bootstrap/local-workspace";
+import { requirePartyPageAccess } from "@/server/auth/party-access";
 import { listPartyMemberProfiles } from "@/server/repositories/member-profile-repository";
 
 export default function MembersPage() {
@@ -16,7 +16,7 @@ export default function MembersPage() {
 
 async function MembersContent() {
   await io();
-  const workspace = await ensureLocalWorkspace();
+  const workspace = await requirePartyPageAccess();
   const [records, profiles] = await Promise.all([
     listPartyMembers(workspace.partyId),
     listPartyMemberProfiles(workspace.partyId),
@@ -43,7 +43,7 @@ async function MembersContent() {
           Ведите постоянный состав и сохраняйте историю, когда персонаж перестаёт участвовать.
         </p>
       </header><SectionNavigation section="group" active="/members" />
-      <MemberManager members={members} />
+      <MemberManager members={members} canManage={workspace.canManage} />
     </div>
   );
 }

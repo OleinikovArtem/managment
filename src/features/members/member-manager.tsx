@@ -160,7 +160,7 @@ function MemberForm({
   );
 }
 
-export function MemberManager({ members }: { members: MemberRow[] }) {
+export function MemberManager({ members, canManage }: { members: MemberRow[]; canManage: boolean }) {
   const router = useRouter();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -180,18 +180,18 @@ export function MemberManager({ members }: { members: MemberRow[] }) {
   }
 
   return <section>
-    <div className="toolbar"><Input aria-label="Поиск участников" placeholder="Ник, класс или роль" value={query} onChange={e => setQuery(e.target.value)} /><select aria-label="Статус участников" value={status} onChange={e => setStatus(e.target.value)}><option value="all">Все участники</option><option value="active">Активные</option><option value="inactive">Неактивные</option></select>{!isCreateOpen && <Button className="sm:ml-auto" onClick={() => { setIsCreateOpen(true); setEditingId(null); }}>Добавить участника</Button>}</div>
+    <div className="toolbar"><Input aria-label="Поиск участников" placeholder="Ник, класс или роль" value={query} onChange={e => setQuery(e.target.value)} /><select aria-label="Статус участников" value={status} onChange={e => setStatus(e.target.value)}><option value="all">Все участники</option><option value="active">Активные</option><option value="inactive">Неактивные</option></select>{canManage && !isCreateOpen && <Button className="sm:ml-auto" onClick={() => { setIsCreateOpen(true); setEditingId(null); }}>Добавить участника</Button>}</div>
     {message && <p className="mb-4 text-sm text-muted-foreground" role="status">{message}</p>}
-    {isCreateOpen && <div className="editor-surface mb-6"><h2 className="section-heading mb-4">Новый участник</h2><MemberForm submitLabel="Добавить участника" action={createMemberAction} onSuccess={saved} onCancel={() => setIsCreateOpen(false)} /></div>}
+    {canManage && isCreateOpen && <div className="editor-surface mb-6"><h2 className="section-heading mb-4">Новый участник</h2><MemberForm submitLabel="Добавить участника" action={createMemberAction} onSuccess={saved} onCancel={() => setIsCreateOpen(false)} /></div>}
     <p className="mb-3 text-xs text-muted-foreground" role="status">Показано: {filtered.length} из {members.length} · активных: {members.filter(member => member.isActive).length}</p>
     {filtered.length === 0 ? <p className="empty-state">{members.length ? "Участники не найдены. Измените поиск или статус." : "Добавьте первого участника, чтобы собрать группу для рейда."}</p> : <ul className="data-list">{filtered.map(member => <li key={member.id} className="relative pr-12">
-      <div className="absolute top-3 right-0"><ActionMenu label={`Действия: ${member.nickname}`} disabled={isPending} items={[
+      {canManage && <div className="absolute top-3 right-0"><ActionMenu label={`Действия: ${member.nickname}`} disabled={isPending} items={[
         { label: "Изменить участника", onClick: () => { setEditingId(member.id); setIsCreateOpen(false); } },
         ...(member.isActive ? [{ label: "Деактивировать", destructive: true, onClick: () => deactivate(member) }] : []),
-      ]} /></div>
+      ]} /></div>}
       {editingId === member.id ? <div className="editor-surface"><MemberForm initialValues={{ nickname: member.nickname, distributionWeight: member.distributionWeight, comment: member.comment ?? "", className: member.className ?? "", level: member.level, role: member.role ?? "" }} submitLabel="Сохранить" action={values => updateMemberAction(member.id, values)} onSuccess={saved} onCancel={() => setEditingId(null)} /></div> : <details className="disclosure" name="member-profiles">
         <summary><span className="min-w-0"><span className="block text-sm font-medium">{member.nickname}{!member.isActive && <span className="ml-2 text-xs font-normal text-muted-foreground">Неактивен</span>}</span><span className="mt-1 block text-xs text-muted-foreground">{[member.className, member.role, member.level ? `Lv. ${member.level}` : null].filter(Boolean).join(" · ") || "Класс не указан"} · профилей: {member.profiles.length}</span></span></summary>
-        <div className="pt-3">{member.comment && <p className="mb-3 whitespace-pre-wrap text-sm text-muted-foreground">{member.comment}</p>}{member.isActive ? <MemberProfileManager memberId={member.id} profiles={member.profiles} /> : <p className="text-sm text-muted-foreground">Участник неактивен. Данные его рейдов и начислений сохранены.</p>}</div>
+        <div className="pt-3">{member.comment && <p className="mb-3 whitespace-pre-wrap text-sm text-muted-foreground">{member.comment}</p>}{member.isActive ? <MemberProfileManager memberId={member.id} profiles={member.profiles} canManage={canManage} /> : <p className="text-sm text-muted-foreground">Участник неактивен. Данные его рейдов и начислений сохранены.</p>}</div>
       </details>}
     </li>)}</ul>}
   </section>;

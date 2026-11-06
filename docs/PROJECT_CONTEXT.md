@@ -1,6 +1,6 @@
 # Карта проекта
 
-Party Bank Manager — локальный русский интерфейс для группы Lineage 2.
+Party Bank Manager — русскоязычное приложение для учёта нескольких групп Lineage 2.
 Участники → состав рейда → добыча → полученная оплата → доли → передачи Adena.
 Продуктовые правила: [PROJECT_SPEC.md](../PROJECT_SPEC.md).
 Запуск и восстановление: [README.md](../README.md).
@@ -23,7 +23,8 @@ Party Bank Manager — локальный русский интерфейс дл
 | Журнал | `src/features/ledger/history-list.tsx` |
 | Настройки и очистка группы | `src/features/settings/`, `src/server/repositories/party-repository.ts` |
 | Правила и транзакции | `src/server/services/`, `src/server/repositories/` |
-| Локальная группа и базовый каталог | `src/server/bootstrap/`, `prisma/seeds/lineage2-high-five-items.json` |
+| Базовый каталог предметов | `src/server/bootstrap/`, `prisma/seeds/lineage2-high-five-items.json` |
+| Авторизация, роли, приглашения, активность и Telegram-токен | `src/lib/auth.ts`, `src/server/auth/`, `src/server/services/account-party-service.ts`, `src/server/services/telegram-credential-service.ts`, `src/app/(auth)/`, `src/app/(dashboard)/settings/` |
 | Схема и PostgreSQL-защиты | `prisma/schema.prisma`, `prisma/postgresql-constraints.sql` |
 | Клиент БД | `src/lib/db/prisma.ts` |
 | Parser и короткие суммы | `src/lib/adena.ts`, `src/components/ui/adena-amount.tsx` |
@@ -57,11 +58,12 @@ are retained as legacy history. `scripts/import-item-catalog.cjs` reads the lega
 SQLite database in read-only mode and imports only the shared item catalog. It does
 not import party records or financial history.
 
-## Согласованные будущие интеграции
+## Интеграции и ограничения
 
-- Аккаунты, группы, роли и приглашения (пока не реализованы):
+- Аккаунты, группы, роли, приглашения и ограничения восстановления:
   [требования к многопользовательскому доступу](./ACCOUNTS_AND_PARTIES_SPEC.md).
-- Автоматический импорт продаж из Telegram (пока не реализован):
+- Telegram listener и автоматический импорт продаж пока отсутствуют; согласованные
+  правила и ограничения интеграции:
   [правила приёма, разбора и распределения](./TELEGRAM_SALES_INGESTION.md).
-- Целевая схема размещения (еще не развернута):
+- Production deployment пока не подключён; настройки и требования к средам:
   [Vercel, PostgreSQL и перенос данных](./DEPLOYMENT.md).

@@ -1,99 +1,69 @@
-# Accounts and parties
+# Аккаунты и группы
 
-## Status
+## Текущее поведение
 
-Product requirements for the proposed multi-user accounts feature. Authentication,
-party membership, invitation links, and role enforcement are not implemented yet.
+Вход работает по логину и паролю. Email и почтовые уведомления не используются.
+Логин: латинские буквы, цифры, точка и подчёркивание, 3–30 символов. Пароль:
+12–128 символов. Email-подтверждения и сброса пароля нет. Пользователь, потерявший
+пароль, пока не может восстановить аккаунт; отдельный процесс восстановления
+нужно определить до публичного запуска.
 
-## Accounts and parties
+Пользователь может создать несколько групп и переключаться между ними. Создатель
+получает OWNER роль. Активная группа хранится в HttpOnly cookie и при каждом
+запросе сверяется с membership. Старые локальные партии и финансовая история
+автоматически не переносятся; общий каталог предметов остаётся отдельной сущностью.
 
-- Users can register, sign in, sign out, and recover access to their account.
-- A user can create a party and becomes its owner and an administrator.
-- A user may belong to more than one party and can switch the active party.
-- Operational records belong to a party. A user can access them only while they
-  are a member of that party.
-- On first enablement, existing local data is migrated into the current owner's
-  party without losing records, history, or financial integrity.
+## Роли
 
-## Roles
+- **OWNER** — создатель группы; обладает правами администратора, единолично
+  управляет Telegram-токеном и очисткой данных группы.
+- **ADMIN** — управляет участниками, профилями, сохранёнными составами, рейдами,
+  продажами и передачами; создаёт и отзывает приглашения.
+- **MEMBER** — читает данные активной группы. Изменяющие действия скрыты в UI и
+  запрещены серверными обработчиками.
+- Старая роль `MANAGER`, если встретится в базе, сохраняет права администратора.
 
-- **Owner:** the user who created the party. Has administrator permissions and
-  exclusively manages the party's Telegram bot connection and credentials.
-- **Administrator:** manages party operations, including raids, compositions,
-  participants, and financial records; can create and revoke invitations.
-- **Member:** can view party activity and financial information but cannot make
-  changes.
-- A party must retain at least one owner/administrator. Ownership transfer and
-  party deletion rules must prevent orphaning party data.
+Каждый участник может менять собственный логин-отображение (display name) в
+настройках профиля; это не меняет его имя входа или игровые ники `PartyMember`.
+Server Actions записывают в историю краткое описание действия, имя автора и время
+для управления рейдами, предметами, продажами, передачами Adena, участниками,
+профилями, составами, приглашениями и настройками. Запись истории выполняется
+после изменения данных отдельным запросом; при её сбое действие остаётся успешным,
+а ошибка попадает в серверный лог. История не является транзакционным журналом.
+Telegram-импорт ещё не подключён; его будущие автоматические события должны иметь
+системный источник, а не имя участника группы.
 
-The shared base item catalog cannot be deleted by party users. Base catalog
-records are not editable on a per-party basis; party-specific aliases or display
-overrides, if needed, must remain scoped to that party.
+Каталог `Item` общий для всех партий. Удаления предметов из UI нет. Добавление и
+редактирование каталога доступно администраторам и меняет общие данные.
 
-## Invitations
+## Приглашения
 
-- An administrator creates an invitation link for one party.
-- The link contains a cryptographically random opaque token, not a party ID.
-- The invitee may register or sign into an existing account, review the party,
-  and accept the invitation to join as a member.
-- Administrators can revoke an invitation. Expiry and use limits are configurable
-  product decisions; the initial proposal is a seven-day, single-use link.
+Администратор создаёт одноразовую криптографически случайную ссылку сроком на
+семь дней и выбирает роль ADMIN или MEMBER. В базе хранится только SHA-256 хеш
+токена. Ссылку можно отозвать до использования. Гость может зарегистрироваться
+или войти, проверить имя группы и назначенную роль, затем принять приглашение.
+Само открытие ссылки доступа не даёт.
 
-## Telegram bot settings
+## Telegram
 
-- The party owner can connect one dedicated Telegram receiving bot to the party
-  by entering its BotFather API token in the party settings.
-- Provide an in-app setup guide: create a bot via `@BotFather` `/newbot`, enable
-  Bot-to-Bot Communication Mode, add it to the group containing Igri with the
-  minimum required access, enter the token, then verify the connection and select
-  the detected group.
-- Allow the owner to test, replace, or disconnect the token. Other party
-  administrators and members cannot view or change it.
-- Store bot credentials encrypted at rest and server-side only. Mask the token
-  after saving; never return it to the browser after submission or write it to
-  logs. The encryption key is a deployment secret.
-- Message ingestion and sale parsing follow
-  [Telegram sales ingestion](./TELEGRAM_SALES_INGESTION.md).
+Только OWNER может сохранить, заменить или удалить токен BotFather. Токен
+шифруется AES-256-GCM на сервере ключом `PARTY_TOKEN_ENCRYPTION_KEY` (32 байта в
+hex); после сохранения браузер получает только признак наличия токена. Инструкция
+в интерфейсе объясняет создание бота и добавление в чат Igri.
 
-## Security and authorization
+Сохранение пока не проверяет Telegram API и не настраивает webhook. Получение
+сообщений, разбор нескольких строк предметов и автоматическая запись продаж
+описаны в [правилах Telegram-импорта](./TELEGRAM_SALES_INGESTION.md) и пока не
+реализованы.
 
-- Enforce party membership and role permissions on the server for every read and
-  write, including Server Actions, routes, exports, and background jobs. Default
-  to deny when membership or role cannot be verified.
-- Scope data access by the active party obtained from the authenticated session;
-  never trust a client-supplied party ID as authorization.
-- Store passwords using a modern password hashing algorithm. Use server-managed
-  sessions in `HttpOnly`, `Secure`, `SameSite` cookies; do not store session
-  credentials in browser storage.
-- Rate-limit registration, login, password recovery, and invitation acceptance.
+## Безопасность и ограничения
 
-## Deployment and migration
-
-Multi-user access requires the application to be reachable by party members and
-to use one shared server-side database. The project is configured for Vercel Hobby
-and Neon PostgreSQL; local development uses PostgreSQL in Docker Compose. See
-[deployment rules](./DEPLOYMENT.md). The app still has no account authentication
-or authorization, so it must not be exposed publicly until server-side party
-access checks are implemented.
-
-## Acceptance criteria
-
-- A user cannot read or alter another party's data by changing a URL, request
-  payload, export parameter, or record ID.
-- Members can view but cannot edit party data; administrators can perform party
-  operations; only the owner can manage the Telegram token.
-- Invalid, expired, revoked, or already-used invitations cannot grant access.
-- The base item catalog cannot be deleted by party users.
-- Migration preserves the existing party's financial and historical records.
-- Bot credentials are never visible to non-owners or returned in plaintext after
-  initial submission.
-
-## Decisions to confirm before implementation
-
-- Registration method and email delivery provider.
-- Invitation expiry and whether links are single-use or reusable.
-- Whether members may eventually create specific records, such as sale notes,
-  without gaining broader edit rights.
-- Verify current Vercel/Neon free-tier terms, quotas, and account availability
-  before production deployment.
-- Ownership transfer, account deletion, and party closure behavior.
+- Серверные страницы, Server Actions и экспорт проверяют сессию, membership,
+  активную группу и минимальную роль; клиентский `partyId` не авторизует доступ.
+- Сессии Better Auth хранятся сервером. Регистрация и вход ограничены по частоте.
+- Не реализованы сброс/смена забытого пароля, удаление аккаунта, передача владения
+  и управление составом владельцев/администраторов. Потеря пароля владельца может
+  лишить доступа к группе; решить это до публичной регистрации.
+- Локальная база — PostgreSQL в Docker, production target — Neon PostgreSQL.
+  SQLite сохраняется как источник только для общего каталога предметов; партии и
+  финансовые данные не импортируются автоматически.

@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { io } from "next/cache";
-import { ensureLocalWorkspace } from "@/server/bootstrap/local-workspace";
+import { requirePartyPageAccess } from "@/server/auth/party-access";
 import { getRaid, RaidNotFoundError } from "@/server/services/raid-service";
 import { RaidDetailView } from "@/features/raids/raid-detail-view";
 
@@ -20,7 +20,7 @@ export default function RaidDetailPage({ params }: RaidDetailPageProps) {
 async function RaidDetailContent({ params }: RaidDetailPageProps) {
   await io();
   const { id } = await params;
-  const workspace = await ensureLocalWorkspace();
+  const workspace = await requirePartyPageAccess();
 
   let raid;
   try {
@@ -32,5 +32,5 @@ async function RaidDetailContent({ params }: RaidDetailPageProps) {
     throw error;
   }
 
-  return <RaidDetailView raid={raid} partyName={workspace.partyName} />;
+  return <RaidDetailView raid={raid} partyName={workspace.partyName} canManage={workspace.canManage} />;
 }

@@ -2,10 +2,11 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { io } from "next/cache";
+import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RaidForm } from "@/features/raids/raid-form";
-import { ensureLocalWorkspace } from "@/server/bootstrap/local-workspace";
+import { requirePartyPageAccess } from "@/server/auth/party-access";
 import { getRaid, getRaidSetup, RaidNotFoundError } from "@/server/services/raid-service";
 
 type EditRaidPageProps = { params: Promise<{ id: string }> };
@@ -21,7 +22,8 @@ export default function EditRaidPage({ params }: EditRaidPageProps) {
 async function EditRaidContent({ params }: EditRaidPageProps) {
   await io();
   const { id } = await params;
-  const workspace = await ensureLocalWorkspace();
+  const workspace = await requirePartyPageAccess();
+  if (!workspace.canManage) redirect("/dashboard");
   let raid;
   try {
     raid = await getRaid(workspace.partyId, id);

@@ -10,7 +10,7 @@ import "./raid-detail-view.css";
 type Raid = Awaited<ReturnType<typeof getRaid>>;
 
 /** Raid presentation; all financial data and mutations use the existing contracts. */
-export function RaidDetailView({ raid, partyName }: { raid: Raid; partyName: string }) {
+export function RaidDetailView({ raid, partyName, canManage }: { raid: Raid; partyName: string; canManage: boolean }) {
   const presentCount = raid.participants.filter(({ status }) => status === "PRESENT").length;
   // Presentation guard only: legacy records can have sales without lockedAt.
   const hasFinancialHistory = Boolean(raid.lockedAt) || raid.lootDrops.some((drop) => drop.saleTransactions.length > 0);
@@ -35,11 +35,11 @@ export function RaidDetailView({ raid, partyName }: { raid: Raid; partyName: str
           <p className="raidDetail-lock"><LockKeyhole size={14} aria-hidden="true" />
             {raid.lockedAt ? "История зафиксирована" : "Есть продажи · состав не редактируется"}
           </p>
-        ) : (
+        ) : canManage ? (
           <Link className="raidDetail-edit" href={`/raids/${raid.id}/edit`}>
             <Pencil size={14} aria-hidden="true" />Редактировать
           </Link>
-        )}
+        ) : null}
       </header>
 
       <div className="raidDetail-columns">
@@ -52,7 +52,7 @@ export function RaidDetailView({ raid, partyName }: { raid: Raid; partyName: str
             <div className="raidDetail-empty">
               <h3>Добычи пока нет</h3>
               <p>Поступления этого рейда появятся здесь после добавления.</p>
-              {!hasFinancialHistory && <Link href={`/raids/${raid.id}/edit`}>Добавить добычу</Link>}
+              {!hasFinancialHistory && canManage && <Link href={`/raids/${raid.id}/edit`}>Добавить добычу</Link>}
             </div>
           ) : (
             <RaidSaleWorkspace>
@@ -79,7 +79,7 @@ export function RaidDetailView({ raid, partyName }: { raid: Raid; partyName: str
                         <dt>Осталось</dt><dd>{remaining} <span>шт.</span></dd>
                       </div>
                     </dl>
-                    {remaining > 0 && (
+                    {remaining > 0 && canManage && (
                       <div className="raidDetail-saleEntry" data-sale-entry>
                         <RaidSaleEditor lootDropId={drop.id} remainingQuantity={remaining} />
                       </div>

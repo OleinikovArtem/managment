@@ -23,7 +23,7 @@ function ProfileFields({ profile }: { profile?: MemberProfileRow }) {
   </div>;
 }
 
-export function MemberProfileManager({ memberId, profiles }: { memberId: string; profiles: MemberProfileRow[] }) {
+export function MemberProfileManager({ memberId, profiles, canManage }: { memberId: string; profiles: MemberProfileRow[]; canManage: boolean }) {
   const router = useRouter();
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<MemberProfileRow | null>(null);
@@ -42,14 +42,15 @@ export function MemberProfileManager({ memberId, profiles }: { memberId: string;
     });
   }
   return <div>
-    <div className="mb-3 flex items-center justify-between gap-3"><h3 className="text-sm font-medium">Игровые профили</h3><Button type="button" size="sm" variant="ghost" disabled={pending} onClick={() => { setCreating(true); setMessage(null); }}>Добавить профиль</Button></div>
+    <div className="mb-3 flex items-center justify-between gap-3"><h3 className="text-sm font-medium">Игровые профили</h3>{canManage && <Button type="button" size="sm" variant="ghost" disabled={pending} onClick={() => { setCreating(true); setMessage(null); }}>Добавить профиль</Button>}</div>
     {profiles.length === 0 ? <p className="text-sm text-muted-foreground">Можно добавить альтернативные классы для разных составов.</p> : <ul className="divide-y divide-border">{profiles.map(profile => <li key={profile.id} className="flex items-center gap-3 py-3">
       <GameIcon kind="class" name={profile.className} size="sm" />
-      <button type="button" className="min-w-0 flex-1 text-left" disabled={pending} onClick={() => { setEditing(profile); setMessage(null); }}><span className="block text-sm font-medium">{profile.name} · {profile.className}</span><span className="mt-1 block text-xs text-muted-foreground">{[profile.role, profile.level ? `Lv. ${profile.level}` : null, profile.note].filter(Boolean).join(" · ")}</span></button>
-      <ActionMenu label={`Действия профиля ${profile.name}`} disabled={pending} items={[{ label: "Отключить профиль", destructive: true, onClick: () => { if (!window.confirm(`Отключить профиль «${profile.name}»? История рейдов сохранится.`)) return; startTransition(async () => { const result = await deleteMemberProfileAction(profile.id); if (result.ok) { toast.success(result.message); router.refresh(); } else toast.error(result.message); }); } }]} />
+      <div className="min-w-0 flex-1"><p className="text-sm font-medium">{profile.name} · {profile.className}</p><p className="mt-1 text-xs text-muted-foreground">{[profile.role, profile.level ? `Lv. ${profile.level}` : null, profile.note].filter(Boolean).join(" · ")}</p></div>
+      {canManage && <ActionMenu label={`Действия профиля ${profile.name}`} disabled={pending} items={[{ label: "Изменить профиль", onClick: () => { setEditing(profile); setMessage(null); } }, { label: "Отключить профиль", destructive: true, onClick: () => { if (!window.confirm(`Отключить профиль «${profile.name}»? История рейдов сохранится.`)) return; startTransition(async () => { const result = await deleteMemberProfileAction(profile.id); if (result.ok) { toast.success(result.message); router.refresh(); } else toast.error(result.message); }); } }]} />}
     </li>)}</ul>}
-    <EditorDialog open={creating || Boolean(editing)} onClose={() => { if (!pending) { setCreating(false); setEditing(null); } }} title={editing ? "Изменить профиль" : "Новый профиль"} description="Изменения используются в будущих составах. История рейдов сохраняется.">
+
+    {canManage && <EditorDialog open={creating || Boolean(editing)} onClose={() => { if (!pending) { setCreating(false); setEditing(null); } }} title={editing ? "Изменить профиль" : "Новый профиль"} description="Изменения используются в будущих составах. История рейдов сохраняется.">
       <form key={editing?.id ?? "new"} onSubmit={save} className="space-y-5"><ProfileFields profile={editing ?? undefined} />{message && <p role="alert" className="text-sm text-destructive">{message}</p>}<div className="flex gap-2"><Button disabled={pending} type="submit">{pending ? "Сохранение…" : "Сохранить"}</Button><Button type="button" variant="ghost" disabled={pending} onClick={() => { setCreating(false); setEditing(null); }}>Отмена</Button></div></form>
-    </EditorDialog>
+    </EditorDialog>}
   </div>;
 }

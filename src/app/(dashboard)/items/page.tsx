@@ -12,7 +12,7 @@ import {
   getItemCategories,
   searchItems,
 } from "@/server/services/item-service";
-import { ensureLocalWorkspace } from "@/server/bootstrap/local-workspace";
+import { requirePartyPageAccess } from "@/server/auth/party-access";
 
 type ItemsPageProps = {
   searchParams: Promise<{ q?: string; category?: string; page?: string }>;
@@ -39,7 +39,8 @@ async function ItemsContent({ searchParams }: ItemsPageProps) {
     : { query: "", category: "", page: 1 };
   const query = params.query ?? "";
   const category = params.category || undefined;
-  const { partyId } = await ensureLocalWorkspace();
+  const workspace = await requirePartyPageAccess();
+  const { partyId } = workspace;
 
   const [records, categories] = await Promise.all([
     searchItems(partyId, query, category, params.page),
@@ -75,7 +76,7 @@ async function ItemsContent({ searchParams }: ItemsPageProps) {
         categories={categories}
       />
 
-      <ItemManager items={items} summary={records.total === 0
+      <ItemManager items={items} canManage={workspace.canManage} summary={records.total === 0
           ? "Найдено: 0"
           : `Показано ${(records.page - 1) * ITEM_PAGE_SIZE + 1}–${Math.min(
               records.page * ITEM_PAGE_SIZE,

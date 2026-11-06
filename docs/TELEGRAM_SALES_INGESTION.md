@@ -81,9 +81,9 @@ must remain discoverable after its transient toast disappears.
   2. Enable Bot-to-Bot Communication Mode for the new bot in BotFather.
   3. Add the bot to the group that contains Igri, granting the minimum access
      required for it to receive group messages.
-  4. Paste the token into the party's Telegram settings and run the connection
-     check. Detect the group from received updates and let the owner select it
-     if more than one group is available.
+  4. Paste the token into the party's Telegram settings. Token storage is
+     implemented; connection testing and group selection from received updates
+     are not available because the listener is not implemented.
 - Only the party owner can view, replace, test, or disconnect the bot token.
   Store it encrypted at rest, expose it only to the server-side listener, mask
   it after saving, and never include it in logs or error messages. Keep the
@@ -108,7 +108,7 @@ must remain discoverable after its transient toast disappears.
 Telegram references: [Bot-to-Bot communication](https://core.telegram.org/bots/features#bot-to-bot-communication),
 [receiving updates](https://core.telegram.org/bots/api#updating-messages).
 
-## Open details before implementation
+## Unresolved integration behavior
 
 - Obtain a raw English notice containing multiple item rows to lock down labels,
   quantity syntax, whether row values are unit prices or row totals, and the

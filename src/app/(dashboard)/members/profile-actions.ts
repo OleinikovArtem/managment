@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { ensureLocalWorkspace } from "@/server/bootstrap/local-workspace";
+import { requirePartyActionAccess } from "@/server/auth/party-access";
+import { recordPartyAuditEvent } from "@/server/services/party-audit-service";
 import { createPartyMemberProfile, deletePartyMemberProfile, updatePartyMemberProfile } from "@/server/repositories/member-profile-repository";
 import { memberProfileIdSchema, memberProfileInputSchema, memberProfileUpdateSchema } from "@/features/members/member-profile-schema";
 import type { MemberProfileActionResult } from "@/features/members/member-profile-action-result";
@@ -9,9 +10,11 @@ import type { MemberProfileActionResult } from "@/features/members/member-profil
 export async function createMemberProfileAction(payload: unknown): Promise<MemberProfileActionResult> {
   const parsed = memberProfileInputSchema.safeParse(payload);
   if (!parsed.success) return { ok: false, message: "Проверьте поля профиля.", fieldErrors: parsed.error.flatten().fieldErrors };
-  const { partyId } = await ensureLocalWorkspace();
+  const access = await requirePartyActionAccess("ADMIN");
+  const { partyId } = access;
   try {
     await createPartyMemberProfile(partyId, parsed.data);
+    await recordPartyAuditEvent(access, { action: "CREATE", entityType: "member-profile", summary: "Добавил игровой профиль участника." });
   } catch (error) {
     if (error instanceof Error) return { ok: false, message: error.message };
     throw error;
@@ -25,9 +28,11 @@ export async function createMemberProfileAction(payload: unknown): Promise<Membe
 export async function deleteMemberProfileAction(idValue: unknown): Promise<MemberProfileActionResult> {
   const parsed = memberProfileIdSchema.safeParse(idValue);
   if (!parsed.success) return { ok: false, message: "Некорректный профиль." };
-  const { partyId } = await ensureLocalWorkspace();
+  const access = await requirePartyActionAccess("ADMIN");
+  const { partyId } = access;
   const result = await deletePartyMemberProfile(partyId, parsed.data);
   if (result.count !== 1) return { ok: false, message: "Профиль не найден." };
+  await recordPartyAuditEvent(access, { action: "DEACTIVATE", entityType: "member-profile", entityId: parsed.data, summary: "Отключил игровой профиль." });
   revalidatePath("/members");
   revalidatePath("/compositions");
   revalidatePath("/raids/new");
@@ -38,9 +43,11 @@ export async function updateMemberProfileAction(idValue: unknown, payload: unkno
   const id = memberProfileIdSchema.safeParse(idValue);
   const parsed = memberProfileUpdateSchema.safeParse(payload);
   if (!id.success || !parsed.success) return { ok: false, message: "Проверьте поля профиля.", fieldErrors: parsed.success ? undefined : parsed.error.flatten().fieldErrors };
-  const { partyId } = await ensureLocalWorkspace();
+  const access = await requirePartyActionAccess("ADMIN");
+  const { partyId } = access;
   const updated = await updatePartyMemberProfile(partyId, id.data, parsed.data);
   if (!updated) return { ok: false, message: "Профиль не найден или уже отключён." };
+  await recordPartyAuditEvent(access, { action: "UPDATE", entityType: "member-profile", entityId: id.data, summary: `Изменил игровой профиль «${parsed.data.name}».` });
   revalidatePath("/members");
   revalidatePath("/compositions");
   revalidatePath("/raids/new");

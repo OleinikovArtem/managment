@@ -19,7 +19,7 @@ import type { PartyActionResult } from "@/features/settings/party-action-result"
 import { updatePartySettingsAction } from "@/app/(dashboard)/settings/actions";
 import { partySettingsSchema } from "@/features/settings/party-schema";
 
-export function SettingsForm({ partyName }: { partyName: string }) {
+export function SettingsForm({ partyName, canManage }: { partyName: string; canManage: boolean }) {
   const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -54,11 +54,12 @@ export function SettingsForm({ partyName }: { partyName: string }) {
     <CardHeader><CardTitle>Группа</CardTitle><CardDescription>Название вашего рабочего пространства.</CardDescription></CardHeader>
     <CardContent><form className="max-w-xl space-y-4" onSubmit={onSubmit} noValidate>
       <label htmlFor="party-name" className="block text-sm font-medium">Название группы</label>
-      <Input id="party-name" maxLength={80} aria-invalid={Boolean(form.formState.errors.name)} aria-describedby={form.formState.errors.name ? "party-name-error" : undefined} {...form.register("name")} />
+      <Input id="party-name" maxLength={80} readOnly={!canManage} aria-invalid={Boolean(form.formState.errors.name)} aria-describedby={form.formState.errors.name ? "party-name-error" : undefined} {...form.register("name")} />
       {form.formState.errors.name && <p id="party-name-error" className="text-sm text-destructive">{form.formState.errors.name.message}</p>}
       {message && <p role="status" className="text-sm text-muted-foreground">{message}</p>}
-      <Button type="submit" disabled={isPending}><Save aria-hidden="true" />{isPending ? "Сохранение…" : "Сохранить"}</Button>
-      <p className="text-xs leading-5 text-muted-foreground">Данные хранятся на этом компьютере. Сохраняйте резервные копии, чтобы защитить историю группы.</p>
+      {canManage && <Button type="submit" disabled={isPending}><Save aria-hidden="true" />{isPending ? "Сохранение…" : "Сохранить"}</Button>}
+      {!canManage && <p className="text-xs text-muted-foreground">Изменять настройки группы может администратор.</p>}
+      <p className="text-xs leading-5 text-muted-foreground">Для локальной базы используйте резервную копию Docker. В продакшене резервирование настраивается у провайдера базы.</p>
     </form></CardContent>
   </Card>;
 }

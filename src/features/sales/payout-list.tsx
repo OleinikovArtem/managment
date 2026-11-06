@@ -7,7 +7,7 @@ import { PaymentForm } from "@/features/sales/payment-form";
 
 type Row = { memberId: string; nickname: string; isActive: boolean; payable: string };
 
-export function PayoutList({ members, partyCash, totalOutstanding }: { members: Row[]; partyCash: string; totalOutstanding: string }) {
+export function PayoutList({ members, partyCash, totalOutstanding, canManage }: { members: Row[]; partyCash: string; totalOutstanding: string; canManage: boolean }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -20,7 +20,7 @@ export function PayoutList({ members, partyCash, totalOutstanding }: { members: 
     {count === 0 && <p className="empty-state">{members.length ? "Участников по этим условиям нет." : "После первой продажи здесь появятся начисленные доли."}</p>}
     <ul className="data-list">{members.map(member => <li key={member.memberId} hidden={!visible(member)}>
       <div className="list-row"><div><p className="text-sm font-medium">{member.nickname}{!member.isActive && <span className="ml-2 text-xs font-normal text-muted-foreground">Неактивен</span>}</p><p className="mt-1 text-xs text-muted-foreground">{BigInt(member.payable) > 0n ? "К выплате" : BigInt(member.payable) < 0n ? "Переплата участнику" : "Рассчитано"}</p></div><p className="text-base font-medium tabular-nums"><AdenaAmount amount={member.payable} /></p></div>
-      {BigInt(member.payable) > 0n && <div className="inline-payment mt-2"><PaymentForm memberId={member.memberId} nickname={member.nickname} remaining={member.payable} partyCash={partyCash} totalOutstanding={totalOutstanding} open={activeId === member.memberId} triggerDisabled={pending} onPendingChange={setPending} onOpenChange={open => setActiveId(current => open ? member.memberId : current === member.memberId ? null : current)} /></div>}
+      {canManage && BigInt(member.payable) > 0n && <div className="inline-payment mt-2"><PaymentForm memberId={member.memberId} nickname={member.nickname} remaining={member.payable} partyCash={partyCash} totalOutstanding={totalOutstanding} open={activeId === member.memberId} triggerDisabled={pending} onPendingChange={setPending} onOpenChange={open => setActiveId(current => open ? member.memberId : current === member.memberId ? null : current)} /></div>}
     </li>)}</ul>
   </section>;
 }

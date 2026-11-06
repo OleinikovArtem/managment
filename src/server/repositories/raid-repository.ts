@@ -99,6 +99,17 @@ export async function getPartyRaidById(partyId: string, raidId: string) {
   });
 }
 
+export async function getLootDropAuditContext(partyId: string, lootDropId: string) {
+  return prisma.lootDrop.findFirst({
+    where: { partyId, id: lootDropId },
+    select: {
+      quantity: true,
+      item: { select: { displayName: true, canonicalName: true } },
+      raid: { select: { name: true } },
+    },
+  });
+}
+
 export async function createPartyRaidRecord(partyId: string, input: RaidInput) {
   return prisma.$transaction(async (transaction) => {
     const activeMembers = await assertPartyReferences(transaction, partyId, input);
