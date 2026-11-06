@@ -33,7 +33,7 @@ export type RaidMemberOption = {
   className?: string | null;
   role?: string | null;
   level?: number | null;
-  profiles?: { id: string; name: string; className: string; role: string | null; level: number | null }[];
+  profiles?: { id: string; name: string; className: string; role: string | null; level: number | null; subclassSlot?: number | null }[];
 };
 
 export type RaidCompositionOption = { id: string; name: string; focus: string | null; slots: { memberId: string; profileId: string | null }[] };
@@ -236,9 +236,9 @@ export function RaidForm({
                         )
                       }
                     />
-                    <span className="min-w-0 flex-1"><span className="block break-words text-sm">{member.nickname}</span>{(member.className || member.role || member.level) && <span className="mt-1 block text-xs text-muted-foreground">{[member.className, member.role, member.level ? `Lv. ${member.level}` : null].filter(Boolean).join(" · ")}</span>}</span>
+                    <span className="min-w-0 flex-1"><span className="block break-words text-sm">{member.nickname}</span>{(member.className || member.role) && <span className="mt-1 block text-xs text-muted-foreground">{[member.className, member.role].filter(Boolean).join(" · ")}</span>}</span>
                   </label>
-                    {isPresent && (member.profiles?.length ?? 0) > 0 && <select aria-label={`Профиль ${member.nickname}`} className="min-w-0 w-full" value={participantValues[index]?.profileId ?? ""} disabled={isPending} onChange={(event) => form.setValue(`participants.${index}.profileId`, event.target.value || undefined, { shouldDirty: true, shouldValidate: true })}><option value="">Базовый профиль</option>{member.profiles?.map((profile) => <option key={profile.id} value={profile.id}>{profile.name} · {profile.className}</option>)}</select>}
+                    {isPresent && (member.profiles?.length ?? 0) > 0 && <select aria-label={`Профиль ${member.nickname}`} className="min-w-0 w-full" value={participantValues[index]?.profileId ?? ""} disabled={isPending} onChange={(event) => form.setValue(`participants.${index}.profileId`, event.target.value || undefined, { shouldDirty: true, shouldValidate: true })}><option value="">Main{member.className ? ` · ${member.className}` : ""}</option>{member.profiles?.map((profile) => <option key={profile.id} value={profile.id}>{profile.subclassSlot ? `Subclass ${profile.subclassSlot}` : profile.name} · {profile.className}</option>)}</select>}
                   </div>
                 </li>
               );

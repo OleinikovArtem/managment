@@ -5,6 +5,7 @@ import { memberIdSchema, memberInputSchema } from "@/features/members/member-sch
 import type { MemberActionResult } from "@/features/members/member-action-result";
 import { requirePartyActionAccess } from "@/server/auth/party-access";
 import { recordPartyAuditEvent } from "@/server/services/party-audit-service";
+import { MemberClassesError } from "@/features/members/member-class-errors";
 import {
   createPartyMember,
   deactivatePartyMember,
@@ -31,6 +32,7 @@ export async function createMemberAction(
     await createPartyMember(partyId, parsed.data);
     await recordPartyAuditEvent(access, { action: "CREATE", entityType: "member", summary: `Добавил участника «${parsed.data.nickname}».` });
   } catch (error) {
+    if (error instanceof MemberClassesError) return { ok: false, message: error.message };
     if (error instanceof DuplicateNicknameError) {
       return {
         ok: false,
@@ -43,6 +45,8 @@ export async function createMemberAction(
 
   revalidatePath("/members");
   revalidatePath("/dashboard");
+  revalidatePath("/compositions");
+  revalidatePath("/raids/new");
   return { ok: true, message: "Участник добавлен." };
 }
 
@@ -66,6 +70,7 @@ export async function updateMemberAction(
     await updatePartyMember(partyId, memberId.data, parsed.data);
     await recordPartyAuditEvent(access, { action: "UPDATE", entityType: "member", entityId: memberId.data, summary: `Изменил данные участника «${parsed.data.nickname}».` });
   } catch (error) {
+    if (error instanceof MemberClassesError) return { ok: false, message: error.message };
     if (error instanceof DuplicateNicknameError) {
       return {
         ok: false,
@@ -80,6 +85,8 @@ export async function updateMemberAction(
   }
 
   revalidatePath("/members");
+  revalidatePath("/compositions");
+  revalidatePath("/raids/new");
   return { ok: true, message: "Данные участника обновлены." };
 }
 

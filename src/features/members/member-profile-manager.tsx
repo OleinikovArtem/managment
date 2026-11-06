@@ -11,14 +11,13 @@ import { GameIcon } from "@/components/ui/game-icon";
 import { createMemberProfileAction, deleteMemberProfileAction, updateMemberProfileAction } from "@/app/(dashboard)/members/profile-actions";
 import { LINEAGE2_HIGH_FIVE_CLASSES } from "@/features/members/lineage2-classes";
 
-export type MemberProfileRow = { id: string; name: string; className: string; role: string | null; level: number | null; note: string | null };
+export type MemberProfileRow = { id: string; name: string; className: string; role: string | null; level: number | null; note: string | null; subclassSlot: number | null };
 
 function ProfileFields({ profile }: { profile?: MemberProfileRow }) {
   return <div className="grid gap-4 sm:grid-cols-2">
     <label className="space-y-2 text-sm">Название профиля<Input name="name" required maxLength={80} defaultValue={profile?.name} placeholder="Основной профиль" /></label>
     <label className="space-y-2 text-sm">Класс<select name="className" required defaultValue={profile?.className ?? ""} className="w-full"><option value="" disabled>Выберите класс</option>{LINEAGE2_HIGH_FIVE_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}</select></label>
     <label className="space-y-2 text-sm">Роль<Input name="role" defaultValue={profile?.role ?? ""} placeholder="Healer, Buffer, DPS" /></label>
-    <label className="space-y-2 text-sm">Уровень<Input name="level" type="number" min={1} max={99} defaultValue={profile?.level ?? ""} /></label>
     <label className="space-y-2 text-sm sm:col-span-2">Заметка<Input name="note" defaultValue={profile?.note ?? ""} /></label>
   </div>;
 }
@@ -33,7 +32,7 @@ export function MemberProfileManager({ memberId, profiles, canManage }: { member
     event.preventDefault();
     const element = event.currentTarget;
     const data = new FormData(element);
-    const values = { name: data.get("name"), className: data.get("className"), role: data.get("role"), level: data.get("level") === "" ? null : Number(data.get("level")), note: data.get("note") };
+    const values = { name: data.get("name"), className: data.get("className"), role: data.get("role"), note: data.get("note") };
     setMessage(null);
     startTransition(async () => {
       const result = editing ? await updateMemberProfileAction(editing.id, values) : await createMemberProfileAction({ ...values, memberId });
@@ -45,7 +44,7 @@ export function MemberProfileManager({ memberId, profiles, canManage }: { member
     <div className="mb-3 flex items-center justify-between gap-3"><h3 className="text-sm font-medium">Игровые профили</h3>{canManage && <Button type="button" size="sm" variant="ghost" disabled={pending} onClick={() => { setCreating(true); setMessage(null); }}>Добавить профиль</Button>}</div>
     {profiles.length === 0 ? <p className="text-sm text-muted-foreground">Можно добавить альтернативные классы для разных составов.</p> : <ul className="divide-y divide-border">{profiles.map(profile => <li key={profile.id} className="flex items-center gap-3 py-3">
       <GameIcon kind="class" name={profile.className} size="sm" />
-      <div className="min-w-0 flex-1"><p className="text-sm font-medium">{profile.name} · {profile.className}</p><p className="mt-1 text-xs text-muted-foreground">{[profile.role, profile.level ? `Lv. ${profile.level}` : null, profile.note].filter(Boolean).join(" · ")}</p></div>
+      <div className="min-w-0 flex-1"><p className="text-sm font-medium">{profile.name} · {profile.className}</p><p className="mt-1 text-xs text-muted-foreground">{[profile.role, profile.note].filter(Boolean).join(" · ")}</p></div>
       {canManage && <ActionMenu label={`Действия профиля ${profile.name}`} disabled={pending} items={[{ label: "Изменить профиль", onClick: () => { setEditing(profile); setMessage(null); } }, { label: "Отключить профиль", destructive: true, onClick: () => { if (!window.confirm(`Отключить профиль «${profile.name}»? История рейдов сохранится.`)) return; startTransition(async () => { const result = await deleteMemberProfileAction(profile.id); if (result.ok) { toast.success(result.message); router.refresh(); } else toast.error(result.message); }); } }]} />}
     </li>)}</ul>}
 

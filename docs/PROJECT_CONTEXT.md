@@ -14,6 +14,7 @@ Party Bank Manager — русскоязычное приложение для у
 | Общий стиль и UI | `src/app/globals.css`, `src/components/ui/` |
 | Обзор и аналитика | `src/features/dashboard/dashboard-analytics.tsx` |
 | Участники и профили | `src/features/members/` |
+| Main/Subclass и локальные иконки профессий | `member-schema.ts`, `member-subclass-repository.ts`, `public/game-icons/classes/`; источники: [GAME_DATA_SOURCES.md](./GAME_DATA_SOURCES.md) |
 | Сохранённые составы | `src/features/compositions/` |
 | Каталог, поиск, редактирование | `src/features/items/` |
 | Весь лут, фильтры продаж и остатки | `src/features/loot/`, `src/server/repositories/loot-repository.ts`, `src/app/(dashboard)/loot/` |

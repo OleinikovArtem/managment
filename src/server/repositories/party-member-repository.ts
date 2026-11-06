@@ -2,6 +2,7 @@ import "server-only";
 
 import { prisma } from "@/lib/db/prisma";
 import type { MemberInput } from "@/features/members/member-schema";
+import { syncMemberSubclasses } from "./member-subclass-repository";
 
 export async function listPartyMembers(partyId: string) {
   return prisma.partyMember.findMany({
@@ -15,7 +16,8 @@ export async function createPartyMemberRecord(
   input: MemberInput,
   normalizedNickname: string,
 ) {
-  return prisma.partyMember.create({
+  return prisma.$transaction(async tx => {
+  const member = await tx.partyMember.create({
     data: {
       partyId,
       nickname: input.nickname,
@@ -27,6 +29,9 @@ export async function createPartyMemberRecord(
       role: input.role || null,
     },
   });
+  if (input.subclasses !== undefined) await syncMemberSubclasses(tx, partyId, member.id, input.subclasses);
+  return member;
+  });
 }
 
 export async function updatePartyMemberRecord(
@@ -35,7 +40,9 @@ export async function updatePartyMemberRecord(
   input: MemberInput,
   normalizedNickname: string,
 ) {
-  const result = await prisma.partyMember.updateMany({
+  return prisma.$transaction(async tx => {
+  await tx.$queryRaw`SELECT id FROM "PartyMember" WHERE "partyId" = ${partyId} AND id = ${memberId} FOR UPDATE`;
+  const result = await tx.partyMember.updateMany({
     where: { id: memberId, partyId },
     data: {
       nickname: input.nickname,
@@ -43,7 +50,7 @@ export async function updatePartyMemberRecord(
       distributionWeight: 1,
       comment: input.comment || null,
       className: input.className || null,
-      level: input.level ?? null,
+      ...(input.level !== undefined ? { level: input.level } : {}),
       role: input.role || null,
     },
   });
@@ -52,8 +59,10 @@ export async function updatePartyMemberRecord(
     return null;
   }
 
-  return prisma.partyMember.findFirst({
+  if (input.subclasses !== undefined) await syncMemberSubclasses(tx, partyId, memberId, input.subclasses);
+  return tx.partyMember.findFirst({
     where: { id: memberId, partyId },
+  });
   });
 }
 

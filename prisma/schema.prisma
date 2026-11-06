@@ -280,6 +280,7 @@ model PartyMemberProfile {
   memberId  String
   name      String
   className String
+  subclassSlot Int?
   role      String?
   level     Int?
   note      String?
@@ -294,6 +295,7 @@ model PartyMemberProfile {
 
   @@unique([partyId, id])
   @@unique([partyId, memberId, name])
+  @@unique([partyId, memberId, subclassSlot])
   @@index([partyId, memberId, isActive])
 }
 

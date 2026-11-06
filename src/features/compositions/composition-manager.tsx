@@ -10,7 +10,7 @@ import { ActionMenu } from "@/components/ui/action-menu";
 import { GameIcon } from "@/components/ui/game-icon";
 import { createCompositionAction, deleteCompositionAction } from "@/app/(dashboard)/members/composition-actions";
 
-export type CompositionProfile = { id: string; name: string; className: string; role: string | null; level: number | null };
+export type CompositionProfile = { id: string; name: string; className: string; role: string | null; level: number | null; subclassSlot?: number | null };
 export type CompositionMember = { id: string; nickname: string; className: string | null; role: string | null; level: number | null; profiles: CompositionProfile[] };
 export type CompositionRow = { id: string; name: string; description: string | null; focus: string | null; members: { member: CompositionMember; profile: CompositionProfile | null }[] };
 

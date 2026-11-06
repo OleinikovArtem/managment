@@ -30,7 +30,7 @@ async function MembersContent() {
     className: member.className,
     level: member.level,
     role: member.role,
-    profiles: profiles.filter((profile) => profile.memberId === member.id).map(({ id, name, className, role, level, note }) => ({ id, name, className, role, level, note })),
+    profiles: profiles.filter((profile) => profile.memberId === member.id).map(({ id, name, className, role, level, note, subclassSlot }) => ({ id, name, className, role, level, note, subclassSlot })),
     createdAt: member.createdAt.toLocaleDateString("ru-RU"),
   }));
 

@@ -32,6 +32,20 @@ export const memberInputSchema = z.object({
   className: z.string().trim().max(80, "Класс не должен превышать 80 символов.").optional(),
   level: z.number().int().min(1).max(99).optional().nullable(),
   role: z.string().trim().max(40, "Роль не должна превышать 40 символов.").optional(),
+  subclasses: z.array(z.object({
+    id: z.string().min(1).optional(),
+    slot: z.number().int().min(1).max(4),
+    className: z.string().trim().max(80),
+  })).max(4, "Можно указать не больше четырёх Subclass.").optional(),
+}).superRefine((input, ctx) => {
+  const slots = new Set<number>(), ids = new Set<string>();
+  for (const entry of input.subclasses ?? []) {
+    if (slots.has(entry.slot) || (entry.id && ids.has(entry.id))) {
+      ctx.addIssue({ code: "custom", path: ["subclasses"], message: "Каждый слот и профиль Subclass можно выбрать только один раз." });
+    }
+    slots.add(entry.slot);
+    if (entry.id) ids.add(entry.id);
+  }
 });
 
 export const memberIdSchema = z.string().trim().min(1, "Member ID is required.");

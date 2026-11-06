@@ -21,7 +21,7 @@ async function CompositionsContent() {
   ]);
   const members = records.filter((member) => member.isActive).map(({ id, nickname, className, role, level }) => ({
     id, nickname, className, role, level,
-    profiles: profiles.filter((profile) => profile.memberId === id).map(({ id: profileId, name, className: profileClass, role: profileRole, level: profileLevel }) => ({ id: profileId, name, className: profileClass, role: profileRole, level: profileLevel })),
+    profiles: profiles.filter((profile) => profile.memberId === id).map(({ id: profileId, name, className: profileClass, role: profileRole, level: profileLevel, subclassSlot }) => ({ id: profileId, name, className: profileClass, role: profileRole, level: profileLevel, subclassSlot })),
   }));
   const rows = compositions.map((composition) => ({
     id: composition.id,
@@ -30,7 +30,7 @@ async function CompositionsContent() {
     focus: composition.focus,
     members: composition.members.map(({ member, profile }) => ({
       member: { id: member.id, nickname: member.nickname, className: member.className, role: member.role, level: member.level, profiles: members.find((item) => item.id === member.id)?.profiles ?? [] },
-      profile: profile ? { id: profile.id, name: profile.name, className: profile.className, role: profile.role, level: profile.level } : null,
+      profile: profile ? { id: profile.id, name: profile.name, className: profile.className, role: profile.role, level: profile.level, subclassSlot: profile.subclassSlot } : null,
     })),
   }));
   return <div className="space-y-7"><header className="page-header "><h1 className="mt-1 text-2xl font-semibold tracking-tight">Составы</h1><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Готовые сетки для melee, mage, арчерских и рейдовых групп. В каждом слоте видно, кто идёт и какой 3-й профой.</p></header><SectionNavigation section="group" active="/compositions" /><CompositionManager compositions={rows} members={members} canManage={workspace.canManage} /></div>;

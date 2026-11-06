@@ -1,47 +1,7 @@
 import { Package, Shield } from "lucide-react";
+import { LOCAL_CLASS_ICONS } from "@/features/members/class-icon-map";
 
 const ITEM_ICON_BASE = "https://l2db.info/uploads/images/icons";
-const CLASS_ICON_BASE = "https://l2tools.org/images/class-tier-list/v3";
-
-const classPortraitByThirdProfession: Record<string, string> = {
-  dreadnought: "warlord",
-  duelist: "gladiator",
-  "phoenix knight": "paladin",
-  "hell knight": "dark-avenger",
-  adventurer: "treasure-hunter",
-  sagittarius: "hawkeye",
-  archmage: "sorcerer",
-  soultaker: "necromancer",
-  "arcana lord": "warlock",
-  cardinal: "bishop",
-  hierophant: "prophet",
-  "eva's templar": "temple-knight",
-  "sword muse": "swordsinger",
-  "moonlight sentinel": "silver-ranger",
-  "wind rider": "plains-walker",
-  "mystic muse": "spellsinger",
-  "elemental master": "elemental-summoner",
-  "eva's saint": "elven-elder",
-  "shillien templar": "shillien-knight",
-  "spectral dancer": "bladedancer",
-  "ghost hunter": "abyss-walker",
-  "ghost sentinel": "phantom-ranger",
-  "storm screamer": "spellhowler",
-  "spectral master": "phantom-summoner",
-  "shillien saint": "shillien-elder",
-  titan: "destroyer",
-  "grand khavatari": "tyrant",
-  dominator: "overlord",
-  doomcryer: "warcryer",
-  "fortune seeker": "bounty-hunter",
-  maestro: "warsmith",
-  doombringer: "berserker",
-  "male soul hound": "soul-breaker-m",
-  "female soul hound": "soul-breaker-f",
-  trickster: "arbalester",
-  inspector: "inspector",
-  judicator: "inspector",
-};
 
 const armorSets: { match: RegExp; code: string; variant?: string }[] = [
   { match: /^imperial crusader\b/i, code: "t88" },
@@ -142,8 +102,7 @@ export function itemIconUrl(name: string, category?: string | null) {
 }
 
 export function classIconUrl(className: string) {
-  const fileName = classPortraitByThirdProfession[className.trim().toLocaleLowerCase()];
-  return fileName ? `${CLASS_ICON_BASE}/${fileName}.webp` : null;
+  return LOCAL_CLASS_ICONS[className.trim().toLowerCase()] ?? null;
 }
 
 export function GameIcon({ kind, name, category, size = "md" }: { kind: "item" | "class"; name: string; category?: string | null; size?: "sm" | "md" | "lg" }) {

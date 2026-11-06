@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { Plus, X } from "lucide-react";
 import { toast } from "sonner";
@@ -22,7 +22,8 @@ import {
   updateMemberAction,
 } from "@/app/(dashboard)/members/actions";
 import { MemberProfileManager, type MemberProfileRow } from "@/features/members/member-profile-manager";
-import { LINEAGE2_HIGH_FIVE_CLASSES } from "@/features/members/lineage2-classes";
+import { ClassSelect } from "./class-select";
+import { GameIcon } from "@/components/ui/game-icon";
 
 type MemberRow = {
   id: string;
@@ -61,10 +62,13 @@ function MemberForm({
       distributionWeight: 1,
       comment: "",
       className: "",
-      level: null,
       role: "",
+      subclasses: Array.from({ length: 4 }, (_, index) => ({ slot: index + 1, className: "" })),
     },
   });
+
+  const mainClass = useWatch({ control: form.control, name: "className" });
+  const subclasses = useWatch({ control: form.control, name: "subclasses" });
 
   const onSubmit = form.handleSubmit((values) => {
     setMessage(null);
@@ -87,7 +91,7 @@ function MemberForm({
       toast.success(result.message);
       onSuccess();
       if (!initialValues) {
-        form.reset({ nickname: "", distributionWeight: 1, comment: "", className: "", role: "", level: null });
+        form.reset({ nickname: "", distributionWeight: 1, comment: "", className: "", role: "", subclasses: Array.from({ length: 4 }, (_, index) => ({ slot: index + 1, className: "" })) });
       }
     });
   });
@@ -113,11 +117,11 @@ function MemberForm({
         )}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <label className="space-y-1.5 text-xs font-medium">Класс<select className="h-9 w-full rounded-lg border border-input bg-background/35 px-3 text-sm" {...form.register("className")}><option value="">Не выбран</option>{LINEAGE2_HIGH_FIVE_CLASSES.map((className) => <option key={className} value={className}>{className}</option>)}</select></label>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <ClassSelect id={initialValues ? "edit-main-class" : "new-main-class"} label="Main" {...form.register("className")} value={mainClass ?? ""} disabled={isPending} />
         <label className="space-y-1.5 text-xs font-medium">Роль<Input maxLength={40} {...form.register("role")} placeholder="Healer, Buffer, DPS" /></label>
-        <label className="space-y-1.5 text-xs font-medium">Уровень<Input type="number" min={1} max={99} aria-invalid={Boolean(form.formState.errors.level)} {...form.register("level", { setValueAs: (value) => value === "" || value == null ? undefined : Number(value) })} placeholder="85" />{form.formState.errors.level && <span className="block text-xs text-destructive">{form.formState.errors.level.message}</span>}</label>
       </div>
+      <fieldset disabled={isPending} className="space-y-3 border-t border-border pt-4"><legend className="text-sm font-medium">Subclass <span className="font-normal text-muted-foreground">· до четырёх, необязательно</span></legend><div className="grid gap-4 sm:grid-cols-2">{[0, 1, 2, 3].map(index => <ClassSelect key={index} id={`${initialValues ? "edit" : "new"}-subclass-${index + 1}`} label={`Subclass ${index + 1}`} {...form.register(`subclasses.${index}.className`)} value={subclasses?.[index]?.className ?? ""} />)}</div>{form.formState.errors.subclasses && <p role="alert" className="text-xs text-destructive">Проверьте выбранные Subclass.</p>}</fieldset>
 
       <div className="space-y-2">
         <label htmlFor={initialValues ? "edit-comment" : "new-comment"} className="text-sm font-medium">
@@ -168,7 +172,7 @@ export function MemberManager({ members, canManage }: { members: MemberRow[]; ca
   const [status, setStatus] = useState("all");
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const filtered = members.filter(member => (status === "all" || member.isActive === (status === "active")) && `${member.nickname} ${member.className ?? ""} ${member.role ?? ""}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
+  const filtered = members.filter(member => (status === "all" || member.isActive === (status === "active")) && `${member.nickname} ${member.className ?? ""} ${member.role ?? ""} ${member.profiles.map(profile => profile.className).join(" ")}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
   function saved() { setEditingId(null); setIsCreateOpen(false); router.refresh(); }
   function deactivate(member: MemberRow) {
     if (!window.confirm(`Деактивировать участника «${member.nickname}»? История будет сохранена.`)) return;
@@ -189,10 +193,14 @@ export function MemberManager({ members, canManage }: { members: MemberRow[]; ca
         { label: "Изменить участника", onClick: () => { setEditingId(member.id); setIsCreateOpen(false); } },
         ...(member.isActive ? [{ label: "Деактивировать", destructive: true, onClick: () => deactivate(member) }] : []),
       ]} /></div>}
-      {editingId === member.id ? <div className="editor-surface"><MemberForm initialValues={{ nickname: member.nickname, distributionWeight: member.distributionWeight, comment: member.comment ?? "", className: member.className ?? "", level: member.level, role: member.role ?? "" }} submitLabel="Сохранить" action={values => updateMemberAction(member.id, values)} onSuccess={saved} onCancel={() => setEditingId(null)} /></div> : <details className="disclosure" name="member-profiles">
-        <summary><span className="min-w-0"><span className="block text-sm font-medium">{member.nickname}{!member.isActive && <span className="ml-2 text-xs font-normal text-muted-foreground">Неактивен</span>}</span><span className="mt-1 block text-xs text-muted-foreground">{[member.className, member.role, member.level ? `Lv. ${member.level}` : null].filter(Boolean).join(" · ") || "Класс не указан"} · профилей: {member.profiles.length}</span></span></summary>
-        <div className="pt-3">{member.comment && <p className="mb-3 whitespace-pre-wrap text-sm text-muted-foreground">{member.comment}</p>}{member.isActive ? <MemberProfileManager memberId={member.id} profiles={member.profiles} canManage={canManage} /> : <p className="text-sm text-muted-foreground">Участник неактивен. Данные его рейдов и начислений сохранены.</p>}</div>
+      {editingId === member.id ? <div className="editor-surface"><MemberForm initialValues={{ nickname: member.nickname, distributionWeight: member.distributionWeight, comment: member.comment ?? "", className: member.className ?? "", role: member.role ?? "", subclasses: [1, 2, 3, 4].map(slot => { const profile = member.profiles.find(profile => profile.subclassSlot === slot); return { slot, id: profile?.id, className: profile?.className ?? "" }; }) }} submitLabel="Сохранить" action={values => updateMemberAction(member.id, values)} onSuccess={saved} onCancel={() => setEditingId(null)} /></div> : <details className="disclosure" name="member-profiles">
+        <summary><span className="min-w-0 flex-1"><span className="block text-base font-semibold">{member.nickname}{!member.isActive && <span className="ml-2 text-xs font-normal text-muted-foreground">Неактивен</span>}{member.role && <span className="ml-3 text-xs font-normal text-muted-foreground">{member.role}</span>}</span><span className="mt-3 flex flex-wrap gap-x-6 gap-y-3"><ClassBadge label="Main" name={member.className} />{member.profiles.map(profile => <ClassBadge key={profile.id} label={profile.subclassSlot ? `Subclass ${profile.subclassSlot}` : "Профиль"} name={profile.className} />)}</span></span></summary>
+        <div className="pt-3">{member.comment && <p className="mb-3 whitespace-pre-wrap text-sm text-muted-foreground">{member.comment}</p>}{member.profiles.length > 4 ? <MemberProfileManager memberId={member.id} profiles={member.profiles} canManage={canManage} /> : <p className="text-xs text-muted-foreground">{member.isActive ? "Main и Subclass выбираются при редактировании участника." : "Участник неактивен. Данные его рейдов и начислений сохранены."}</p>}</div>
       </details>}
     </li>)}</ul>}
   </section>;
+}
+
+function ClassBadge({ label, name }: { label: string; name: string | null }) {
+  return <span className="inline-flex min-w-0 items-center gap-2"><GameIcon kind="class" name={name || "Не выбран"} /><span className="min-w-0"><span className={`block text-xs ${label === "Main" ? "text-[#e6be67]" : "text-muted-foreground"}`}>{label}</span><span className="block break-words text-sm">{name || "Не выбран"}</span></span></span>;
 }
