@@ -14,26 +14,36 @@ function resolveSqlitePath(url) {
 }
 
 async function main() {
+  const dryRun = process.argv.includes("--dry-run");
   const sourcePath = resolveSqlitePath(process.env.LEGACY_SQLITE_URL || "file:./prisma/dev.db");
+  const source = new Database(sourcePath, { readonly: true, fileMustExist: true });
+  let items;
+  try {
+    items = source.prepare(`
+      SELECT id, canonicalName, normalizedName, displayName, category, grade,
+             itemType, itemSubtype, isRare, gameVersion, comment, createdAt, updatedAt
+      FROM Item
+      ORDER BY updatedAt ASC, id ASC
+    `).all();
+  } finally {
+    source.close();
+  }
+
+  if (items.length === 0) {
+    throw new Error("The SQLite catalog is empty; nothing was imported.");
+  }
+
+  const uniqueNames = new Set(items.map((item) => item.normalizedName));
+  if (dryRun) {
+    console.log(`Read-only catalog check: ${items.length} rows, ${uniqueNames.size} unique normalized names.`);
+    return;
+  }
+
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString?.startsWith("postgresql://") && !connectionString?.startsWith("postgres://")) {
     throw new Error("DATABASE_URL must point to the new PostgreSQL database.");
   }
-
-  const source = new Database(sourcePath, { readonly: true, fileMustExist: true });
   const pool = new Pool({ connectionString });
-  const items = source.prepare(`
-    SELECT id, canonicalName, normalizedName, displayName, category, grade,
-           itemType, itemSubtype, isRare, gameVersion, comment, createdAt, updatedAt
-    FROM Item
-    ORDER BY updatedAt ASC, id ASC
-  `).all();
-  source.close();
-
-  if (items.length === 0) {
-    await pool.end();
-    throw new Error("The SQLite catalog is empty; nothing was imported.");
-  }
 
   const client = await pool.connect();
   try {
@@ -77,7 +87,7 @@ async function main() {
       );
     }
     await client.query("COMMIT");
-    console.log(`Imported ${items.length} catalog rows from ${sourcePath}.`);
+    console.log(`Imported ${items.length} catalog rows (${uniqueNames.size} unique names) from ${sourcePath}.`);
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;

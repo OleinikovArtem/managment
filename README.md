@@ -32,6 +32,7 @@ Docker volume `party-bank-postgres-data` хранит локальные зап�
 из старой SQLite-базы до начала работы с новым каталогом:
 
 ```powershell
+npm run db:catalog:check
 npm run db:catalog:import
 ```
 
