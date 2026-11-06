@@ -2,8 +2,11 @@
 
 Приложение для фарм-группы Lineage 2. Участники и игровые профили →
 состав рейда → добыча → полученная оплата → равные доли → передачи Adena.
-Интерфейс русский, тёмный. Локально используется PostgreSQL в Docker. Конфигурация
-подготовлена для Vercel с общей базой Neon PostgreSQL; production ещё не подключён.
+Интерфейс русский, тёмный. Локально используется PostgreSQL в Docker.
+Production размещён на Vercel с общей базой Neon PostgreSQL:
+https://party-bank-manager.vercel.app.
+Локальный запуск production-сборки с production-БД описан в
+[документации размещения](docs/DEPLOYMENT.md#локальная-production-сборка-с-production-бд).
 
 ## Запуск
 
@@ -67,9 +70,11 @@ SQLite не изменяется. `npm run db:deploy` применяет Postgre
 
 ## Резервные копии и восстановление
 
-Production-база Neon резервируется и восстанавливается средствами провайдера.
-Для локальной PostgreSQL создавайте dump через `pg_dump` (для compose-сервиса —
-`docker compose exec -T postgres pg_dump -U party_bank party_bank > party-bank.sql`).
+Резервирование и восстановление production-базы выполняются средствами Neon;
+срок хранения истории и доступные способы восстановления зависят от настроек
+проекта. Отдельного задания резервирования в репозитории нет.
+Для локальной PostgreSQL создавайте dump через `pg_dump`; команды для PowerShell —
+в [документации размещения](./docs/DEPLOYMENT.md#резервирование-и-восстановление).
 SQLite-архивы прежней версии не являются способом backup/restore PostgreSQL.
 
 Перед восстановлением сохраните текущую базу отдельно и следуйте процедуре
@@ -98,12 +103,13 @@ PostgreSQL integration tests выполняются только при зада
 
 ## Документация
 
-Для Vercel подключите GitHub-репозиторий и задайте production-переменные
-`DATABASE_URL` (pooled Neon connection) и `DIRECT_URL` (direct Neon connection).
+Проект Vercel подключён к `OleinikovArtem/managment`; push в `master` запускает
+production-деплой. Neon подключён только к Production. Серверные переменные БД,
+авторизации и шифрования заданы в Vercel; секреты не хранятся в репозитории.
 Production build применяет PostgreSQL migrations и SQL guards перед сборкой.
-Перед публичным запуском настройте `BETTER_AUTH_URL`, `BETTER_AUTH_SECRET` и
-`PARTY_TOKEN_ENCRYPTION_KEY`, проверьте production-базу, а также определите
-процесс восстановления пароля: email намеренно не используется.
+Для Preview нужна отдельная БД и отдельные секреты; текущее production-подключение
+в Preview не передаётся. Процесс восстановления забытого пароля пока не реализован:
+email намеренно не используется.
 
 - [Правила продукта](./PROJECT_SPEC.md) — функции, денежный ввод и границы приложения.
 - [Карта проекта](./docs/PROJECT_CONTEXT.md) — навигация по исходникам.

@@ -1,7 +1,7 @@
 # Lineage II icons
 
 The app loads game icons directly from public hosts; image files are not copied
-into the repository or embedded in the SQLite catalog.
+into the repository or embedded in the shared PostgreSQL item catalog.
 
 ## Item icons
 

@@ -139,18 +139,26 @@ UI-продажа и UI-передача по-разному трактуют ч
 
 ## Хранение и восстановление
 
-`DATABASE_URL` обязателен; Prisma Client uses `@prisma/adapter-pg` and a PostgreSQL
-connection pool. Local development connects to the Docker Compose PostgreSQL
-service; production connects to Neon through server-only environment variables.
-SQLite legacy data is retained only as the source for the one-time item catalog
-import. The importer opens it read-only and transfers no party or financial rows.
-Authentication requires `BETTER_AUTH_URL` and `BETTER_AUTH_SECRET`. Encrypted
-Telegram bot tokens require the server-only `PARTY_TOKEN_ENCRYPTION_KEY`.
+`DATABASE_URL` обязателен; Prisma Client использует `@prisma/adapter-pg` и пул
+PostgreSQL. Разработка подключается к Docker Compose PostgreSQL, приложение на
+Vercel — к Neon через серверные production-переменные. Репозиторий подключён к
+Vercel; push в `master` запускает production-сборку с миграциями и SQL guards.
+Preview не получает production-подключение: ему нужна отдельная БД и секреты.
 
-Production backup and restore are managed through the selected PostgreSQL provider.
-Local dumps use `pg_dump`; do not point PostgreSQL restore procedures at legacy
-SQLite archives. Upload storage is not configured yet. Nullable `screenshotPath`
-does not mean upload UI exists.
+Локальная production-сборка с `.env.production.local` использует ту же Neon БД,
+что и размещённое приложение; изменения данных общие. Этот файл читает Next.js,
+но не Prisma CLI с `dotenv/config`. `DIRECT_URL` имеет приоритет над `DATABASE_URL`
+для Prisma CLI и указывает на прямое подключение без пула. Авторизация требует
+`BETTER_AUTH_URL` и `BETTER_AUTH_SECRET`; Telegram-токены — серверный
+`PARTY_TOKEN_ENCRYPTION_KEY`. Правила сред и запуска: [DEPLOYMENT.md](./DEPLOYMENT.md).
+
+SQLite сохраняется только как источник однократного импорта общего каталога.
+Импортёр читает её read-only и не переносит партии или финансовые записи.
+
+Для production backup/restore используют Neon; отдельного задания резервирования
+в репозитории нет. Локальные dumps создаются через `pg_dump`; legacy SQLite-архивы
+не восстанавливают PostgreSQL. Хранилище загрузок пока не настроено. Nullable
+`screenshotPath` не означает наличие интерфейса загрузки.
 
 ## Ограничения эксплуатации и проверок
 

@@ -116,5 +116,6 @@ Telegram references: [Bot-to-Bot communication](https://core.telegram.org/bots/f
 - Agree how an unmatched or ambiguous notice is resolved and retried.
 - Agree how edits or deletion of an already processed Telegram message affect
   an existing financial record.
-- The webhook route, durable retry behavior, and production domain are not yet
-  implemented; deployment constraints are described in [DEPLOYMENT.md](./DEPLOYMENT.md).
+- The app is deployed at https://party-bank-manager.vercel.app, but the Telegram
+  webhook route and durable retry behavior are not implemented. Deployment
+  constraints are described in [DEPLOYMENT.md](./DEPLOYMENT.md).

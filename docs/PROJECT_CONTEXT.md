@@ -34,11 +34,14 @@ Party Bank Manager — русскоязычное приложение для у
 
 - Next.js App Router, React, TypeScript strict, Tailwind 4, shadcn/Base UI,
   React Hook Form + Zod, Prisma 7 + PostgreSQL (`pg` driver adapter), Vitest.
-  Local PostgreSQL runs through Docker Compose; deployment target is Neon.
+  Разработка использует Docker PostgreSQL, production — Vercel и Neon PostgreSQL.
 - Алиас `@/` ведёт в `src/`. Сгенерированный Prisma client — `src/generated/prisma/`;
   его не редактируют и не добавляют в Git.
 - Динамические части страниц используют `Suspense` и `await io()`. Перед изменением
   Next.js API читать документацию установленной версии в `node_modules/next/dist/docs/`.
+- `npm run dev` использует локальный `.env`. Приватный `.env.production.local`
+  подключает `npm run build` / `npm start` к живой production-БД; Prisma CLI
+  автоматически этот файл не читает. Подробности — в [DEPLOYMENT.md](./DEPLOYMENT.md).
 - Денежные правила, snapshot weights, идемпотентность и защита истории описаны
   в [ARCHITECTURE.md](./ARCHITECTURE.md). Не выводить их из UI или старых данных.
 - Формы продажи и передачи имеют разный смысл числа без суффикса; не унифицировать
@@ -65,5 +68,7 @@ not import party records or financial history.
 - Telegram listener и автоматический импорт продаж пока отсутствуют; согласованные
   правила и ограничения интеграции:
   [правила приёма, разбора и распределения](./TELEGRAM_SALES_INGESTION.md).
-- Production deployment пока не подключён; настройки и требования к средам:
+- Production размещён на Vercel с БД Neon; настройки и требования к средам:
   [Vercel, PostgreSQL и перенос данных](./DEPLOYMENT.md).
+  Репозиторий `OleinikovArtem/managment`, автодеплой из `master`.
+  Production-БД не подключена к Preview; для него нужна отдельная среда.

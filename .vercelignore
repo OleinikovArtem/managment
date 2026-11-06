@@ -1,0 +1,15 @@
+.env*
+!.env.example
+.vercel/
+.git/
+node_modules/
+.next/
+out/
+coverage/
+data/
+prisma/dev.db*
+src/generated/prisma/
+*.tsbuildinfo
+.taste-skill/
+.qa-run/
+bug/

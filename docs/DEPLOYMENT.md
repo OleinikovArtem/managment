@@ -7,11 +7,51 @@ volume `party-bank-postgres-data` сохраняет базу между пер�
 `npm run db:down` останавливает PostgreSQL и сохраняет volume; `docker compose down -v`
 удаляет его и все локальные записи.
 
-Production target — Next.js на Vercel и PostgreSQL на Neon. Код приложения
-подготовлен к этому размещению, но production-проект Vercel/Neon пока не подключён.
-GitHub хранит код и может быть источником сборок Vercel; GitHub Pages не запускает
-это серверное приложение. Vercel и Neon имеют отдельные тарифы и квоты. Проверьте
-действующие условия провайдеров перед публичным или коммерческим использованием.
+Production — Next.js на Vercel и PostgreSQL на Neon:
+
+- Приложение: https://party-bank-manager.vercel.app.
+- Vercel: `artemoleinikovwebs-projects/party-bank-manager`, Node.js 22,
+  Next.js framework preset, команда сборки `npm run build`.
+- Neon: `party-bank-manager-db`, регион Frankfurt (`aws-eu-central-1`), Free.
+  База подключена интеграцией Vercel только к production; функции приложения
+  выполняются в `fra1`.
+- Репозиторий: `OleinikovArtem/managment`; production-ветка `master`.
+  Автоматические Git-деплои включены.
+- `.vercelignore` исключает локальные env-файлы, базы, backup, generated Prisma
+  и вспомогательные артефакты из загрузки исходников через CLI.
+
+GitHub Pages не запускает это серверное приложение. Vercel и Neon имеют отдельные
+тарифы и квоты; действующие условия проверяют у провайдеров.
+
+| Запуск | Переменные | База |
+| --- | --- | --- |
+| `npm run dev` | Локальные `.env` / `.env.local` | Docker PostgreSQL |
+| `npm run build`, затем `npm start` | Приватный `.env.production.local` имеет приоритет над `.env.local` / `.env` | Живая production-БД Neon |
+| Vercel Production | Серверные переменные Production в Vercel | Production-БД Neon |
+| Vercel Preview | Требуют отдельной настройки | Отдельная БД пока не подключена |
+
+Не задавайте production-подключение в общих `.env.local` или Development-переменных:
+Next.js читает `.env.local` и при разработке. Окружение процесса имеет приоритет
+над файлами. Приведённые локальные подключения предполагают, что переменные БД
+не переопределены в окружении процесса.
+
+## Git и деплой
+
+Push в `master` запускает production-сборку Vercel. `scripts/build.cjs` при
+`VERCEL_ENV=production` применяет миграции и SQL guards, генерирует Prisma Client
+и собирает Next.js. `lint`, `typecheck` и `test` не добавлены отдельными шагами
+этого скрипта; запускайте их до push. Успешная сборка не заменяет проверку входа
+и работы с данными на опубликованном адресе.
+
+Другие ветки могут запускать Preview-деплои, но отдельные Preview-БД и секреты
+пока не настроены. Production-подключение намеренно не выдаётся этой среде;
+Preview не считается рабочим окружением до её отдельной настройки.
+
+При загрузке исходников через CLI каталог должен быть связан именно с
+`artemoleinikovwebs-projects/party-bank-manager`; проверьте `vercel project inspect`
+до деплоя. `.vercel/project.json` — локальная связь, в Git не хранится. Для
+автодеплоя из GitHub она не нужна. `.vercelignore` применяется к CLI-загрузке;
+приватные env-файлы, базы и generated Prisma также исключены через `.gitignore`.
 
 ## PostgreSQL и миграции
 
@@ -27,9 +67,35 @@ GitHub хранит код и может быть источником сбор�
 - Все финансовые и пользовательские данные хранятся в PostgreSQL. Файловая система
   Vercel Function не является постоянным хранилищем.
 
-Локальный `.env` позволяет переключать подключение между Docker и Neon изменением
-`DATABASE_URL` и `DIRECT_URL`; код для этого менять не требуется. Не коммитьте `.env`
+Локальный `.env` используется для разработки с Docker. Не коммитьте env-файлы
 или значения секретов.
+
+## Локальная production-сборка с production-БД
+
+Приватный `.env.production.local` в корне проекта содержит production
+`DATABASE_URL`, `DIRECT_URL`, `BETTER_AUTH_SECRET`, `PARTY_TOKEN_ENCRYPTION_KEY`.
+`BETTER_AUTH_URL` в нём равен `http://localhost:3000`, чтобы локальная авторизация
+работала на локальном адресе. Файл исключён из Git и загрузки через Vercel CLI.
+Он не появляется после `git clone`: восстановите пять обязательных значений из
+защищённого хранилища секретов. `.env.example` — шаблон локальной разработки,
+а не копия production-настроек. Значения секретов не добавляют в документацию.
+
+```powershell
+npm run build
+npm start
+```
+
+Откройте http://localhost:3000. Next.js загружает `.env.production.local` для
+production-сборки и `next start`; этот файл имеет приоритет над `.env.local` и
+`.env`. `npm run dev` его не использует и продолжает работать с локальным Docker.
+Переменные, уже заданные в окружении процесса, имеют приоритет над env-файлами.
+
+Локальная production-версия работает с живой production-БД: создание, изменение
+и удаление данных сразу видны в размещённом приложении. Отдельного тестового
+окружения этот файл не создаёт. Не добавляйте в него `VERCEL_ENV=production`:
+применение миграций при локальной сборке не требуется. Prisma CLI и обычные
+Node-скрипты сами этот файл не загружают; их `dotenv/config` продолжает читать
+`.env`.
 
 ## Переменные окружения
 
@@ -45,6 +111,12 @@ GitHub хранит код и может быть источником сбор�
 Сохраните `PARTY_TOKEN_ENCRYPTION_KEY` отдельно от базы и не меняйте без плана
 перешифрования: без прежнего ключа сохранённые Telegram-токены не расшифровать.
 Секреты доступны только серверному runtime и не передаются клиенту.
+В Vercel `BETTER_AUTH_URL` равен `https://party-bank-manager.vercel.app`.
+Интеграция Neon задаёт pooled `DATABASE_URL` и direct `DATABASE_URL_UNPOOLED`;
+для используемой конфигурации Prisma direct-значение также сохранено как
+`DIRECT_URL`. Не копируйте автоматически весь экспорт переменных Vercel в
+локальный production-env: служебный `VERCEL_ENV=production` включил бы миграции
+при локальной сборке.
 
 ## Перенос общего каталога
 
@@ -63,12 +135,18 @@ npm run db:catalog:import
 
 ## Резервирование и восстановление
 
-- Для production используйте backup/snapshot и процедуру восстановления Neon.
+- Для production используйте историю/backup и процедуру восстановления Neon.
+  Проверьте срок хранения и доступность восстановления в настройках проекта;
+  отдельного задания резервирования в репозитории нет.
 - Для локальной базы создавайте dump PostgreSQL, например:
 
   ```powershell
-  docker compose exec -T postgres pg_dump -U party_bank party_bank > party-bank.sql
+  docker compose exec -T postgres pg_dump -U party_bank -d party_bank -f /tmp/party-bank.sql
+  docker compose cp postgres:/tmp/party-bank.sql ./party-bank.sql
   ```
+
+  Файл создаётся внутри контейнера и копируется без shell-перекодирования;
+  это сохраняет UTF-8, в том числе в Windows PowerShell 5.1.
 
 - Перед восстановлением сохраните текущую базу отдельно и используйте процедуру
   выбранного PostgreSQL-провайдера.

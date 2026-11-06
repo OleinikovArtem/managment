@@ -29,18 +29,17 @@ import {
   listPartyItems,
 } from "@/server/repositories/item-repository";
 
-describe("item repository party scoping", () => {
+describe("shared item catalog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("scopes item searches and category filters to the requested party", async () => {
+  it("searches the shared catalog with category filters and pagination", async () => {
     await listPartyItems("party-a", "ancient sword", "Weapon", 25, 25);
 
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          partyId: "party-a",
           normalizedName: { contains: "ancient sword" },
           category: "Weapon",
         },
@@ -50,12 +49,11 @@ describe("item repository party scoping", () => {
     );
   });
 
-  it("counts only rows matching the requested Party, query and category", async () => {
+  it("counts shared items matching the query and category", async () => {
     await countPartyItems("party-a", "ancient sword", "Weapon");
 
     expect(count).toHaveBeenCalledWith({
       where: {
-        partyId: "party-a",
         normalizedName: { contains: "ancient sword" },
         category: "Weapon",
       },
@@ -79,7 +77,6 @@ describe("item repository party scoping", () => {
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          partyId: "party-a",
           category: "Armor",
           grade: "S",
           itemType: "Boots",
@@ -88,6 +85,7 @@ describe("item repository party scoping", () => {
         }),
       }),
     );
+    expect(create.mock.calls[0][0].data).not.toHaveProperty("partyId");
   });
 
   it("defaults omitted Rare status to false", async () => {
@@ -104,22 +102,22 @@ describe("item repository party scoping", () => {
     );
   });
 
-  it("scopes category options to the requested party", async () => {
+  it("lists category options from the shared catalog", async () => {
     findMany.mockResolvedValue([{ category: "Weapon" }]);
 
     await expect(listPartyItemCategories("party-a")).resolves.toEqual(["Weapon"]);
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { partyId: "party-a", category: { not: null } },
+        where: { category: { not: null } },
       }),
     );
   });
 
-  it("scopes item detail lookups by both party and item ID", async () => {
+  it("looks up shared items by item ID", async () => {
     await getPartyItemById("party-a", "item-b");
 
     expect(findFirst).toHaveBeenCalledWith({
-      where: { id: "item-b", partyId: "party-a" },
+      where: { id: "item-b" },
     });
   });
 });
