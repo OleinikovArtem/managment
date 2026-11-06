@@ -1,1 +1,1 @@
-export const RESET_PARTY_CONFIRMATION = "УДАЛИТЬ ДАННЫЕ";
+export const RESET_PARTY_CONFIRMATION = "Resset";
