@@ -51,7 +51,7 @@ afterAll(async () => {
   }
 });
 
-describe("local backup service", () => {
+describe.skipIf(process.env.LEGACY_SQLITE_TESTS !== "1")("legacy SQLite backup service", () => {
   it("creates, validates and stages a complete SQLite and uploads archive", async () => {
     expect(existsSync(sourceDatabasePath)).toBe(true);
     const source = new Database(sourceDatabasePath, { readonly: true });

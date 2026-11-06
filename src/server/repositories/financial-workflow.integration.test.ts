@@ -1,13 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { existsSync, rmSync } from "node:fs";
-import path from "node:path";
-import Database from "better-sqlite3";
 import { afterAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-const sourcePath = path.resolve("prisma/dev.db");
-const testPath = path.resolve(`prisma/financial-integration-${process.pid}.db`);
+const testDatabaseUrl = process.env.TEST_DATABASE_URL;
 const previousDatabaseUrl = process.env.DATABASE_URL;
 let disconnectDatabase: (() => Promise<void>) | undefined;
 
@@ -19,20 +15,11 @@ afterAll(async () => {
     process.env.DATABASE_URL = previousDatabaseUrl;
   }
 
-  for (const suffix of ["", "-shm", "-wal"]) {
-    const target = `${testPath}${suffix}`;
-    if (existsSync(target)) rmSync(target);
-  }
 });
 
-describe("financial workflows against copied SQLite", () => {
+describe.skipIf(!testDatabaseUrl?.startsWith("postgres"))("financial workflows against disposable PostgreSQL", () => {
   it("serializes concurrent sales and payments while preserving FIFO history", async () => {
-    expect(existsSync(sourcePath)).toBe(true);
-    const source = new Database(sourcePath, { readonly: true });
-    await source.backup(testPath);
-    source.close();
-
-    process.env.DATABASE_URL = `file:./prisma/${path.basename(testPath)}`;
+    process.env.DATABASE_URL = testDatabaseUrl;
     vi.resetModules();
 
     const [{ prisma }, { registerPartySale }, { registerPartyPayment }] =
@@ -55,11 +42,11 @@ describe("financial workflows against copied SQLite", () => {
         distributionWeight: 1,
       },
     });
+    const itemName = `Integration Item ${randomUUID()}`;
     const item = await prisma.item.create({
       data: {
-        partyId,
-        canonicalName: "Integration Item",
-        normalizedName: "integration item",
+        canonicalName: itemName,
+        normalizedName: itemName.toLowerCase(),
       },
     });
 

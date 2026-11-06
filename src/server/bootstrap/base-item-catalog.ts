@@ -8,7 +8,7 @@ import baseItemDump from "../../../prisma/seeds/lineage2-high-five-items.json";
 type ItemCatalogSeedClient = {
   item: {
     findMany(args: {
-      where: { partyId: string; normalizedName: { in: string[] } };
+      where: { normalizedName: { in: string[] } };
       select: {
         normalizedName: true;
         category: true;
@@ -19,7 +19,7 @@ type ItemCatalogSeedClient = {
     }[]>;
     upsert(args: {
       where: {
-        partyId_normalizedName: { partyId: string; normalizedName: string };
+        normalizedName: string;
       };
       update: {
         category: string;
@@ -29,7 +29,6 @@ type ItemCatalogSeedClient = {
         isRare: boolean;
       };
       create: {
-        partyId: string;
         canonicalName: string;
         normalizedName: string;
         category: string;
@@ -45,7 +44,6 @@ type ItemCatalogSeedClient = {
 
 export async function ensureBaseItemCatalog(
   transaction: ItemCatalogSeedClient,
-  partyId: string,
 ) {
   const seedItems = baseItemDump.items.map((item) => ({
     ...item,
@@ -54,7 +52,6 @@ export async function ensureBaseItemCatalog(
   }));
   const existingItems = await transaction.item.findMany({
     where: {
-      partyId,
       normalizedName: { in: seedItems.map((item) => item.normalizedName) },
     },
     select: {
@@ -80,14 +77,10 @@ export async function ensureBaseItemCatalog(
   for (const item of itemsToReconcile) {
     await transaction.item.upsert({
       where: {
-        partyId_normalizedName: {
-          partyId,
-          normalizedName: item.normalizedName,
-        },
+        normalizedName: item.normalizedName,
       },
       update: item.classification,
       create: {
-        partyId,
         canonicalName: item.canonicalName,
         normalizedName: item.normalizedName,
         ...item.classification,

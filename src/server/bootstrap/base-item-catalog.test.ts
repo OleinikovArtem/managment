@@ -75,7 +75,7 @@ describe("High Five base item catalog", () => {
     }
   });
 
-  it("inserts missing names for only the requested Party and preserves existing catalog rows", async () => {
+  it("inserts missing names into the shared catalog and preserves existing rows", async () => {
     const existing = ["Life Stone - Lv. 46", "Neolithic Crystal"].map((name) => {
       const item = baseItemDump.items.find(
         (entry) => entry.canonicalName === name,
@@ -90,13 +90,12 @@ describe("High Five base item catalog", () => {
     const transaction = { item: { findMany, upsert } };
 
     await expect(
-      ensureBaseItemCatalog(transaction, "party-1"),
+      ensureBaseItemCatalog(transaction),
     ).resolves.toBe(baseItemDump.items.length - 2);
 
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          partyId: "party-1",
           normalizedName: {
             in: expect.arrayContaining([
               normalizeItemName("Life Stone - Lv. 46"),
@@ -109,26 +108,18 @@ describe("High Five base item catalog", () => {
     expect(upsert).toHaveBeenCalledTimes(baseItemDump.items.length - 2);
     expect(upsert).not.toHaveBeenCalledWith(
       expect.objectContaining({
-        where: {
-          partyId_normalizedName: {
-            partyId: "party-1",
-            normalizedName: normalizeItemName("Life Stone - Lv. 46"),
-          },
-        },
+        where: { normalizedName: normalizeItemName("Life Stone - Lv. 46") },
       }),
     );
     expect(upsert).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: {
-          partyId_normalizedName: expect.objectContaining({ partyId: "party-1" }),
-        },
+        where: { normalizedName: expect.any(String) },
         update: expect.objectContaining({
           category: "Weapon",
           grade: "S",
           itemType: "Dagger",
         }),
         create: expect.objectContaining({
-          partyId: "party-1",
           category: "Weapon",
           grade: "S",
           itemType: "Dagger",
@@ -147,18 +138,13 @@ describe("High Five base item catalog", () => {
     );
 
     await expect(
-      ensureBaseItemCatalog({ item: { findMany, upsert } }, "party-1"),
+      ensureBaseItemCatalog({ item: { findMany, upsert } }),
     ).resolves.toBe(0);
 
     expect(upsert).toHaveBeenCalledTimes(baseItemDump.items.length);
     expect(upsert).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: {
-          partyId_normalizedName: {
-            partyId: "party-1",
-            normalizedName: normalizeItemName("Angel Slayer"),
-          },
-        },
+        where: { normalizedName: normalizeItemName("Angel Slayer") },
         update: expect.objectContaining({
           category: "Weapon",
           grade: "S",
@@ -177,7 +163,7 @@ describe("High Five base item catalog", () => {
     );
 
     await expect(
-      ensureBaseItemCatalog({ item: { findMany, upsert } }, "party-1"),
+      ensureBaseItemCatalog({ item: { findMany, upsert } }),
     ).resolves.toBe(0);
     expect(upsert).not.toHaveBeenCalled();
   });

@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 enum PartyRole {
@@ -57,7 +57,6 @@ model Party {
   members            PartyMember[]
   memberProfiles     PartyMemberProfile[]
   compositions       PartyComposition[]
-  items              Item[]
   raids              Raid[]
   saleTransactions   SaleTransaction[]
   saleShares         SaleShare[]
@@ -170,7 +169,6 @@ model PartyCompositionMember {
 
 model Item {
   id             String   @id @default(cuid())
-  partyId        String
   canonicalName  String
   normalizedName String
   displayName    String?
@@ -184,12 +182,10 @@ model Item {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  party     Party      @relation(fields: [partyId], references: [id], onDelete: Restrict)
   lootDrops LootDrop[]
 
-  @@unique([partyId, normalizedName])
-  @@unique([partyId, id])
-  @@index([partyId, category])
+  @@unique([normalizedName])
+  @@index([category])
 }
 
 model Raid {
@@ -254,7 +250,7 @@ model LootDrop {
   updatedAt      DateTime       @updatedAt
 
   raid             Raid              @relation(fields: [partyId, raidId], references: [partyId, id], onDelete: Restrict)
-  item             Item              @relation(fields: [partyId, itemId], references: [partyId, id], onDelete: Restrict)
+  item             Item              @relation(fields: [itemId], references: [id], onDelete: Restrict)
   saleTransactions SaleTransaction[]
 
   @@unique([partyId, id])

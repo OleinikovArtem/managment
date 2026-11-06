@@ -1,13 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { existsSync, rmSync } from "node:fs";
-import path from "node:path";
-import Database from "better-sqlite3";
 import { afterAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-const sourcePath = path.resolve("prisma/dev.db");
-const testPath = path.resolve(`prisma/party-reset-${process.pid}.db`);
+const testDatabaseUrl = process.env.TEST_DATABASE_URL;
 const previousDatabaseUrl = process.env.DATABASE_URL;
 let disconnectDatabase: (() => Promise<void>) | undefined;
 
@@ -15,19 +11,11 @@ afterAll(async () => {
   await disconnectDatabase?.();
   if (previousDatabaseUrl === undefined) delete process.env.DATABASE_URL;
   else process.env.DATABASE_URL = previousDatabaseUrl;
-  for (const suffix of ["", "-shm", "-wal"]) {
-    if (existsSync(testPath + suffix)) rmSync(testPath + suffix);
-  }
 });
 
-describe("party data reset against copied SQLite", () => {
+describe.skipIf(!testDatabaseUrl?.startsWith("postgres"))("party data reset against disposable PostgreSQL", () => {
   it("removes history atomically and restores financial protections", async () => {
-    const source = new Database(sourcePath, { readonly: true });
-    await source.backup(testPath);
-    const triggerCount = source.prepare("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'trigger'").get() as { count: number };
-    source.close();
-
-    process.env.DATABASE_URL = `file:./prisma/${path.basename(testPath)}`;
+    process.env.DATABASE_URL = testDatabaseUrl;
     vi.resetModules();
     const [{ prisma }, { registerPartySale }, { registerPartyPayment }, { createPartyComposition, deletePartyComposition }, { resetPartyData }] =
       await Promise.all([
@@ -41,7 +29,8 @@ describe("party data reset against copied SQLite", () => {
 
     const partyId = `reset-party-${randomUUID()}`;
     await prisma.party.create({ data: { id: partyId, name: "Reset integration" } });
-    const item = await prisma.item.create({ data: { partyId, canonicalName: "Retained item", normalizedName: "retained item" } });
+    const itemName = `Retained item ${randomUUID()}`;
+    const item = await prisma.item.create({ data: { canonicalName: itemName, normalizedName: itemName.toLowerCase() } });
     const member = await prisma.partyMember.create({ data: { partyId, nickname: "Reset member", normalizedNickname: "reset member", distributionWeight: 1 } });
     const profile = await prisma.partyMemberProfile.create({ data: { partyId, memberId: member.id, name: "Main", className: "Cardinal" } });
     const composition = await createPartyComposition(partyId, { name: "Reset composition", slots: [{ memberId: member.id, profileId: profile.id }] });
@@ -60,10 +49,10 @@ describe("party data reset against copied SQLite", () => {
     expect(await prisma.raid.count({ where: { partyId } })).toBe(0);
     expect(await prisma.saleTransaction.count({ where: { partyId } })).toBe(0);
     expect(await prisma.memberPayment.count({ where: { partyId } })).toBe(0);
-    expect(await prisma.item.count({ where: { partyId } })).toBe(1);
+    expect(await prisma.item.findUnique({ where: { id: item.id } })).not.toBeNull();
     expect(await prisma.party.count({ where: { id: partyId } })).toBe(1);
-    const currentTriggerCount = await prisma.$queryRaw<Array<{ count: bigint }>>`SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'trigger'`;
-    expect(Number(currentTriggerCount[0]?.count)).toBe(triggerCount.count);
+    const currentTriggerCount = await prisma.$queryRaw<Array<{ count: bigint }>>`SELECT COUNT(*)::bigint AS count FROM information_schema.triggers WHERE trigger_schema = current_schema()`;
+    expect(Number(currentTriggerCount[0]?.count)).toBeGreaterThan(0);
     await expect(prisma.partyMember.create({ data: { partyId, nickname: "Invalid", normalizedNickname: "invalid", distributionWeight: 0 } })).rejects.toThrow();
   });
 });

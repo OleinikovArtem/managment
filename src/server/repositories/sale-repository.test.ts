@@ -217,9 +217,9 @@ describe("sale repository", () => {
     expect(mocks.ledgerTransactionUpdate).toHaveBeenCalledOnce();
   });
 
-  it("retries bounded SQLITE_BUSY failures around the whole transaction", async () => {
+  it("retries bounded PostgreSQL transaction conflicts around the whole transaction", async () => {
     mocks.$transaction
-      .mockRejectedValueOnce(new Error("SQLITE_BUSY: database is locked"))
+      .mockRejectedValueOnce(new Error("40001: serialization failure"))
       .mockImplementationOnce((callback) => callback(transaction));
 
     await registerPartySale("party-1", input);
@@ -229,7 +229,7 @@ describe("sale repository", () => {
 
   it("returns an explicit temporary failure after exhausting lock retries", async () => {
     mocks.$transaction.mockRejectedValue(
-      new Error("SQLITE_BUSY: database is locked"),
+      new Error("40P01: deadlock detected"),
     );
 
     await expect(registerPartySale("party-1", input)).rejects.toBeInstanceOf(

@@ -21,10 +21,10 @@ Party Bank Manager — локальный русский интерфейс дл
 | Передачи и получатели | `src/features/sales/payment-form.tsx`, `payout-list.tsx` |
 | Продажа и валидация финансов | `src/features/sales/sale-form.tsx`, `sale-schema.ts`, `payment-schema.ts` |
 | Журнал | `src/features/ledger/history-list.tsx` |
-| Настройки и резервные копии | `src/features/settings/`, `src/server/services/backup-service.ts` |
+| Настройки и очистка группы | `src/features/settings/`, `src/server/repositories/party-repository.ts` |
 | Правила и транзакции | `src/server/services/`, `src/server/repositories/` |
 | Локальная группа и базовый каталог | `src/server/bootstrap/`, `prisma/seeds/lineage2-high-five-items.json` |
-| Схема и финансовые защиты | `prisma/schema.prisma`, `prisma/financial-constraints.sql` |
+| Схема и PostgreSQL-защиты | `prisma/schema.prisma`, `prisma/postgresql-constraints.sql` |
 | Клиент БД | `src/lib/db/prisma.ts` |
 | Parser и короткие суммы | `src/lib/adena.ts`, `src/components/ui/adena-amount.tsx` |
 | CSV | `src/server/services/financial-history-csv.ts`, `src/app/api/ledger/export/route.ts` |
@@ -32,7 +32,8 @@ Party Bank Manager — локальный русский интерфейс дл
 ## Технические ориентиры
 
 - Next.js App Router, React, TypeScript strict, Tailwind 4, shadcn/Base UI,
-  React Hook Form + Zod, Prisma + better-sqlite3, Vitest. Версии — в lockfile.
+  React Hook Form + Zod, Prisma 7 + PostgreSQL (`pg` driver adapter), Vitest.
+  Local PostgreSQL runs through Docker Compose; deployment target is Neon.
 - Алиас `@/` ведёт в `src/`. Сгенерированный Prisma client — `src/generated/prisma/`;
   его не редактируют и не добавляют в Git.
 - Динамические части страниц используют `Suspense` и `await io()`. Перед изменением
@@ -46,11 +47,21 @@ Party Bank Manager — локальный русский интерфейс дл
 ## Проверки и данные
 
 Команды: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`.
-Тесты лежат рядом с исходниками, среда Vitest — Node. Финансовые и backup integration
-тесты создают копии текущей `prisma/dev.db`; на чистом checkout нужна актуальная
-тестовая схема. Автоматического браузерного набора в репозитории нет.
+Тесты лежат рядом с исходниками, среда Vitest — Node. PostgreSQL integration tests
+используют только явно заданный `TEST_DATABASE_URL`; без него они пропускаются.
+Автоматического браузерного набора в репозитории нет.
 
-Рабочую базу не сбрасывают для расследований. `db:sync` предназначен для disposable
-базы, а не миграции ценных данных. БД, uploads, backups и кандидаты восстановления
-не являются временными файлами для уборки. `scripts/seed-demo-data.cjs` — используемый
-npm-инструмент записи demo-данных, не production bootstrap.
+Локальная PostgreSQL база хранится в именованном Docker volume. PostgreSQL migrations
+live in `prisma/migrations-postgresql/`; SQLite migrations in `prisma/migrations/`
+are retained as legacy history. `scripts/import-item-catalog.cjs` reads the legacy
+SQLite database in read-only mode and imports only the shared item catalog. It does
+not import party records or financial history.
+
+## Согласованные будущие интеграции
+
+- Аккаунты, группы, роли и приглашения (пока не реализованы):
+  [требования к многопользовательскому доступу](./ACCOUNTS_AND_PARTIES_SPEC.md).
+- Автоматический импорт продаж из Telegram (пока не реализован):
+  [правила приёма, разбора и распределения](./TELEGRAM_SALES_INGESTION.md).
+- Целевая схема размещения (еще не развернута):
+  [Vercel, PostgreSQL и перенос данных](./DEPLOYMENT.md).

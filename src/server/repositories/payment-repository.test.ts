@@ -197,7 +197,7 @@ describe("payment repository", () => {
 
   it("returns an explicit temporary error after bounded lock retries", async () => {
     mocks.$transaction.mockRejectedValue(
-      new Error("SQLITE_BUSY: database is locked"),
+      new Error("40001: serialization failure"),
     );
 
     await expect(registerPartyPayment("party-1", input)).rejects.toBeInstanceOf(

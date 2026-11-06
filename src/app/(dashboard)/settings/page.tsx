@@ -1,11 +1,9 @@
 import { Suspense } from "react";
 import { io } from "next/cache";
 import { SettingsForm } from "@/features/settings/settings-form";
-import { BackupManager } from "@/features/settings/backup-manager";
 import { ResetDataCard } from "@/features/settings/reset-data-card";
 import { ensureLocalWorkspace } from "@/server/bootstrap/local-workspace";
 import { getPartySettings } from "@/server/services/party-service";
-import { listLocalBackups } from "@/server/services/backup-service";
 
 export default function SettingsPage() {
   return (
@@ -18,10 +16,7 @@ export default function SettingsPage() {
 async function SettingsContent() {
   await io();
   const workspace = await ensureLocalWorkspace();
-  const [party, backups] = await Promise.all([
-    getPartySettings(workspace.partyId),
-    listLocalBackups(),
-  ]);
+  const party = await getPartySettings(workspace.partyId);
 
   return (
     <div className="settings-page max-w-5xl space-y-8">
@@ -33,7 +28,13 @@ async function SettingsContent() {
         </p>
       </header>
       <SettingsForm partyName={party.name} />
-      <BackupManager backups={backups} />
+      <section className="rounded-xl border border-border p-5">
+        <h2 className="text-base font-semibold">Резервные копии базы</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          В Vercel резервирование и восстановление выполняются в панели Neon. Для локальной базы
+          сохраните dump командой <code>docker compose exec -T postgres pg_dump -U party_bank party_bank</code>.
+        </p>
+      </section>
       <ResetDataCard />
     </div>
   );

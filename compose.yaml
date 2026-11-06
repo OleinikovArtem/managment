@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: party-bank-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: party_bank
+      POSTGRES_USER: party_bank
+      POSTGRES_PASSWORD: party_bank_dev
+    ports:
+      - "127.0.0.1:54329:5432"
+    volumes:
+      - party-bank-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U party_bank -d party_bank"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  party-bank-postgres-data:

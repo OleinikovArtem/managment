@@ -65,7 +65,7 @@ async function ItemsContent({ searchParams }: ItemsPageProps) {
 
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">Предметы</h1>
         <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-          Справочник уникальных предметов группы. Добыча и продажи хранятся отдельно как история.
+          Общий справочник предметов. Добыча и продажи хранятся в истории каждой группы.
         </p>
       </header>
 

@@ -28,12 +28,12 @@ async function assertPartyReferences(
   const itemIds = [...new Set(input.lootDrops.map(({ itemId }) => itemId))];
   const items = itemIds.length
     ? await transaction.item.findMany({
-        where: { partyId, id: { in: itemIds } },
+        where: { id: { in: itemIds } },
         select: { id: true },
       })
     : [];
   if (items.length !== itemIds.length) {
-    throw new RaidOperationError("Один или несколько предметов не найдены в каталоге этой группы.");
+    throw new RaidOperationError("Один или несколько предметов отсутствуют в общем каталоге.");
   }
 
   if (input.compositionId) {
@@ -71,9 +71,9 @@ export function listPartyCompositions(partyId: string) {
   });
 }
 
-export async function listPartyRaidItems(partyId: string) {
+export async function listPartyRaidItems(_partyId: string) {
+  void _partyId;
   return prisma.item.findMany({
-    where: { partyId },
     orderBy: [{ normalizedName: "asc" }, { canonicalName: "asc" }],
     select: { id: true, canonicalName: true, displayName: true },
   });
@@ -260,12 +260,12 @@ async function assertPartyItemsExist(
   const itemIds = [...new Set(input.lootDrops.map(({ itemId }) => itemId))];
   const items = itemIds.length
     ? await transaction.item.findMany({
-        where: { partyId, id: { in: itemIds } },
+        where: { id: { in: itemIds } },
         select: { id: true },
       })
     : [];
   if (items.length !== itemIds.length) {
-    throw new RaidOperationError("Один или несколько предметов не найдены в каталоге этой группы.");
+    throw new RaidOperationError("Один или несколько предметов отсутствуют в общем каталоге.");
   }
 }
 

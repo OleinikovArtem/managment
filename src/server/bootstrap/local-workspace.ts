@@ -41,7 +41,7 @@ export async function ensureLocalWorkspace(): Promise<LocalWorkspace> {
         );
       }
 
-      await ensureBaseItemCatalog(transaction, membership.partyId);
+      await ensureBaseItemCatalog(transaction);
 
       return {
         partyId: membership.partyId,
@@ -67,7 +67,7 @@ export async function ensureLocalWorkspace(): Promise<LocalWorkspace> {
       },
     });
 
-    await ensureBaseItemCatalog(transaction, party.id);
+    await ensureBaseItemCatalog(transaction);
 
     return {
       partyId: party.id,

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@/generated/prisma/client";
 
 const databaseUrl = process.env.DATABASE_URL;
@@ -17,7 +17,12 @@ function createPrismaClient() {
   if (!databaseUrl) {
     throw new Error("DATABASE_URL must be set before the database can be used.");
   }
-  const adapter = new PrismaBetterSqlite3({ url: databaseUrl });
+  const adapter = new PrismaPg({
+    connectionString: databaseUrl,
+    max: 1,
+    connectionTimeoutMillis: 5_000,
+    idleTimeoutMillis: 5_000,
+  });
   return new PrismaClient({ adapter });
 }
 

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import type { ItemInput } from "@/features/items/item-schema";
 
 export async function listPartyItems(
-  partyId: string,
+  _partyId: string,
   normalizedQuery: string,
   category: string | undefined,
   skip: number,
@@ -12,7 +12,6 @@ export async function listPartyItems(
 ) {
   return prisma.item.findMany({
     where: {
-      partyId,
       ...(normalizedQuery ? { normalizedName: { contains: normalizedQuery } } : {}),
       ...(category ? { category } : {}),
     },
@@ -23,22 +22,22 @@ export async function listPartyItems(
 }
 
 export async function countPartyItems(
-  partyId: string,
+  _partyId: string,
   normalizedQuery: string,
   category: string | undefined,
 ) {
   return prisma.item.count({
     where: {
-      partyId,
       ...(normalizedQuery ? { normalizedName: { contains: normalizedQuery } } : {}),
       ...(category ? { category } : {}),
     },
   });
 }
 
-export async function listPartyItemCategories(partyId: string) {
+export async function listPartyItemCategories(_partyId: string) {
+  void _partyId;
   const rows = await prisma.item.findMany({
-    where: { partyId, category: { not: null } },
+    where: { category: { not: null } },
     select: { category: true },
     distinct: ["category"],
     orderBy: { category: "asc" },
@@ -46,20 +45,19 @@ export async function listPartyItemCategories(partyId: string) {
   return rows.flatMap((row) => (row.category ? [row.category] : []));
 }
 
-export async function getPartyItemById(partyId: string, itemId: string) {
+export async function getPartyItemById(_partyId: string, itemId: string) {
   return prisma.item.findFirst({
-    where: { id: itemId, partyId },
+    where: { id: itemId },
   });
 }
 
 export async function createPartyItemRecord(
-  partyId: string,
+  _partyId: string,
   input: ItemInput,
   normalizedName: string,
 ) {
   return prisma.item.create({
     data: {
-      partyId,
       canonicalName: input.canonicalName,
       normalizedName,
       displayName: input.displayName || null,
@@ -75,13 +73,13 @@ export async function createPartyItemRecord(
 }
 
 export async function updatePartyItemRecord(
-  partyId: string,
+  _partyId: string,
   itemId: string,
   input: ItemInput,
   normalizedName: string,
 ) {
   const result = await prisma.item.updateMany({
-    where: { id: itemId, partyId },
+    where: { id: itemId },
     data: {
       canonicalName: input.canonicalName,
       normalizedName,
@@ -100,5 +98,5 @@ export async function updatePartyItemRecord(
     return null;
   }
 
-  return getPartyItemById(partyId, itemId);
+  return getPartyItemById(_partyId, itemId);
 }

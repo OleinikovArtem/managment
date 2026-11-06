@@ -9,7 +9,7 @@ flowchart TD
   A --> S
   S --> R[Repositories]
   P --> R
-  R --> DB[Prisma / SQLite + SQL triggers]
+  R --> DB[Prisma / PostgreSQL + SQL constraints]
   A --> W[Local workspace bootstrap]
   P --> W
   W --> DB
@@ -39,9 +39,9 @@ API установленной версии Next.js проверяют по `nod
 | `/raids/[id]`, `/raids/[id]/edit` | Добыча, продажи, снимок и разрешённое редактирование |
 | `/sales` | Остатки и передачи участникам |
 | `/ledger` | Журнал продаж, долей и передач |
-| `/settings` | Название группы, резервные копии и очистка |
+| `/settings` | Название группы, сведения о резервировании базы и очистка |
 | `/api/ledger/export` | CSV всех операций группы |
-| `/api/backups/[name]` | Скачивание локального архива |
+| `/api/backups/[name]` | Legacy endpoint; возвращает `410 Gone` для SQLite-архивов |
 
 Отдельных `/members/[id]` и `/sales/[id]` нет. История продажи раскрывается
 у добычи рейда и в журнале. Технические проводки не выводятся как бухгалтерский UI.
@@ -51,15 +51,16 @@ API установленной версии Next.js проверяют по `nod
 `ensureLocalWorkspace()` в транзакции создаёт/находит `local-user`, одну Party и
 OWNER membership. Несколько membership, неверная роль или группа без локального
 владельца приводят к ошибке. Это bootstrap локальных данных, не авторизация.
-`partyId` определяется сервером; все предметные запросы ограничены группой.
-Составные внешние ключи предотвращают связи между разными группами.
+`partyId` определяется сервером; операции группы ограничены группой. `Item` —
+общий каталог и намеренно не имеет `partyId`; рейдовый запрос проверяет предмет по
+общему идентификатору, а история добычи остаётся scoped к группе.
 
 | Сущность | Назначение |
 | --- | --- |
 | `PartyMember` | Персонаж с уникальным нормализованным ником и признаком активности |
 | `PartyMemberProfile` | Игровые профили персонажа с классом, ролью, уровнем и заметкой |
 | `PartyComposition` / `PartyCompositionMember` | Шаблон до 36 слотов «участник + профиль» |
-| `Item` | Уникальная запись каталога группы с классификацией |
+| `Item` | Общая уникальная запись каталога предметов с классификацией; не удаляется при очистке партии |
 | `Raid` / `RaidParticipant` | Рейд и исходный снимок всех активных участников со статусами |
 | `LootDrop` | Отдельное поступление Item с количеством |
 | `SaleTransaction` / `SaleShare` | Полученная оплата и рассчитанные доли |
@@ -70,9 +71,9 @@ OWNER membership. Несколько membership, неверная роль ил�
 участника/профиля не переписывает снимок. При редактировании посещаемости обновляются
 исходные строки. Обычного hard-delete исторических сущностей нет; связи используют
 RESTRICT. Подтверждённая очистка всей группы — отдельная административная операция
-в `party-repository.ts`. Только в этой явной операции SQL-триггеры временно снимаются
-и восстанавливаются внутри одной транзакции вместе с удалением; при ошибке SQLite
-откатывает и удаление, и DDL. Обычные операции всегда работают со всеми защитами.
+в `party-repository.ts`; транзакция устанавливает локальную настройку `app.party_reset`,
+которую PostgreSQL guards проверяют перед временным разрешением удаления. Общий
+каталог предметов очистка партии не меняет.
 
 Bootstrap восстанавливает отсутствующие имена из `prisma/seeds/lineage2-high-five-items.json`
 (130 названий). Существующие записи не перезаписывает; однократная миграция старой
@@ -102,10 +103,11 @@ Bootstrap восстанавливает отсутствующие имена �
    существующий результат; другие параметры с тем же ключом — конфликт.
 8. POSTED финансовая история неизменяема. Возвратов, сторно, комиссий и ручных
    корректировок нет. Обычные действия не переписывают старые начисления.
-9. Repositories повторяют распознанные SQLite lock/timeout failures максимум
-   три раза, с задержками 40 и 120 мс.
-10. Защиты целостности также реализованы в `prisma/financial-constraints.sql`:
-    положительные значения, связи, oversell, снимки, баланс и неизменяемость.
+9. Repositories повторяют распознанные PostgreSQL serialization/deadlock failures
+   максимум три раза, с задержками 40 и 120 мс.
+10. Дополнительные ограничения PostgreSQL реализованы в
+    `prisma/postgresql-constraints.sql`: положительные значения, oversell,
+    блокировка рейда, баланс и неизменяемость.
     Одной Prisma-схемы недостаточно.
 
 UI-продажа и UI-передача по-разному трактуют число без суффикса. Текущий контракт
@@ -122,30 +124,27 @@ UI-продажа и UI-передача по-разному трактуют ч
 
 ## Хранение и восстановление
 
-`DATABASE_URL` обязателен. Клиент использует `PrismaBetterSqlite3` и переиспользуется
-в development через globalThis. Стандартная БД — `prisma/dev.db`.
-Секреты, БД, uploads, backups и restore candidates не добавляют в Git.
+`DATABASE_URL` обязателен; Prisma Client uses `@prisma/adapter-pg` and a PostgreSQL
+connection pool. Local development connects to the Docker Compose PostgreSQL
+service; production connects to Neon through server-only environment variables.
+SQLite legacy data is retained only as the source for the one-time item catalog
+import. The importer opens it read-only and transfers no party or financial rows.
 
-`backup-service.ts` использует SQLite backup API и включает существующие
-`data/uploads/` в ZIP с manifest версии 1 и SHA-256. Проверяются архивные пути,
-симлинки, размеры, SQLite integrity, foreign keys и обязательные финансовые триггеры.
-Архивы хранятся в `data/backups/`, кандидаты — в `data/restore-candidates/`.
-Подготовка кандидата не переключает приложение и не заменяет активные данные.
-Ручная активация и сохранение исходных данных описаны в [README](../README.md).
-Nullable `screenshotPath` не означает наличие upload UI.
+Production backup and restore are managed through the selected PostgreSQL provider.
+Local dumps use `pg_dump`; do not point PostgreSQL restore procedures at legacy
+SQLite archives. Upload storage is not configured yet. Nullable `screenshotPath`
+does not mean upload UI exists.
 
 ## Ограничения эксплуатации и проверок
 
-- Миграции в Git не содержат всю текущую финансовую схему. `db:sync` сочетает
-  `db push` и SQL-защиты и предназначен для disposable базы. `migrate deploy`
-  не воспроизводит эту схему; изменение ценных данных требует отдельной проверенной
-  миграции. Не запускать reset/sync для диагностики.
-- Финансовые операции связаны с SQLite-триггерами. Смена provider требует переноса
-  защит, а не только редактирования Prisma config.
-- Integration tests финансов и бэкапов копируют существующую `prisma/dev.db`.
-  Чистый checkout без актуальной базы не является самодостаточной тестовой средой.
+- PostgreSQL schema is created by migrations under
+  `prisma/migrations-postgresql/`; `db:deploy` also applies repeatable SQL guards.
+- SQLite migrations and integration fixtures remain legacy material and do not
+  validate the PostgreSQL runtime. PostgreSQL integration tests require a separate
+  disposable test database before use as a CI gate.
 - Vitest работает в Node; тесты находятся рядом с кодом. Проверяются Zod, services,
-  repositories, распределение, даты, CSV, SQL guards и backup workflow.
+  repositories, распределение, даты и CSV. PostgreSQL integration tests требуют
+  отдельный `TEST_DATABASE_URL`; SQLite backup tests оставлены как legacy tests.
   Сохраняемого браузерного набора тестов нет.
 - Проверки `lint`, `typecheck`, `test`, `build` не заменяют визуальную проверку
   UI, accessibility и реальной конкуренции нескольких клиентов.

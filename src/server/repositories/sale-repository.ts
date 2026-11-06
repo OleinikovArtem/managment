@@ -54,7 +54,7 @@ function isRetryableDatabaseError(error: unknown): boolean {
     if (record.originalError) pending.push(record.originalError);
   }
 
-  return /SQLITE_BUSY|SQLITE_LOCKED|database is (?:locked|busy)|sockettimeout|operation has timed out|P2034/i.test(
+  return /40001|40P01|sockettimeout|operation has timed out|P2034/i.test(
     messages.join("\n"),
   );
 }
