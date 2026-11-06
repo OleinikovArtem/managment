@@ -85,7 +85,7 @@ async function importSale(source: SourceMessage, webhookId?: string, retryId?: s
       }
       await tx.telegramSaleImport.update({ where: { id: record.id }, data: { status: "PROCESSED", reason: null, allocations: plan, correctedText: correctedText ?? null } });
       await tx.telegramImportRead.deleteMany({ where: { importId: record.id } });
-      await tx.partyAuditEvent.create({ data: { partyId: source.partyId, actorNameSnapshot: "Telegram · Igri", action: "IMPORT", entityType: "telegram", entityId: record.id, summary: `Автоматически учтено ${rows.length} строк продажи (${source.chatId}/${source.messageId}).` } });
+      await tx.partyAuditEvent.create({ data: { partyId: source.partyId, actorNameSnapshot: "Telegram · BohPTSbot", action: "IMPORT", entityType: "telegram", entityId: record.id, summary: `Автоматически учтено ${rows.length} строк продажи (${source.chatId}/${source.messageId}).` } });
     });
   } catch (error) {
     if (!(error instanceof TelegramReviewError) && !(error instanceof SaleOperationError)) throw error;

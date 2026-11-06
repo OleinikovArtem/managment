@@ -73,7 +73,7 @@ describe.skipIf(!testUrl?.startsWith("postgres"))("Telegram ingestion on disposa
     const text = (quantity: number, name = itemName, price = "42,222,222") => `Successful sale\nItem: ${name}\nQuantity: ${quantity}\nPrice per item: ${price}`;
     let updateId = 0;
     async function deliver(messageId: number, rawText: string, extra: object = {}, edited = false, header = secret) {
-      const payload = { update_id: ++updateId, [edited ? "edited_message" : "message"]: { message_id: messageId, date: 1793960000, chat: { id: -10042, type: "supergroup", title: "Integration group" }, from: { id: 77, is_bot: true, username: "IgriBot" }, text: rawText, ...extra } };
+      const payload = { update_id: ++updateId, [edited ? "edited_message" : "message"]: { message_id: messageId, date: 1793960000, chat: { id: -10042, type: "supergroup", title: "Integration group" }, from: { id: 77, is_bot: true, username: "BohPTSbot" }, text: rawText, ...extra } };
       return POST(new Request(`https://example.invalid/api/telegram/webhook/${webhookId}`, { method: "POST", headers: { "Content-Type": "application/json", "X-Telegram-Bot-Api-Secret-Token": header }, body: JSON.stringify(payload) }), { params: Promise.resolve({ webhookId }) });
     }
     expect((await deliver(1, text(4), {}, false, "wrong")).status).toBe(403);

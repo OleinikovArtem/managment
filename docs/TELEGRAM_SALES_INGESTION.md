@@ -2,7 +2,7 @@
 
 ## Implementation and entry points
 
-Party Bank receives Igri sale notices through a dedicated bot per party.
+Party Bank receives BohPTSbot sale notices through a dedicated bot per party.
 The owner connects the bot and chooses its source in `/settings/telegram`.
 Every party member can read `/telegram`; administrators can maintain item aliases,
 retry unresolved notices and dismiss them without creating sales.
@@ -15,11 +15,11 @@ of an open browser. No polling worker or outgoing chat messages are used.
 
 1. Create a dedicated receiving bot with `@BotFather` → `/newbot`.
 2. Enable Bot-to-Bot Communication Mode. Add the receiving bot to the same group
-   as Igri; grant the necessary administrator permissions or disable privacy mode.
+   as BohPTSbot; grant the necessary administrator permissions or disable privacy mode.
 3. Enter its token in `/settings/telegram`. The server calls `getMe`, encrypts
    the token and registers `setWebhook` with a random route and secret header.
 4. After a bot posts a new message, refresh the discovered-source list. Choose
-   the group and Igri, or enter their numeric IDs. Discovery stores at most 20
+   the group and BohPTSbot, or enter their numeric IDs. Discovery stores at most 20
    chat/bot identities, not unrelated message bodies.
 5. Save the source. Automatic importing begins with subsequent messages; source
    discovery does not backfill messages received before source selection.
@@ -40,7 +40,7 @@ with ingestion using a party advisory lock.
 
 Labels are provisional English translations of the agreed screenshot. Its numeric
 example is four items at 42,222,222 Adena each, totaling 168,888,888. The name below
-is illustrative; confirm labels and layout against a real Igri English notice.
+is illustrative; confirm labels and layout against a real BohPTSbot English notice.
 
 ```text
 Successful sale
@@ -151,7 +151,7 @@ Tests cover parsing, amount reconciliation, exact FIFO allocation, permissions,
 header verification, encrypted connection lifecycle, duplicate/concurrent
 delivery, full rollback, historical snapshots and edits. PostgreSQL integration
 tests require a disposable `TEST_DATABASE_URL`. A live end-to-end Telegram check
-additionally requires the owner's receiving bot and an actual Igri notice.
+additionally requires the owner's receiving bot and an actual BohPTSbot notice.
 
 References: [Bot API webhooks](https://core.telegram.org/bots/api#setwebhook),
 [Bot-to-Bot communication](https://core.telegram.org/bots/features#bot-to-bot-communication).
