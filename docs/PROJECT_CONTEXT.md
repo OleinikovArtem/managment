@@ -16,6 +16,7 @@ Party Bank Manager — русскоязычное приложение для у
 | Участники и профили | `src/features/members/` |
 | Сохранённые составы | `src/features/compositions/` |
 | Каталог, поиск, редактирование | `src/features/items/` |
+| Весь лут, фильтры продаж и остатки | `src/features/loot/`, `src/server/repositories/loot-repository.ts`, `src/app/(dashboard)/loot/` |
 | Создание и редактирование рейда | `src/features/raids/raid-form.tsx`, `item-combobox.tsx` |
 | Detail рейда, история и продажа | `raid-detail-view.tsx`, `raid-detail-view.css`, `raid-sale-workspace.tsx` в `src/features/raids/` |
 | Передачи и получатели | `src/features/sales/payment-form.tsx`, `payout-list.tsx` |

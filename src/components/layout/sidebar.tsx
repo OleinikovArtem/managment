@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useState } from "react";
-import { Menu, Landmark, LayoutDashboard, Swords, UsersRound, WalletCards, BookOpen, Settings2 } from "lucide-react";
+import { Menu, Landmark, LayoutDashboard, Swords, UsersRound, WalletCards, BookOpen, Settings2, PackageOpen } from "lucide-react";
 import { EditorDialog } from "@/components/ui/editor-dialog";
 import { SignOutButton } from "@/features/auth/party-forms";
 
@@ -14,6 +14,7 @@ const mainLinks = [
   { href: "/members", label: "Группа", icon: UsersRound, routes: ["/members", "/compositions"] },
 ];
 const secondaryLinks = [
+  { href: "/loot", label: "Лут", icon: PackageOpen, routes: ["/loot"] },
   { href: "/items", label: "Каталог предметов", icon: BookOpen, routes: ["/items"] },
   { href: "/settings", label: "Настройки", icon: Settings2, routes: ["/settings"] },
 ];

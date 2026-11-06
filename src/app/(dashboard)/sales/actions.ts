@@ -31,6 +31,7 @@ export async function registerSaleAction(payload: unknown): Promise<SaleActionRe
     revalidatePath("/ledger");
     revalidatePath("/dashboard");
     revalidatePath("/raids");
+    revalidatePath("/loot");
     return { ok: true, message: "Продажа записана, доли Adena рассчитаны.", sale };
   } catch (error) {
     if (error instanceof SaleOperationError) {

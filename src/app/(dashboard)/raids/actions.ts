@@ -34,6 +34,7 @@ export async function createRaidAction(payload: unknown): Promise<RaidActionResu
     await recordPartyAuditEvent(access, { action: "CREATE", entityType: "raid", entityId: raidId, summary: `Добавил рейд «${parsed.data.name}» (${parsed.data.lootDrops.length} поступлений).` });
     revalidatePath("/raids");
     revalidatePath("/dashboard");
+    revalidatePath("/loot");
     return { ok: true, message: "Рейд сохранён.", raidId };
   } catch (error) {
     if (error instanceof RaidOperationError) {
@@ -71,6 +72,7 @@ export async function updateRaidAction(
     await recordPartyAuditEvent(access, { action: "UPDATE", entityType: "raid", entityId: updatedId, summary: `Изменил рейд «${parsed.data.name}».` });
     revalidatePath("/raids");
     revalidatePath(`/raids/${updatedId}`);
+    revalidatePath("/loot");
     for (const itemId of new Set(parsed.data.lootDrops.map(({ itemId }) => itemId))) {
       revalidatePath(`/items/${itemId}`);
     }
