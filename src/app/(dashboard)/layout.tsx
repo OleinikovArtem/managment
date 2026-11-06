@@ -3,6 +3,8 @@ import { Suspense } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { requirePartyPageAccess } from "@/server/auth/party-access";
 
+export const instant = false;
+
 export default function DashboardLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {

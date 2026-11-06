@@ -30,6 +30,9 @@ Server Actions: Zod-проверка, определение активной г
 
 В `next.config.ts` включены `cacheComponents` и `partialPrefetching`.
 Динамические части страниц используют `Suspense` и `await io()` из `next/cache`.
+Layout защищённых страниц отключает Instant UI validation: получение сессии и
+проверка membership выполняются на сервере и могут сделать redirect до отрисовки
+целевой страницы.
 API установленной версии Next.js проверяют по `node_modules/next/dist/docs/`.
 
 ## Маршруты
