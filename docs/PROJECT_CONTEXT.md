@@ -22,7 +22,7 @@ Party Bank Manager — русскоязычное приложение для у
 | Передачи и получатели | `src/features/sales/payment-form.tsx`, `payout-list.tsx` |
 | Продажа и валидация финансов | `src/features/sales/sale-form.tsx`, `sale-schema.ts`, `payment-schema.ts` |
 | Журнал | `src/features/ledger/history-list.tsx` |
-| Настройки и очистка группы | `src/features/settings/`, `src/server/repositories/party-repository.ts` |
+| Настройки и выборочный сброс группы | `src/features/settings/reset-plan.ts`, `reset-data-card.tsx`, `src/server/repositories/party-repository.ts` |
 | Правила и транзакции | `src/server/services/`, `src/server/repositories/` |
 | Базовый каталог предметов | `src/server/bootstrap/`, `prisma/seeds/lineage2-high-five-items.json` |
 | Авторизация, роли, приглашения, активность и Telegram-токен | `src/lib/auth.ts`, `src/server/auth/`, `src/server/services/account-party-service.ts`, `src/server/services/telegram-credential-service.ts`, `src/app/(auth)/`, `src/app/(dashboard)/settings/` |

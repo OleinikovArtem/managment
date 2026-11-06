@@ -167,6 +167,10 @@ refund or reversal; the Bot API receiver does not infer either from a deletion.
 
 Party reset preserves the inbox and aliases as well as bot configuration. Old
 processed notices remain deduplicated and cannot recreate cleared history.
+When the selection includes sales, processed receipts retain PROCESSED for replay
+protection, but allocations are cleared and a reset explanation is recorded.
+PENDING and NEEDS_REVIEW receipts become IGNORED so they cannot resume processing
+against the reset state. A payout-only or composition-only reset leaves imports intact.
 
 ## Notifications and operations
 

@@ -6,7 +6,7 @@ import { partySettingsSchema } from "@/features/settings/party-schema";
 import { requirePartyActionAccess } from "@/server/auth/party-access";
 import { updatePartyName } from "@/server/services/party-service";
 import { resetPartyData } from "@/server/repositories/party-repository";
-import { RESET_PARTY_CONFIRMATION } from "@/features/settings/reset-confirmation";
+import { resetRequestSchema, RESET_OPTIONS } from "@/features/settings/reset-plan";
 import { recordPartyAuditEvent } from "@/server/services/party-audit-service";
 
 export async function updatePartySettingsAction(
@@ -32,23 +32,17 @@ export async function updatePartySettingsAction(
 }
 
 export async function resetPartyDataAction(payload: unknown): Promise<PartyActionResult> {
-  const confirmation = typeof payload === "object" && payload !== null && "confirmation" in payload
-    ? payload.confirmation
-    : null;
-  if (confirmation !== RESET_PARTY_CONFIRMATION) {
-    return { ok: false, message: `Введите точно: ${RESET_PARTY_CONFIRMATION}.` };
-  }
-
   const access = await requirePartyActionAccess("OWNER");
+  const parsed = resetRequestSchema.safeParse(payload);
+  if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Проверьте выбор данных." };
   const { partyId } = access;
   try {
-    await resetPartyData(partyId);
-    await recordPartyAuditEvent(access, { action: "RESET", entityType: "party", entityId: partyId, summary: "Очистил данные группы; общий каталог предметов сохранён." });
+    const categories = await resetPartyData(partyId, parsed.data.categories);
+    const labels = RESET_OPTIONS.filter(option => categories.includes(option.id)).map(option => option.label).join(", ");
+    await recordPartyAuditEvent(access, { action: "RESET", entityType: "party", entityId: partyId, summary: `Сбросил данные: ${labels}. Общий каталог предметов сохранён.` });
   } catch {
     return { ok: false, message: "Не удалось очистить данные. Изменения отменены; проверьте резервную копию и повторите." };
   }
-  for (const path of ["/settings", "/dashboard", "/raids", "/sales", "/ledger", "/members"]) {
-    revalidatePath(path);
-  }
-  return { ok: true, message: "Данные группы очищены. Каталог предметов сохранён." };
+  revalidatePath("/", "layout");
+  return { ok: true, message: "Выбранные данные и их зависимости сброшены. Общий каталог сохранён." };
 }
