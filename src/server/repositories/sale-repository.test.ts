@@ -13,9 +13,11 @@ const mocks = vi.hoisted(() => ({
   ledgerEntryCreateMany: vi.fn(),
   ledgerEntryFindMany: vi.fn(),
   ledgerTransactionFindMany: vi.fn(),
+  raidUpdateMany: vi.fn(),
 }));
 
 const transaction = {
+  raid: { updateMany: mocks.raidUpdateMany },
   saleTransaction: {
     findUnique: mocks.saleFindUnique,
     findUniqueOrThrow: mocks.saleFindUniqueOrThrow,
@@ -109,6 +111,7 @@ describe("sale repository", () => {
     await registerPartySale("party-1", input);
 
     expect(mocks.$transaction).toHaveBeenCalledOnce();
+    expect(mocks.raidUpdateMany).toHaveBeenCalledWith({ where: { partyId: "party-1", id: "raid-1", lockedAt: null }, data: { lockedAt: expect.any(Date) } });
     expect(mocks.lootDropFindFirst).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { partyId: "party-1", id: "drop-1" },

@@ -1,121 +1,157 @@
 # Telegram sales ingestion
 
-## Status
+## Implementation and entry points
 
-Agreed product behavior and integration constraints are documented here. The
-Telegram listener, parser, automatic matching, and notifications are not
-implemented yet. This document describes the intended behavior, not a delivery
-schedule.
+Party Bank receives Igri sale notices through a dedicated bot per party.
+The owner connects the bot and chooses its source in `/settings/telegram`.
+Every party member can read `/telegram`; administrators can maintain item aliases,
+retry unresolved notices and dismiss them without creating sales.
 
-## Source and scope
+The receiver is an authenticated HTTPS webhook at
+`/api/telegram/webhook/[webhookId]`. Processing runs on the server, independently
+of an open browser. No polling worker or outgoing chat messages are used.
 
-- A dedicated Party Bank Manager bot will receive successful sale notices
-  posted by the Igri bot in the group's Telegram chat.
-- Process only messages from the configured chat and Igri bot. Ignore unrelated
-  messages and the player's current Adena balance.
-- The expected notice language is English. Item names may be adjusted over time,
-  so matching must support alternate names for a catalog item.
-- A successful sale is automatic. Do not ask for confirmation for ordinary,
-  unambiguous notices.
+## Owner setup
 
-## Sale data contract
+1. Create a dedicated receiving bot with `@BotFather` → `/newbot`.
+2. Enable Bot-to-Bot Communication Mode. Add the receiving bot to the same group
+   as Igri; grant the necessary administrator permissions or disable privacy mode.
+3. Enter its token in `/settings/telegram`. The server calls `getMe`, encrypts
+   the token and registers `setWebhook` with a random route and secret header.
+4. After a bot posts a new message, refresh the discovered-source list. Choose
+   the group and Igri, or enter their numeric IDs. Discovery stores at most 20
+   chat/bot identities, not unrelated message bodies.
+5. Save the source. Automatic importing begins with subsequent messages; source
+   discovery does not backfill messages received before source selection.
 
-Extract each item row independently:
+Only OWNER can connect, replace, test or disconnect a bot or change the source.
+One bot cannot belong to multiple Party Bank parties. Reconnecting rotates the
+webhook route and secret; replacing the bot clears its old source configuration.
+Disconnecting revokes the route and removes the credential, preserving imports
+and financial history. If Telegram cannot remove its remote webhook, the old
+route still cannot accept messages after local revocation.
 
-- Item name (resolve through a normalized name or configured alias).
-- Quantity sold.
-- Adena proceeds for that row.
+Tokens use AES-256-GCM with `PARTY_TOKEN_ENCRYPTION_KEY`; they are never returned
+to the browser or logged. The webhook secret is stored as a SHA-256 hash and
+compared against `X-Telegram-Bot-Api-Secret-Token`. Lifecycle changes are serialized
+with ingestion using a party advisory lock.
 
-The screenshot example has one row with quantity 4 at 42,222,222 Adena each,
-and a total of 168,888,888 Adena. When a row states a per-item price, calculate
-its row proceeds as quantity multiplied by unit price. If the English notice
-provides a row total instead, use that total directly. The notice's overall
-`Sum`/`Total`, when present, is a reconciliation value and must not be recorded
-as an additional sale. A `Current Adena` balance is never sale proceeds.
+## English message format
 
-If one notice contains multiple item rows, record each row using that row's
-quantity and proceeds. Do not divide a notice-wide total between rows unless
-the source format provides enough information to do so. Exact English labels
-and formatting must be verified against a raw example before implementing the
-parser.
+Labels are provisional English translations of the agreed screenshot. Its numeric
+example is four items at 42,222,222 Adena each, totaling 168,888,888. The name below
+is illustrative; confirm labels and layout against a real Igri English notice.
 
-## Raid matching and allocation
+```text
+Successful sale
+Item: Giant's Codex
+Quantity: 4
+Price per item: 42,222,222 Adena
+Total: 168,888,888 Adena
+Current Adena: 999,999,999
+```
 
-- Resolve item names to the existing catalog item using case/spacing
-  normalization and maintained aliases. Do not silently choose between
-  ambiguous item matches.
-- Match only against remaining unsold quantity in raid loot.
-- Allocate from the oldest raid with available quantity first. If a line's
-  quantity spans multiple raids, continue to the next-oldest eligible raid.
-- Split the row's proceeds across those allocations according to units sold;
-  preserve the exact Adena total when splitting integer amounts.
-- Record each allocation through the existing sale business logic so the
-  current financial invariants and raid distribution rules remain in force.
-- Reprocessing a Telegram update must never create a duplicate sale. Use the
-  source chat/message identity as an idempotency key.
+Recognized headings include `Successful sale`, `Sale successful`, `Sale completed`,
+`Successfully sold`, `Item sold`, and `Your item has been purchased`.
+A generic `Purchase successful` notice is not treated as sale income.
 
-An item that cannot be matched unambiguously must not be silently attached to a
-different item or raid. The implementation needs an exception state and a
-visible notification for unmatched or malformed notices; the exact resolution
-workflow remains to be agreed. This exception handling does not add
-confirmation to normal matched sales.
+- `Item` / `Name`: item name.
+- `Quantity` / `Qty` / `Amount`: positive whole quantity, at most 1,000,000 per row.
+- `Price per item` / `Unit price` / `Price`: unit price. Multiply by quantity.
+- `Subtotal` / `Row total`: proceeds for this row. If a unit price is also given,
+  both values must agree.
+- `Total` / `Sum`: optional notice-wide reconciliation, never an extra sale.
+- `Current Adena` / `Adena balance` / `Balance`: ignored.
 
-## Notifications
+Multiple blocks and explicit compact rows are supported:
 
-Show a fresh in-app notification with the item, quantity, Adena proceeds, and
-raid allocation. For a notice with several rows, keep the rows together in one
-notification while showing the raid used for each allocation. The notification
-must remain discoverable after its transient toast disappears.
+```text
+Sale completed
+Sword x2 @ 100 Adena each
+Shield x3 = 75 Adena
+Total: 275 Adena
+```
 
-## Telegram and runtime requirements
+Amounts are positive integer Adena, with optional comma or space thousands
+separators. Decimal and ambiguous prices are rejected. A dash price requires
+`each` / `per item`; `=` explicitly denotes a row total. Arithmetic uses BigInt,
+bounded by PostgreSQL signed BIGINT. Unknown lines in a sale notice cause review,
+so an unrecognized item row cannot be silently skipped. Limits: 16,000 characters,
+50 item rows, and 100 loot allocations per notice.
 
-- Each party owner connects a dedicated receiving bot for that party. The owner
-  enters the BotFather token in the party's Telegram settings; do not configure
-  one party's bot through a shared application environment variable.
-- Enable Bot-to-Bot Communication Mode for the receiving bot in `@BotFather`.
-  For unmentioned group notices, add it as an administrator with only necessary
-  rights, or disable its group privacy mode. The receiving bot and Igri must be
-  in the same group.
-- Include an in-app setup guide for the owner:
-  1. Open `@BotFather`, create a bot with `/newbot`, and copy its API token.
-  2. Enable Bot-to-Bot Communication Mode for the new bot in BotFather.
-  3. Add the bot to the group that contains Igri, granting the minimum access
-     required for it to receive group messages.
-  4. Paste the token into the party's Telegram settings. Token storage is
-     implemented; connection testing and group selection from received updates
-     are not available because the listener is not implemented.
-- Only the party owner can view, replace, test, or disconnect the bot token.
-  Store it encrypted at rest, expose it only to the server-side listener, mask
-  it after saving, and never include it in logs or error messages. Keep the
-  encryption key in server-side deployment secrets.
-- Telegram Bot API supports either long polling (`getUpdates`) or a webhook for
-  a bot at a time, not both. The deployment target uses a webhook to a protected
-  Next.js Route Handler; do not run a long-lived polling worker in a Vercel
-  Function. Filter by configured chat and sender IDs and verify Telegram's
-  configured webhook secret token.
-- The webhook handler must fit the host's request execution limits and safely
-  handle retries. Persist the update identity and sale allocations atomically;
-  return success only after the update is durably recorded. For work that cannot
-  complete within one request, persist a job and process it with an explicitly
-  selected durable worker/queue rather than relying on an in-memory background
-  task.
-- Local development may use a tunnel or manual test updates. Production receipt
-  requires the deployed HTTPS endpoint to remain reachable; it does not depend
-  on a user's browser being open.
-- Handle retries, reconnects, and duplicate deliveries using the idempotency
-  rule above.
+The parser and translated example live in `src/server/telegram/sale-parser.ts`.
+Changes to English labels belong there; existing manual money input is unchanged.
 
-Telegram references: [Bot-to-Bot communication](https://core.telegram.org/bots/features#bot-to-bot-communication),
-[receiving updates](https://core.telegram.org/bots/api#updating-messages).
+## Source filtering and financial processing
 
-## Unresolved integration behavior
+Only original `message` / `edited_message` updates in the configured group from
+the configured bot ID are eligible. Human senders, other chats/bots, forwarded
+messages and messages sent on behalf of a chat are ignored. The current balance
+and unrelated notices create no financial entries.
 
-- Obtain a raw English notice containing multiple item rows to lock down labels,
-  quantity syntax, whether row values are unit prices or row totals, and the
-  overall reconciliation field.
-- Agree how an unmatched or ambiguous notice is resolved and retried.
-- Agree how edits or deletion of an already processed Telegram message affect
-  an existing financial record.
-- The app is deployed at https://party-bank-manager.vercel.app, but the Telegram
-  webhook route and durable retry behavior are not implemented. Deployment
-  constraints are described in [DEPLOYMENT.md](./DEPLOYMENT.md).
+Item matching uses normalized canonical names, display names and per-party
+`TelegramItemAlias` records. An ambiguous match is never chosen automatically.
+Only unsold loot in the same party is eligible. Allocate oldest raid first, then
+loot creation time and ID. One row may span multiple raids; distribute its
+proceeds per unit, assigning integer remainders to the earliest allocated units.
+The exact row total is preserved. Repeated rows consume the shared remaining
+quantity during planning; manual sales are deducted as well.
+
+Every allocation uses the same transaction-level sale writer as manual sales:
+equal PRESENT-participant shares from the original raid, historical weight
+snapshots, balanced POSTED ledger entries and raid financial lock. All rows of
+one notice, the final import state and system audit event commit together. A
+failure in any row rolls back every financial write from that notice.
+
+## Durable inbox, retries and edits
+
+`TelegramSaleImport` uniquely identifies a source by party/chat/message ID.
+Update IDs are retained as metadata; repeated updates cannot create another sale.
+The received body and source hash remain available. An edit of an unresolved
+notice replaces its unprocessed source body; posted notices retain their body.
+Administrator corrections are stored separately in `correctedText`.
+
+- `PENDING`: the inbox receipt is durable; processing or Telegram redelivery can
+  continue. After a timeout, an administrator can also retry it from the history.
+- `NEEDS_REVIEW`: malformed text, unresolved/ambiguous item, insufficient unsold
+  loot, conflicting totals or a failed business invariant. No partial sale exists.
+- `PROCESSED`: all allocations committed. Replays and manual retry cannot resell it.
+- `IGNORED`: explicitly dismissed by an administrator without creating sales.
+
+Known business failures are persisted and acknowledged. Temporary database
+failures return 503 so Telegram can redeliver. Serializable transactions and
+bounded retries handle concurrent imports; PostgreSQL guards protect against
+concurrent manual sales too. No request relies on an in-memory background task.
+
+Editing an already processed message only adds a warning; it does not rewrite
+posted finance. An edit first seen without the original goes to review. Pending
+or unresolved edits require explicit retry. Telegram message deletion is not a
+refund or reversal; the Bot API receiver does not infer either from a deletion.
+
+Party reset preserves the inbox and aliases as well as bot configuration. Old
+processed notices remain deduplicated and cannot recreate cleared history.
+
+## Notifications and operations
+
+Authenticated pages check unread imports while visible, every 20 seconds and on
+window focus. Fresh notifications show items, quantities, proceeds and raid
+allocations; `/telegram` remains the persistent history after a toast disappears.
+Read markers belong to individual users. History shows the 100 most recently
+updated notices, so warnings about old edits return to the visible list;
+alias maintenance exposes the first 2,000 catalog items and party aliases.
+
+Webhook body size is limited to 64 KiB. Bad secrets are rejected before reading
+the body. Logs and client errors exclude tokens, headers, payloads and Telegram
+credential-bearing URLs. The published HTTPS origin is taken from
+`TELEGRAM_WEBHOOK_BASE_URL`, falling back to `BETTER_AUTH_URL`. Local receiving
+needs a public HTTPS tunnel; do not register a local test instance against a
+production party's bot. See [DEPLOYMENT.md](./DEPLOYMENT.md).
+
+Tests cover parsing, amount reconciliation, exact FIFO allocation, permissions,
+header verification, encrypted connection lifecycle, duplicate/concurrent
+delivery, full rollback, historical snapshots and edits. PostgreSQL integration
+tests require a disposable `TEST_DATABASE_URL`. A live end-to-end Telegram check
+additionally requires the owner's receiving bot and an actual Igri notice.
+
+References: [Bot API webhooks](https://core.telegram.org/bots/api#setwebhook),
+[Bot-to-Bot communication](https://core.telegram.org/bots/features#bot-to-bot-communication).

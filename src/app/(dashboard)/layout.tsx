@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Suspense } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { requirePartyPageAccess } from "@/server/auth/party-access";
+import { TelegramNotifications } from "@/features/telegram/notifications";
 
 export const instant = false;
 
@@ -19,6 +20,7 @@ async function DashboardShell({ children }: Readonly<{ children: ReactNode }>) {
       <div className="min-w-0 flex-1">
         <a href="#main-content" className="skip-link">К содержимому</a>
         <main id="main-content" className="app-content">
+          <TelegramNotifications key={access.partyId} partyId={access.partyId} />
           {children}
         </main>
       </div>

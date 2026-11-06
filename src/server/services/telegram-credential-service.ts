@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createCipheriv, randomBytes } from "node:crypto";
+import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import { prisma } from "@/lib/db/prisma";
 
 function encryptionKey() {
@@ -11,26 +11,34 @@ function encryptionKey() {
   return Buffer.from(value, "hex");
 }
 
-export async function saveTelegramBotToken(partyId: string, token: string) {
+export function encryptTelegramBotToken(token: string) {
   const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", encryptionKey(), iv);
   const encryptedToken = Buffer.concat([cipher.update(token, "utf8"), cipher.final()]);
+  return { encryptedToken: encryptedToken.toString("base64"), initializationVector: iv.toString("base64"), authenticationTag: cipher.getAuthTag().toString("base64") };
+}
+
+export async function saveTelegramBotToken(partyId: string, token: string) {
+  const encrypted = encryptTelegramBotToken(token);
   await prisma.partyTelegramBotConfig.upsert({
     where: { partyId },
     create: {
       partyId,
-      encryptedToken: encryptedToken.toString("base64"),
-      initializationVector: iv.toString("base64"),
-      authenticationTag: cipher.getAuthTag().toString("base64"),
+      ...encrypted,
     },
     update: {
-      encryptedToken: encryptedToken.toString("base64"),
-      initializationVector: iv.toString("base64"),
-      authenticationTag: cipher.getAuthTag().toString("base64"),
+      ...encrypted,
     },
   });
 }
 
 export async function removeTelegramBotToken(partyId: string) {
   await prisma.partyTelegramBotConfig.deleteMany({ where: { partyId } });
+}
+
+export async function readTelegramBotToken(partyId: string) {
+  const config = await prisma.partyTelegramBotConfig.findUniqueOrThrow({ where: { partyId } });
+  const decipher = createDecipheriv("aes-256-gcm", encryptionKey(), Buffer.from(config.initializationVector, "base64"));
+  decipher.setAuthTag(Buffer.from(config.authenticationTag, "base64"));
+  return Buffer.concat([decipher.update(Buffer.from(config.encryptedToken, "base64")), decipher.final()]).toString("utf8");
 }

@@ -56,6 +56,7 @@ model User {
   memberships             PartyMembership[]
   createdPartyInvitations PartyInvitation[]
   auditEvents             PartyAuditEvent[]
+  telegramReads           TelegramImportRead[]
 }
 
 model Session {
@@ -128,6 +129,8 @@ model Party {
   paymentAllocations PaymentAllocation[]
   ledgerTransactions LedgerTransaction[]
   ledgerEntries      LedgerEntry[]
+  telegramImports    TelegramSaleImport[]
+  telegramAliases    TelegramItemAlias[]
 }
 
 model PartyTelegramBotConfig {
@@ -137,7 +140,63 @@ model PartyTelegramBotConfig {
   authenticationTag    String
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
+  botId                String?  @unique
+  botUsername          String?
+  webhookId            String?  @unique
+  webhookSecretHash    String?
+  webhookEnabled       Boolean  @default(false)
+  chatId               String?
+  chatTitle            String?
+  senderId             String?
+  senderUsername       String?
+  discoveries          Json     @default("[]")
+  lastReceivedAt       DateTime?
   party                Party    @relation(fields: [partyId], references: [id], onDelete: Restrict)
+}
+
+model TelegramSaleImport {
+  id             String   @id @default(cuid())
+  partyId        String
+  chatId         String
+  senderId       String
+  messageId      String
+  updateId       String
+  rawText        String
+  correctedText  String?
+  sourceHash     String
+  status         String
+  reason         String?
+  allocations    Json     @default("[]")
+  receivedAt     DateTime
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  party          Party    @relation(fields: [partyId], references: [id], onDelete: Restrict)
+  reads          TelegramImportRead[]
+
+  @@unique([partyId, chatId, messageId])
+  @@index([partyId, createdAt])
+}
+
+model TelegramImportRead {
+  importId String
+  userId   String
+  readAt   DateTime @default(now())
+  import   TelegramSaleImport @relation(fields: [importId], references: [id], onDelete: Cascade)
+  user     User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([importId, userId])
+}
+
+model TelegramItemAlias {
+  id             String @id @default(cuid())
+  partyId        String
+  itemId         String
+  name           String
+  normalizedName String
+  party          Party @relation(fields: [partyId], references: [id], onDelete: Restrict)
+  item           Item @relation(fields: [itemId], references: [id], onDelete: Restrict)
+
+  @@unique([partyId, normalizedName])
 }
 
 model PartyAuditEvent {
@@ -277,6 +336,7 @@ model PartyCompositionMember {
 }
 
 model Item {
+  telegramAliases TelegramItemAlias[]
   id             String   @id @default(cuid())
   canonicalName  String
   normalizedName String

@@ -31,7 +31,7 @@ type SaleRecordInput = {
   idempotencyKey: string;
 };
 
-function isRetryableDatabaseError(error: unknown): boolean {
+export function isRetryableDatabaseError(error: unknown): boolean {
   const messages: string[] = [];
   const pending: unknown[] = [error];
   const visited = new Set<object>();
@@ -99,7 +99,7 @@ function resolveExistingSale(
   return existing;
 }
 
-async function createPartySaleRecord(
+export async function createPartySaleRecord(
   transaction: Transaction,
   partyId: string,
   input: SaleRecordInput,
@@ -234,6 +234,11 @@ async function createPartySaleRecord(
       status: LedgerTransactionStatus.POSTED,
       postedAt: now,
     },
+  });
+
+  await transaction.raid.updateMany({
+    where: { partyId, id: lootDrop.raidId, lockedAt: null },
+    data: { lockedAt: now },
   });
 
   return transaction.saleTransaction.findUniqueOrThrow({

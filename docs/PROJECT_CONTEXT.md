@@ -29,6 +29,8 @@ Party Bank Manager — русскоязычное приложение для у
 | Клиент БД | `src/lib/db/prisma.ts` |
 | Parser и короткие суммы | `src/lib/adena.ts`, `src/components/ui/adena-amount.tsx` |
 | CSV | `src/server/services/financial-history-csv.ts`, `src/app/api/ledger/export/route.ts` |
+| Приём Telegram, parser, FIFO-распределение, подключения и inbox | `src/server/telegram/`, `src/app/api/telegram/`, `src/features/telegram/`, `src/app/(dashboard)/telegram/` |
+| Правило нового пароля (8–128, буква и цифра) | `src/lib/password-policy.ts`, `src/lib/auth.ts`, `src/features/auth/auth-form.tsx` |
 
 ## Технические ориентиры
 
@@ -65,8 +67,9 @@ not import party records or financial history.
 
 - Аккаунты, группы, роли, приглашения и ограничения восстановления:
   [требования к многопользовательскому доступу](./ACCOUNTS_AND_PARTIES_SPEC.md).
-- Telegram listener и автоматический импорт продаж пока отсутствуют; согласованные
-  правила и ограничения интеграции:
+- Telegram webhook, автоматический импорт продаж, история, уведомления и ручной
+  разбор исключений реализованы; для подключения нужен receiving bot владельца.
+  Формат английских меток предварительный, по переводу примера продажи:
   [правила приёма, разбора и распределения](./TELEGRAM_SALES_INGESTION.md).
 - Production размещён на Vercel с БД Neon; настройки и требования к средам:
   [Vercel, PostgreSQL и перенос данных](./DEPLOYMENT.md).

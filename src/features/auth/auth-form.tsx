@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
+import { isValidNewPassword, PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH, PASSWORD_RULE_MESSAGE } from "@/lib/password-policy";
 
 type AuthMode = "login" | "register";
 
@@ -36,6 +37,11 @@ export function AuthForm({ mode, returnTo }: AuthFormProps) {
     const form = new FormData(event.currentTarget);
     const username = String(form.get("username") ?? "").trim().toLocaleLowerCase("en-US");
     const password = String(form.get("password") ?? "");
+    if (mode === "register" && !isValidNewPassword(password)) {
+      setError(PASSWORD_RULE_MESSAGE);
+      setPending(false);
+      return;
+    }
     try {
       if (mode === "register") {
         const result = await authClient.signUp.email({
@@ -76,7 +82,8 @@ export function AuthForm({ mode, returnTo }: AuthFormProps) {
           {(mode === "login" || mode === "register") && (
             <label className="block space-y-1.5 text-sm font-medium">
               <span>Пароль</span>
-              <Input name="password" type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} minLength={12} maxLength={128} required disabled={pending} />
+              <Input name="password" type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} minLength={mode === "register" ? PASSWORD_MIN_LENGTH : 1} maxLength={PASSWORD_MAX_LENGTH} required disabled={pending} />
+              {mode === "register" && <span className="block text-xs font-normal text-muted-foreground">От 8 символов, хотя бы одна буква и одна цифра.</span>}
             </label>
           )}
           {mode === "login" && <p className="text-xs leading-5 text-muted-foreground">Вход по логину и паролю. Сброс пароля без email пока недоступен.</p>}
