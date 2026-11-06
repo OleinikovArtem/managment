@@ -54,7 +54,7 @@ export async function testTelegramAction(): Promise<TelegramActionResult> {
 
 export async function saveTelegramSourceAction(chatId: string, senderId: string): Promise<TelegramActionResult> {
   const access = await requirePartyActionAccess("OWNER");
-  if (!/^-\d{1,16}$/.test(chatId) || !/^[1-9]\d{0,15}$/.test(senderId)) return { ok: false, message: "Выберите групповой чат и бота-источник или проверьте их числовые ID." };
+  if (!/^-?[1-9]\d{0,15}$/.test(chatId) || !/^[1-9]\d{0,15}$/.test(senderId) || !Number.isSafeInteger(Number(chatId)) || !Number.isSafeInteger(Number(senderId))) return { ok: false, message: "Выберите групповой или личный чат и исходного бота либо проверьте их числовые ID." };
   const config = await prisma.partyTelegramBotConfig.findUnique({ where: { partyId: access.partyId } });
   if (!config?.webhookEnabled) return { ok: false, message: "Сначала подключите webhook receiving bot." };
   const sources = Array.isArray(config.discoveries) ? config.discoveries : [];

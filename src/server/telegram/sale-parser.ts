@@ -5,6 +5,17 @@ Price per item: 42,222,222 Adena
 Total: 168,888,888 Adena
 Current Adena: 999,999,999`;
 
+export const BOHPTS_SALE_EXAMPLE = `💰 Successful sale
+Buyer: Love
+
+Items:
+- Sealed Moirai Leather Boots × 1 @ 22 222 222 Adena
+
+Total: 22 222 222 Adena
+💰 Current adena: 854 896 093
+
+🌟 Phenomenon x20 · 👤 Miva`;
+
 export const MAX_ADENA = 9_223_372_036_854_775_807n;
 export type TelegramSaleRow = { name: string; quantity: number; proceeds: bigint };
 export class TelegramReviewError extends Error {}
@@ -14,7 +25,7 @@ export function normalizeTelegramName(value: string) {
 }
 
 function integer(value: string): bigint {
-  const cleaned = value.trim().replace(/\s*Adena\s*$/i, "").trim();
+  const cleaned = value.trim().replace(/\s*(?:[\p{Extended_Pictographic}\uFE0F\u200D]\s*)*Adena\s*$/iu, "").trim();
   if (!/^(?:\d+|\d{1,3}(?:[, ]\d{3})+)$/.test(cleaned)) {
     throw new TelegramReviewError("Сумма должна быть целым числом Adena без дробей.");
   }
@@ -27,7 +38,7 @@ type Draft = { name: string; quantity?: number; price?: bigint; subtotal?: bigin
 const saleNotice = /(?:successful sale|sale successful|successfully sold|sale completed|items? (?:has been |have been )?sold|your items? (?:has been |have been |was |were )?purchased)/i;
 const headerLine = new RegExp(`^(?:${saleNotice.source})[!:. ]*$`, "i");
 
-/** The English labels are provisional translations of the agreed screenshot. */
+/** Supports BOHPTS compact notices and the original translated label format. */
 export function parseTelegramSale(text: string): TelegramSaleRow[] | null {
   if (!saleNotice.test(text)) return null;
   if (text.length > 16_000) throw new TelegramReviewError("Сообщение слишком длинное.");
@@ -46,8 +57,11 @@ export function parseTelegramSale(text: string): TelegramSaleRow[] | null {
     draft = undefined;
   }
   for (const original of text.split(/\r?\n/)) {
+    // BOHPTS identifies the server and character in a non-financial footer.
+    if (/^[✨🌟⭐]\uFE0F?\s+[\p{L}\p{N}][\p{L}\p{N} ._-]*\s+x\d+\s*[.·]\s*👤\uFE0F?\s+[\p{L}\p{N}_-]+\s*$/u.test(original.trim())) continue;
     const line = original.trim().replace(/^[^\p{L}\p{N}]+/u, "");
     if (!line || headerLine.test(line)) continue;
+    if (/^Buyer:\s*\S.{0,239}$/i.test(line) || /^Items:\s*$/i.test(line)) continue;
     if (/^(?:current adena|adena balance|balance)\s*[:=]/i.test(line)) continue;
     const label = line.match(/^(item|name|quantity|qty|amount|price per item|unit price|price|row total|subtotal|total|sum)\s*[:=]\s*(.+)$/i);
     if (label) {
@@ -72,7 +86,7 @@ export function parseTelegramSale(text: string): TelegramSaleRow[] | null {
       continue;
     }
     // Compact rows explicitly distinguish a unit price (@ / each) and a row total (=).
-    const compact = line.match(/^(.+?)\s+[x×]\s*(\d+)\s*(@|=|—|-)\s*([\d, ]+)(?:\s*Adena)?\s*(each|per item)?[.!]?$/i);
+    const compact = line.match(/^(.+?)\s+[x×]\s*(\d+)\s*(@|=|—|-)\s*([\d, ]+(?:\s*(?:[\p{Extended_Pictographic}\uFE0F\u200D]\s*)*Adena)?)\s*(each|per item)?[.!]?$/iu);
     if (compact) {
       flush();
       draft = { name: compact[1].trim(), quantity: Number(compact[2]) };

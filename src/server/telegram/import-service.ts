@@ -15,10 +15,14 @@ export const telegramUpdateSchema = z.object({
 });
 const messageSchema = z.object({
   message_id: id.positive(), date: id.nonnegative().max(253_402_300_799),
-  chat: z.object({ id, type: z.enum(["group", "supergroup"]), title: z.string().max(240).optional() }),
-  from: z.object({ id: id.positive(), is_bot: z.literal(true), username: z.string().max(64).optional() }),
+  chat: z.object({ id, type: z.enum(["group", "supergroup", "private"]), title: z.string().max(240).optional(), first_name: z.string().max(240).optional() }),
+  from: z.object({ id: id.positive(), is_bot: z.boolean(), username: z.string().max(64).optional() }),
   text: z.string().max(16_000).optional(), caption: z.string().max(16_000).optional(),
   forward_origin: z.unknown().optional(), sender_chat: z.unknown().optional(),
+});
+const forwardSchema = z.object({
+  type: z.literal("user"), date: id.nonnegative().max(253_402_300_799),
+  sender_user: z.object({ id: id.positive(), is_bot: z.literal(true), username: z.string().max(64).optional() }),
 });
 type SourceMessage = { partyId: string; chatId: string; senderId: string; messageId: string; updateId: string; rawText: string; sourceHash: string; receivedAt: Date };
 
@@ -46,6 +50,21 @@ async function importSale(source: SourceMessage, webhookId?: string, retryId?: s
       if (webhookId && !await tx.partyTelegramBotConfig.findFirst({ where: { partyId: source.partyId, webhookId, webhookEnabled: true, chatId: source.chatId, senderId: source.senderId } })) return;
       const existing = await tx.telegramSaleImport.findUnique({ where: { partyId_chatId_messageId: identity } });
       if (existing && existing.status !== "PENDING" && (!retryId || existing.id !== retryId || existing.status !== "NEEDS_REVIEW")) return;
+      // Private-chat forwards expose the original sender and timestamp, but no
+      // original message ID. Compare these and the exact body under the party
+      // lock, including across configured-chat changes and direct/forward routes.
+      const duplicate = await tx.telegramSaleImport.findFirst({ where: {
+        partyId: source.partyId, senderId: source.senderId, receivedAt: source.receivedAt,
+        sourceHash: source.sourceHash, status: "PROCESSED",
+        ...(existing ? { id: { not: existing.id } } : {}),
+        ...(!source.messageId.startsWith("forward:") ? { messageId: { startsWith: "forward:" } } : {}),
+      }, select: { id: true } });
+      if (duplicate) {
+        const data = { status: "IGNORED" as const, reason: `Повтор пересылки: такая продажа уже учтена (${duplicate.id}).` };
+        if (existing) await tx.telegramSaleImport.update({ where: { id: existing.id }, data });
+        else await tx.telegramSaleImport.create({ data: { ...source, ...data } });
+        return;
+      }
       const rows = parseTelegramSale(correctedText ?? source.rawText);
       if (!rows) throw new TelegramReviewError("Это не распознаваемое уведомление об успешной продаже.");
       const candidates = new Map<string, LootCandidate[]>();
@@ -105,9 +124,14 @@ export async function receiveTelegramUpdate(webhookId: string, payload: unknown)
   const parsed = messageSchema.safeParse(update.message ?? update.edited_message);
   if (!parsed.success) return;
   const message = parsed.data;
-  if (message.forward_origin || message.sender_chat) return;
+  if (message.sender_chat) return;
+  const forwarded = message.forward_origin === undefined ? undefined : forwardSchema.safeParse(message.forward_origin);
+  if (forwarded && (!forwarded.success || message.from.is_bot)) return;
+  if (!forwarded && (!message.from.is_bot || message.chat.type === "private")) return;
+  const origin = forwarded?.success ? forwarded.data : undefined;
+  const sender = origin?.sender_user ?? message.from;
   const config = await prisma.partyTelegramBotConfig.findUnique({ where: { webhookId } });
-  if (!config?.webhookEnabled || String(message.from.id) === config.botId) return;
+  if (!config?.webhookEnabled || String(message.from.id) === config.botId || String(sender.id) === config.botId) return;
   const rawText = message.text ?? message.caption;
   if (!rawText) return;
   await transaction(async tx => {
@@ -115,11 +139,11 @@ export async function receiveTelegramUpdate(webhookId: string, payload: unknown)
     const current = await tx.partyTelegramBotConfig.findFirst({ where: { partyId: config.partyId, webhookId, webhookEnabled: true } });
     if (!current) return;
     const sources = (Array.isArray(current.discoveries) ? current.discoveries : []) as DiscoveredSource[];
-    const next = [{ chatId: String(message.chat.id), chatTitle: message.chat.title ?? String(message.chat.id), senderId: String(message.from.id), senderUsername: message.from.username ?? String(message.from.id) }, ...sources.filter(s => s.chatId !== String(message.chat.id) || s.senderId !== String(message.from.id))].slice(0, 20);
+    const next = [{ chatId: String(message.chat.id), chatTitle: message.chat.title ?? message.chat.first_name ?? String(message.chat.id), senderId: String(sender.id), senderUsername: sender.username ?? String(sender.id) }, ...sources.filter(s => s.chatId !== String(message.chat.id) || s.senderId !== String(sender.id))].slice(0, 20);
     await tx.partyTelegramBotConfig.update({ where: { partyId: config.partyId }, data: { discoveries: next, lastReceivedAt: new Date() } });
   });
-  if (config.chatId !== String(message.chat.id) || config.senderId !== String(message.from.id)) return;
-  const source: SourceMessage = { partyId: config.partyId, chatId: String(message.chat.id), senderId: String(message.from.id), messageId: String(message.message_id), updateId: String(update.update_id), rawText, sourceHash: createHash("sha256").update(rawText).digest("hex"), receivedAt: new Date(message.date * 1000) };
+  if (config.chatId !== String(message.chat.id) || config.senderId !== String(sender.id)) return;
+  const source: SourceMessage = { partyId: config.partyId, chatId: String(message.chat.id), senderId: String(sender.id), messageId: origin ? `forward:${message.from.id}:${message.message_id}` : String(message.message_id), updateId: String(update.update_id), rawText, sourceHash: createHash("sha256").update(rawText).digest("hex"), receivedAt: new Date((origin?.date ?? message.date) * 1000) };
   const existing = await prisma.telegramSaleImport.findUnique({ where: { partyId_chatId_messageId: { partyId: source.partyId, chatId: source.chatId, messageId: source.messageId } } });
   if (update.edited_message) {
     await transaction(async tx => {

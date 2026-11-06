@@ -2,6 +2,25 @@ import { describe, expect, it } from "vitest";
 import { allocateTelegramRow, parseTelegramSale, TELEGRAM_SALE_EXAMPLE } from "./sale-parser";
 
 describe("Telegram sale parser", () => {
+  const bohptsNotice = `💰 Successful sale
+Buyer: Love
+
+Items:
+- 🥾 Sealed Moirai Leather Boots × 1 @ 22 222 222 💰 Adena
+
+Total: 22 222 222 💰 Adena
+💰 Current adena: 854 896 093
+
+🌟 Phenomenon x20 · 👤 Miva`;
+  it("parses the real BOHPTS layout without counting the balance or character footer", () => {
+    expect(parseTelegramSale(bohptsNotice)).toEqual([
+      { name: "Sealed Moirai Leather Boots", quantity: 1, proceeds: 22222222n },
+    ]);
+  });
+  it("still reconciles BOHPTS totals and rejects an unrecognized extra item", () => {
+    expect(() => parseTelegramSale(bohptsNotice.replace("Total: 22 222 222", "Total: 22 222 223"))).toThrow();
+    expect(() => parseTelegramSale(bohptsNotice + "\nShield × 3 @ unknown")).toThrow();
+  });
   it("translates the screenshot and ignores current balance", () => {
     expect(parseTelegramSale(TELEGRAM_SALE_EXAMPLE)).toEqual([{ name: "Giant's Codex", quantity: 4, proceeds: 168888888n }]);
   });

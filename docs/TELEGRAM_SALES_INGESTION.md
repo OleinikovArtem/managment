@@ -14,15 +14,25 @@ of an open browser. No polling worker or outgoing chat messages are used.
 ## Owner setup
 
 1. Create a dedicated receiving bot with `@BotFather` → `/newbot`.
-2. Enable Bot-to-Bot Communication Mode. Add the receiving bot to the same group
-   as BohPTSbot; grant the necessary administrator permissions or disable privacy mode.
-3. Enter its token in `/settings/telegram`. The server calls `getMe`, encrypts
+2. Enter its token in `/settings/telegram`. The server calls `getMe`, encrypts
    the token and registers `setWebhook` with a random route and secret header.
-4. After a bot posts a new message, refresh the discovered-source list. Choose
-   the group and BohPTSbot, or enter their numeric IDs. Discovery stores at most 20
-   chat/bot identities, not unrelated message bodies.
-5. Save the source. Automatic importing begins with subsequent messages; source
-   discovery does not backfill messages received before source selection.
+3. Open the receiving bot in Telegram and press Start. Forward an original sale
+   notice from `@BoHpts_bot`, preserving the visible forward attribution.
+   No group membership, Bot-to-Bot mode or Group Privacy changes are needed for
+   this private-chat workflow. Pasted text and hidden-origin forwards are rejected.
+4. Refresh the discovered-source list. Select the owner's private chat and BOHPTS
+   as the original bot, not the human forwarding it. Discovery stores at most 20
+   chat/bot identities, not unrelated message bodies. Known numeric IDs may also
+   be entered manually; private chat IDs are positive, group IDs negative.
+5. Save the source, then forward the sale again. Automatic importing begins with
+   subsequent messages; discovery does not backfill earlier messages. Only the
+   selected chat is accepted; another user's private chat cannot post sales.
+
+Existing direct bot messages in selected groups remain supported, as do attributed
+human forwards in a selected group. Group reception requires administrator access
+or disabled Group Privacy; direct bot messages additionally require Telegram's
+Bot-to-Bot mode. Adding BOHPTS to a group does not redirect private notifications.
+Separate channels and topic-specific filtering are not implemented.
 
 Only OWNER can connect, replace, test or disconnect a bot or change the source.
 One bot cannot belong to multiple Party Bank parties. Reconnecting rotates the
@@ -38,9 +48,24 @@ with ingestion using a party advisory lock.
 
 ## English message format
 
-Labels are provisional English translations of the agreed screenshot. Its numeric
-example is four items at 42,222,222 Adena each, totaling 168,888,888. The name below
-is illustrative; confirm labels and layout against a real BohPTSbot English notice.
+The observed BOHPTS English notice uses the following layout. Item and currency
+icons can precede the item name and `Adena`; buyer, section heading, balance and
+the server/character footer are metadata, not sale income.
+
+```text
+💰 Successful sale
+Buyer: Love
+
+Items:
+- Sealed Moirai Leather Boots × 1 @ 22 222 222 Adena
+
+Total: 22 222 222 Adena
+💰 Current adena: 854 896 093
+
+🌟 Phenomenon x20 · 👤 Miva
+```
+
+The original translated label format also remains supported:
 
 ```text
 Successful sale
@@ -84,10 +109,14 @@ Changes to English labels belong there; existing manual money input is unchanged
 
 ## Source filtering and financial processing
 
-Only original `message` / `edited_message` updates in the configured group from
-the configured bot ID are eligible. Human senders, other chats/bots, forwarded
-messages and messages sent on behalf of a chat are ignored. The current balance
-and unrelated notices create no financial entries.
+Only `message` / `edited_message` updates in the configured chat are eligible.
+Private-chat intake requires a human-forwarded message whose Telegram-provided
+`forward_origin` is `user` with `sender_user.is_bot = true` and the configured
+original bot ID. It uses the original notice timestamp for the sale, not the
+forwarding timestamp. Originals from the configured bot are also accepted in a
+configured group. Pasted human text, hidden origins, other chats/bots and messages
+sent on behalf of a chat are ignored. The current balance and unrelated notices
+create no financial entries.
 
 Item matching uses normalized canonical names, display names and per-party
 `TelegramItemAlias` records. An ambiguous match is never chosen automatically.
@@ -107,6 +136,14 @@ failure in any row rolls back every financial write from that notice.
 
 `TelegramSaleImport` uniquely identifies a source by party/chat/message ID.
 Update IDs are retained as metadata; repeated updates cannot create another sale.
+Forwarded message IDs use `forward:<forwarder ID>:<destination message ID>`.
+Under the party lock, the original bot ID, original timestamp and exact body hash
+are compared with posted imports whenever either copy is forwarded. Re-forwarding
+to a new destination after changing the configured chat does not post another sale;
+the new receipt is IGNORED with a reference to the posted import. Telegram does not
+expose the original message ID for private-chat forwards. Two genuinely distinct
+notices with the same sender, second and exact body therefore cannot be distinguished
+and are conservatively treated as duplicates; resolve such a case manually.
 The received body and source hash remain available. An edit of an unresolved
 notice replaces its unprocessed source body; posted notices retain their body.
 Administrator corrections are stored separately in `correctedText`.

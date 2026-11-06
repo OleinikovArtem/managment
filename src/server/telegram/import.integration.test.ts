@@ -7,6 +7,75 @@ let disconnect: (() => Promise<void>) | undefined;
 afterAll(async () => { await disconnect?.(); });
 
 describe.skipIf(!testUrl?.startsWith("postgres"))("Telegram ingestion on disposable PostgreSQL", () => {
+  it("accepts attributed human forwards in a selected group or private chat and deduplicates across both", async () => {
+    process.env.DATABASE_URL = testUrl;
+    const [{ prisma }, { receiveTelegramUpdate }] = await Promise.all([
+      import("@/lib/db/prisma"), import("./import-service"),
+    ]);
+    disconnect = () => prisma.$disconnect();
+    const partyId = `telegram-forward-${randomUUID()}`;
+    const webhookId = randomBytes(24).toString("hex");
+    await prisma.party.create({ data: { id: partyId, name: "Forwarded sales" } });
+    await prisma.partyTelegramBotConfig.create({ data: {
+      partyId, encryptedToken: "test", initializationVector: "test", authenticationTag: "test",
+      webhookId, webhookEnabled: true, botId: String(Date.now()),
+    } });
+    const itemName = `Forward Boots ${randomUUID()}`;
+    const item = await prisma.item.create({ data: { canonicalName: itemName, normalizedName: itemName.toLowerCase() } });
+    const member = await prisma.partyMember.create({ data: { partyId, nickname: "Forward Member", normalizedNickname: "forward member" } });
+    const raid = await prisma.raid.create({ data: { partyId, name: "Forward Raid", occurredAt: new Date("2026-11-01T10:00:00Z") } });
+    await prisma.raidParticipant.create({ data: { partyId, raidId: raid.id, memberId: member.id, nicknameSnapshot: member.nickname, status: "PRESENT", distributionWeight: 3 } });
+    await prisma.lootDrop.create({ data: { partyId, raidId: raid.id, itemId: item.id, quantity: 10 } });
+    const text = `💰 Successful sale\nBuyer: Love\nItems:\n- 🥾 ${itemName} × 1 @ 22 222 222 💰 Adena\nTotal: 22 222 222 💰 Adena\n💰 Current adena: 854 896 093\n🌟 Phenomenon x20 · 👤 Miva`;
+    const originalDate = 1793960000;
+    const origin = { type: "user", date: originalDate, sender_user: { id: 77, is_bot: true, username: "BoHpts_bot" } };
+    let updateId = 0;
+    const deliver = (messageId: number, extra: object = {}) => receiveTelegramUpdate(webhookId, {
+      update_id: ++updateId, message: { message_id: messageId, date: originalDate + 500,
+        chat: { id: -10042, type: "supergroup", title: "Forward group" },
+        from: { id: 42, is_bot: false }, forward_origin: origin, text, ...extra },
+    });
+    // Discovery uses the original bot, not the human who forwarded it.
+    await deliver(1);
+    expect(await prisma.saleTransaction.count({ where: { partyId } })).toBe(0);
+    const config = await prisma.partyTelegramBotConfig.findUniqueOrThrow({ where: { partyId } });
+    expect(config.discoveries).toEqual([expect.objectContaining({ chatId: "-10042", senderId: "77", senderUsername: "BoHpts_bot" })]);
+    await prisma.partyTelegramBotConfig.update({ where: { partyId }, data: { chatId: "-10042", senderId: "77" } });
+    await deliver(2, { forward_origin: undefined }); // Pasted text.
+    await deliver(3, { forward_origin: { type: "hidden_user", date: originalDate, sender_user_name: "BoHpts_bot" } });
+    await deliver(4, { forward_origin: { ...origin, sender_user: { id: 88, is_bot: true } } });
+    await deliver(5, { forward_origin: { ...origin, sender_user: { id: 77, is_bot: false } } });
+    await deliver(6, { sender_chat: { id: -10042 } });
+    expect(await prisma.saleTransaction.count({ where: { partyId } })).toBe(0);
+    await Promise.all([deliver(10), deliver(10), deliver(11)]);
+    expect(await prisma.saleTransaction.count({ where: { partyId } })).toBe(1);
+    expect(await prisma.telegramSaleImport.count({ where: { partyId, status: "IGNORED" } })).toBe(1);
+    expect(await prisma.telegramSaleImport.findFirst({ where: { partyId, status: "PROCESSED" } })).toMatchObject({ receivedAt: new Date(originalDate * 1000), senderId: "77" });
+    // Even switching the selected destination does not post the same forward twice.
+    await prisma.partyTelegramBotConfig.update({ where: { partyId }, data: { chatId: "42" } });
+    const privateChat = { id: 42, type: "private", first_name: "Owner" };
+    await deliver(12, { chat: privateChat });
+    await deliver(13, { chat: { ...privateChat, id: 43 } });
+    expect(await prisma.saleTransaction.count({ where: { partyId } })).toBe(1);
+    // A genuinely newer notice with the same item and price is a new sale.
+    await deliver(14, { chat: privateChat, forward_origin: { ...origin, date: originalDate + 1 } });
+    expect(await prisma.saleTransaction.count({ where: { partyId } })).toBe(2);
+    // A notice first seen as a forward cannot be counted again via the bot directly.
+    await prisma.partyTelegramBotConfig.update({ where: { partyId }, data: { chatId: "-10042" } });
+    await deliver(15, { from: origin.sender_user, forward_origin: undefined, date: originalDate });
+    expect(await prisma.saleTransaction.count({ where: { partyId } })).toBe(2);
+    // Nor can a directly received notice be counted again by forwarding it.
+    await deliver(16, { from: origin.sender_user, forward_origin: undefined, date: originalDate + 2 });
+    await deliver(17, { forward_origin: { ...origin, date: originalDate + 2 } });
+    expect(await prisma.saleTransaction.count({ where: { partyId } })).toBe(3);
+    // Distinct original message IDs remain distinct, even at the same timestamp.
+    await deliver(18, { from: origin.sender_user, forward_origin: undefined, date: originalDate + 3 });
+    await deliver(19, { from: origin.sender_user, forward_origin: undefined, date: originalDate + 3 });
+    expect(await prisma.saleTransaction.count({ where: { partyId } })).toBe(5);
+    const cash = await prisma.ledgerEntry.aggregate({ where: { partyId, accountType: "PARTY_CASH" }, _sum: { debit: true } });
+    expect(cash._sum.debit).toBe(111111110n);
+  }, 120_000);
+
   it("connects, encrypts, rotates secrets and disconnects without leaking the bot to another party", async () => {
     process.env.DATABASE_URL = testUrl;
     const previousBase = process.env.TELEGRAM_WEBHOOK_BASE_URL;
