@@ -28,6 +28,8 @@
   Табличные изображения локально привязаны только к указанным предметам; неизвестные
   соответствия используют нейтральный fallback. Публичная доступность не устанавливает
   свободную лицензию. Полный каталог иконок не импортируется.
+- Favicon приложения использует иконку Adena `etc_adena_i00.png` из той же базы L2DB;
+  файл хранится в `src/app/icon.png` и подключается через соглашение Next.js `app/icon`.
 - Metadata инстансов — `prisma/seeds/instances.json`. Неподтверждённые уровни
   Labyrinth/Hall of the Abyss помечены SERVER_VARIANT до уточнения retail-соответствия;
   Istina/Frintezza Chaotic и Fortress/Castle Dungeon имеют явную серверную

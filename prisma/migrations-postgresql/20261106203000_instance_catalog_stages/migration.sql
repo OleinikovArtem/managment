@@ -321,4 +321,4 @@ END $$;
 DROP TRIGGER IF EXISTS stage_publication_guard ON "ServerStage";
 CREATE TRIGGER stage_publication_guard BEFORE UPDATE ON "ServerStage" FOR EACH ROW EXECUTE FUNCTION pbm_stage_publication_guard();
 INSERT INTO "ServerStageConfig" (id,"updatedAt") VALUES ('GLOBAL',CURRENT_TIMESTAMP) ON CONFLICT(id) DO NOTHING;
-COMMIT;\n
+COMMIT;

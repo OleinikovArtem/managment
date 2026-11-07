@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useRef, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -70,4 +70,4 @@ export function LootPicker({ value, onChange, initialItems, recommended, quick, 
       {creating ? <><ItemForm action={createItemAction} submitLabel="Создать свой предмет" onCancel={() => setCreating(false)} onSuccess={async id => { if (!id) return; try { const created = await getRaidItemAction(id); if (created) add(created); else toast.error("Предмет создан, но недоступен для выбора."); } catch { toast.error("Предмет создан. Найдите его в каталоге и добавьте повторно."); } setOpen(false); }} /></> : <><Input autoFocus aria-label="Поиск предмета" placeholder="Название предмета…" value={query} maxLength={200} onChange={event => setQuery(event.target.value)} /><div className="mt-3 max-h-80 space-y-2 overflow-auto">{searching ? <p className="text-sm text-muted-foreground">Поиск…</p> : results.map(item => <button type="button" className="flex min-h-14 w-full items-center gap-3 rounded-md border border-border p-3 text-left text-sm hover:bg-muted" key={item.id} onClick={() => { add(item); setOpen(false); }}><GameIcon kind="item" name={item.canonicalName} category={item.category} size="sm" /><span className="flex-1">{item.displayName || item.canonicalName}<small className="mt-1 block text-xs text-muted-foreground">{item.partyId ? "Свой предмет" : "Общий каталог"}</small></span><Plus size={16} aria-hidden="true" /></button>)}{!searching && !results.length && <p className="text-sm text-muted-foreground">Предмет не найден.</p>}</div><Button type="button" className="mt-4" variant="outline" onClick={() => setCreating(true)}>Создать свой предмет</Button></>}
     </EditorDialog>
   </div>;
-}\n
+}
