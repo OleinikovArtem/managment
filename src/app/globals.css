@@ -573,10 +573,9 @@ textarea {
   margin-top: 26px;
 }
 .raid-date-heading {
-  display: grid;
-  grid-template-columns: minmax(16px, 1fr) auto auto minmax(16px, 1fr);
+  display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   margin: 4px 0 10px;
   color: var(--muted-foreground);
   font-size: 12px;
@@ -584,20 +583,11 @@ textarea {
   text-align: center;
   letter-spacing: 0.01em;
 }
-.raid-date-heading::before,
-.raid-date-heading::after {
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--border));
-  content: "";
-}
-.raid-date-heading::after {
-  background: linear-gradient(90deg, var(--border), transparent);
-}
 .raid-date-heading > span {
-  padding: 2px 7px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--card);
+  padding: 2px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--foreground);
   font-size: 10px;
   font-weight: 400;

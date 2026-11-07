@@ -5,8 +5,12 @@ import type { PartyActionResult } from "@/features/settings/party-action-result"
 import { partySettingsSchema } from "@/features/settings/party-schema";
 import { requirePartyActionAccess } from "@/server/auth/party-access";
 import { updatePartyName } from "@/server/services/party-service";
-import { resetPartyData } from "@/server/repositories/party-repository";
-import { resetRequestSchema, RESET_OPTIONS } from "@/features/settings/reset-plan";
+import { previewPartyReset, resetPartyData } from "@/server/repositories/party-repository";
+import {
+  resetRequestSchema,
+  resetSelectionSchema,
+  RESET_OPTIONS,
+} from "@/features/settings/reset-plan";
 import { recordPartyAuditEvent } from "@/server/services/party-audit-service";
 
 export async function updatePartySettingsAction(payload: unknown): Promise<PartyActionResult> {
@@ -63,4 +67,11 @@ export async function resetPartyDataAction(payload: unknown): Promise<PartyActio
     ok: true,
     message: "Выбранные данные и их зависимости сброшены. Общий каталог сохранён.",
   };
+}
+
+export async function previewPartyResetAction(payload: unknown) {
+  const access = await requirePartyActionAccess("OWNER");
+  const parsed = resetSelectionSchema.safeParse(payload);
+  if (!parsed.success) return { ok: false as const, message: "Выберите данные для сброса." };
+  return { ok: true as const, preview: await previewPartyReset(access.partyId, parsed.data) };
 }

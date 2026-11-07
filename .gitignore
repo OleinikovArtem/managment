@@ -27,6 +27,9 @@
 /prisma/dev.db
 /prisma/dev.db-*
 /src/generated/prisma/
+/prompts
+/playwright-report/
+/test-results/
 
 # misc
 .DS_Store

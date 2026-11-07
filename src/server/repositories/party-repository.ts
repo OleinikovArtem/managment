@@ -27,6 +27,95 @@ export async function getPartyMemberCounts(partyId: string) {
   return { activeMembers, totalMembers };
 }
 
+export async function previewPartyReset(partyId: string, selection: readonly ResetCategory[]) {
+  const categories = resolveResetCategories(selection);
+  const selected = new Set(categories);
+  return prisma.$transaction(
+    async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "Party" WHERE id = ${partyId} FOR SHARE`;
+      const [
+        payments,
+        paymentAllocations,
+        sales,
+        saleShares,
+        loot,
+        raids,
+        participants,
+        compositions,
+        slots,
+        members,
+        profiles,
+        telegramProcessed,
+        telegramPending,
+      ] = await Promise.all([
+        selected.has("payments") ? tx.memberPayment.count({ where: { partyId } }) : 0,
+        selected.has("payments") ? tx.paymentAllocation.count({ where: { partyId } }) : 0,
+        selected.has("sales") ? tx.saleTransaction.count({ where: { partyId } }) : 0,
+        selected.has("sales") ? tx.saleShare.count({ where: { partyId } }) : 0,
+        selected.has("loot") ? tx.lootDrop.count({ where: { partyId } }) : 0,
+        selected.has("raids") ? tx.raid.count({ where: { partyId } }) : 0,
+        selected.has("raids") ? tx.raidParticipant.count({ where: { partyId } }) : 0,
+        selected.has("compositions") ? tx.partyComposition.count({ where: { partyId } }) : 0,
+        selected.has("compositions") ? tx.partyCompositionMember.count({ where: { partyId } }) : 0,
+        selected.has("members") ? tx.partyMember.count({ where: { partyId } }) : 0,
+        selected.has("members") ? tx.partyMemberProfile.count({ where: { partyId } }) : 0,
+        selected.has("sales")
+          ? tx.telegramSaleImport.count({ where: { partyId, status: "PROCESSED" } })
+          : 0,
+        selected.has("sales")
+          ? tx.telegramSaleImport.count({
+              where: { partyId, status: { in: ["PENDING", "NEEDS_REVIEW"] } },
+            })
+          : 0,
+      ]);
+      const ledgerTransactions = selected.has("payments")
+        ? await tx.ledgerTransaction.count({
+            where: {
+              partyId,
+              ...(selected.has("sales") ? {} : { memberPaymentId: { not: null } }),
+            },
+          })
+        : 0;
+      const ledgerEntries = selected.has("payments")
+        ? await tx.ledgerEntry.count({
+            where: {
+              partyId,
+              ledgerTransaction: {
+                partyId,
+                ...(selected.has("sales") ? {} : { memberPaymentId: { not: null } }),
+              },
+            },
+          })
+        : 0;
+      return {
+        categories,
+        counts: {
+          payments,
+          paymentAllocations,
+          ledgerTransactions,
+          ledgerEntries,
+          sales,
+          saleShares,
+          loot,
+          raids,
+          participants,
+          compositions,
+          compositionSlots: slots,
+          members,
+          profiles,
+          telegramProcessed,
+          telegramPending,
+        },
+      };
+    },
+    {
+      isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
+      timeout: 10_000,
+      maxWait: 5_000,
+    },
+  );
+}
+
 export async function resetPartyData(partyId: string, selection: readonly ResetCategory[]) {
   const categories = resolveResetCategories(selection);
   const selected = new Set(categories);

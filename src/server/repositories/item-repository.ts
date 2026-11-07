@@ -66,11 +66,11 @@ export async function createPartyItemRecord(
       normalizedName,
       displayName: input.displayName || null,
       category: input.category || null,
-      grade: input.grade || null,
+      ...(input.grade !== undefined ? { grade: input.grade || null } : {}),
       itemType: input.itemType || null,
-      itemSubtype: input.itemSubtype || null,
+      itemSubtype: null,
       isRare: input.isRare ?? false,
-      gameVersion: input.gameVersion || null,
+      gameVersion: null,
       comment: input.comment || null,
     },
   });
@@ -81,19 +81,18 @@ export async function updatePartyItemRecord(
   itemId: string,
   input: ItemInput,
   normalizedName: string,
+  expectedGrade: string | null,
 ) {
   const result = await prisma.item.updateMany({
-    where: { id: itemId, partyId },
+    where: { id: itemId, partyId, grade: expectedGrade },
     data: {
       canonicalName: input.canonicalName,
       normalizedName,
       displayName: input.displayName || null,
       category: input.category || null,
-      grade: input.grade || null,
+      ...(input.grade !== undefined ? { grade: input.grade || null } : {}),
       itemType: input.itemType || null,
-      itemSubtype: input.itemSubtype || null,
       isRare: input.isRare ?? false,
-      gameVersion: input.gameVersion || null,
       comment: input.comment || null,
     },
   });

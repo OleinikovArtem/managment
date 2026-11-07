@@ -14,18 +14,18 @@ Party Bank Manager — русскоязычное приложение для у
 | Общий стиль и UI                                                | `src/app/globals.css`, `src/components/ui/`                                                                                                                                                     |
 | Обзор и аналитика                                               | `src/features/dashboard/dashboard-analytics.tsx`                                                                                                                                                |
 | Участники и профили                                             | `src/features/members/`                                                                                                                                                                         |
-| Main/Subclass и локальные иконки профессий                      | `member-schema.ts`, `member-subclass-repository.ts`, `public/game-icons/classes/`; источники: [GAME_DATA_SOURCES.md](./GAME_DATA_SOURCES.md)                                                    |
+| Main/Subclass, выбор профессии состава и локальные иконки       | `member-schema.ts`, `member-subclass-repository.ts`, `profession-options.ts`, `profession-select.tsx`, `public/game-icons/classes/`; источники: [GAME_DATA_SOURCES.md](./GAME_DATA_SOURCES.md)  |
 | Сохранённые составы                                             | `src/features/compositions/`                                                                                                                                                                    |
 | Каталог, поиск, редактирование                                  | `src/features/items/`                                                                                                                                                                           |
 | Весь лут, фильтры, остатки и модальная ручная продажа           | `src/features/loot/`, `src/server/repositories/loot-repository.ts`, `src/app/(dashboard)/loot/`                                                                                                 |
-| Создание и редактирование рейда                                 | `src/features/raids/raid-form.tsx`, `loot-picker.tsx`, `instance-picker.tsx`, `profile-picker.tsx`                                                                                              |
-| Список рейдов, локальные периоды и фильтры                       | `src/features/raids/raid-list.tsx`, `raid-list-model.ts`, `/raids`                                                                                                                             |
+| Создание и редактирование рейда                                 | `src/features/raids/raid-form.tsx`, `loot-picker.tsx`, `instance-picker.tsx`, `src/features/members/profession-select.tsx`                                                                      |
+| Список рейдов, локальные периоды и фильтры                      | `src/features/raids/raid-list.tsx`, `raid-list-model.ts`, `/raids`                                                                                                                              |
 | Инстансы, стадии, настройки рекомендаций                        | `src/features/instances/`, `instance-repository.ts`, `raids/catalog-actions.ts`; [INSTANCE_CATALOG.md](./INSTANCE_CATALOG.md)                                                                   |
 | Detail рейда, только просмотр добычи/времени и состав PRESENT   | `raid-detail-view.tsx`, `raid-detail-view.css` в `src/features/raids/`; продажи вручную — `src/features/loot/`, автоматически — Telegram flow                                                   |
 | Передачи и получатели                                           | `src/features/sales/payment-form.tsx`, `payout-list.tsx`, `src/components/ui/side-panel.tsx`                                                                                                    |
 | Продажа и валидация финансов                                    | `src/features/sales/sale-form.tsx`, `sale-schema.ts`, `payment-schema.ts`                                                                                                                       |
 | Журнал                                                          | `src/features/ledger/history-list.tsx`                                                                                                                                                          |
-| Настройки и выборочный сброс группы                             | `src/features/settings/reset-plan.ts`, `reset-data-card.tsx`, `src/server/repositories/party-repository.ts`                                                                                     |
+| Настройки и выборочный сброс группы                             | `/settings?tab=…`, `src/features/settings/settings-tabs.tsx`, `reset-data-card.tsx`, `reset-plan.ts`, `src/server/repositories/party-repository.ts`; preview считает read-only объёмы сброса    |
 | Правила и транзакции                                            | `src/server/services/`, `src/server/repositories/`                                                                                                                                              |
 | Общие и собственные каталоги                                    | `item-repository.ts`, `catalog-scope.ts`; административный bootstrap в `src/server/bootstrap/`, metadata seed `scripts/seed-instance-catalog.cjs`                                               |
 | Авторизация, роли, приглашения, активность и Telegram-токен     | `src/lib/auth.ts`, `src/server/auth/`, `src/server/services/account-party-service.ts`, `src/server/services/telegram-credential-service.ts`, `src/app/(auth)/`, `src/app/(dashboard)/settings/` |
@@ -62,7 +62,15 @@ Party Bank Manager — русскоязычное приложение для у
 `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`.
 Тесты лежат рядом с исходниками, среда Vitest — Node. PostgreSQL integration tests
 используют только явно заданный `TEST_DATABASE_URL`; без него они пропускаются.
-Автоматического браузерного набора в репозитории нет.
+Браузерные E2E-тесты лежат в `e2e/` и запускаются через `npm run test:e2e`
+(Playwright). Их локальный webServer использует текущий checkout; создавать копии,
+клоны или дополнительные рабочие деревья проекта для тестов нельзя. Playwright-отчёты
+и результаты остаются в игнорируемых `playwright-report/` и `test-results/`.
+
+Для PostgreSQL-тестов используй единственную заранее настроенную локальную тестовую
+БД через `TEST_DATABASE_URL`. Не создавай новые тестовые базы автоматически и не
+подменяй переменную на рабочую/production-БД. Перед запуском проверь, куда указывает
+URL; миграции запускай только по явной задаче и только для выбранной среды.
 
 Локальная PostgreSQL база хранится в именованном Docker volume. PostgreSQL migrations
 live in `prisma/migrations-postgresql/`; SQLite migrations in `prisma/migrations/`

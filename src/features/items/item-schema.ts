@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export const ITEM_GRADES = ["S84", "S80", "S", "A", "B", "C", "D"] as const;
+
 export function normalizeItemName(name: string): string {
   return name.normalize("NFC").trim().replace(/\s+/gu, " ").toLowerCase().normalize("NFC");
 }

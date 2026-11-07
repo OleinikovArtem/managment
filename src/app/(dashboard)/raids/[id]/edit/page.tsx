@@ -116,9 +116,11 @@ async function EditRaidContent({ params }: EditRaidPageProps) {
               id: composition.id,
               name: composition.name,
               focus: composition.focus,
-              slots: composition.members.map(({ memberId, profileId }) => ({
+              slots: composition.members.map(({ memberId, profileId, classOverride, profile }) => ({
                 memberId,
                 profileId,
+                classOverride,
+                profileClassName: profile?.className ?? null,
               })),
             }))}
             raidId={raid.id}
@@ -131,11 +133,21 @@ async function EditRaidContent({ params }: EditRaidPageProps) {
               stageRevision: raid.stageRevisionSnapshot,
               occurredAt: raid.occurredAt.toISOString(),
               comment: raid.comment ?? "",
-              participants: raid.participants.map(({ memberId, status, profileId }) => ({
-                memberId,
-                status,
-                profileId: profileId ?? undefined,
-              })),
+              participants: raid.participants.map(
+                ({ memberId, status, profileId, classSnapshot }) => {
+                  const currentMember = setup.members.find((member) => member.id === memberId);
+                  const classOverride =
+                    !profileId && classSnapshot && classSnapshot !== currentMember?.className
+                      ? classSnapshot
+                      : undefined;
+                  return {
+                    memberId,
+                    status,
+                    profileId: profileId ?? undefined,
+                    classOverride,
+                  };
+                },
+              ),
               lootDrops: raid.lootDrops.map(({ id, itemId, quantity, comment }) => ({
                 id,
                 itemId,

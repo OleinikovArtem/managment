@@ -4,6 +4,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import type { RaidInput } from "@/features/raids/raid-schema";
 import { RaidOperationError } from "@/features/raids/raid-errors";
+import { LINEAGE2_HIGH_FIVE_CLASSES } from "@/features/members/lineage2-classes";
 import { createHash } from "node:crypto";
 import { lockParty, lockStages } from "./catalog-locks";
 import { assertDraftStage } from "./instance-repository";
@@ -21,6 +22,7 @@ async function assertPartyReferences(transaction: Transaction, partyId: string, 
       className: true,
       role: true,
       level: true,
+      profiles: { where: { isActive: true }, select: { className: true } },
     },
   });
   const submittedMemberIds = input.participants.map(({ memberId }) => memberId);
@@ -205,6 +207,20 @@ export async function createPartyRaidRecord(partyId: string, input: RaidInput) {
           throw new RaidOperationError(
             "Профиль участника не найден. Обновите страницу и повторите попытку.",
           );
+        if (attendance.classOverride) {
+          const normalizedOverride = attendance.classOverride.trim().toLocaleLowerCase();
+          const supported = LINEAGE2_HIGH_FIVE_CLASSES.some(
+            (className) => className.toLocaleLowerCase() === normalizedOverride,
+          );
+          const duplicatesSavedClass = [
+            member.className,
+            ...member.profiles.map((row) => row.className),
+          ].some((className) => className?.trim().toLocaleLowerCase() === normalizedOverride);
+          if (!supported || duplicatesSavedClass)
+            throw new RaidOperationError(
+              "Выбранная профессия недоступна или уже сохранена как Main/Subclass.",
+            );
+        }
         await transaction.raidParticipant.create({
           data: {
             partyId,
@@ -214,7 +230,9 @@ export async function createPartyRaidRecord(partyId: string, input: RaidInput) {
             nicknameSnapshot: member.nickname,
             status: attendance.status,
             distributionWeight: 1,
-            classSnapshot: profile ? profile.className : member.className,
+            classSnapshot: profile
+              ? profile.className
+              : (attendance.classOverride ?? member.className),
             roleSnapshot: profile ? profile.role : member.role,
             profileSnapshot: profile?.name ?? null,
             levelSnapshot: profile ? profile.level : member.level,
@@ -248,7 +266,7 @@ export async function updatePartyRaidRecord(partyId: string, raidId: string, inp
       const raid = await transaction.raid.findFirst({
         where: { id: raidId, partyId },
         include: {
-          participants: { select: { memberId: true, profileId: true } },
+          participants: { select: { memberId: true, profileId: true, classSnapshot: true } },
           lootDrops: { select: { id: true, itemId: true } },
           _count: { select: { saleTransactions: true } },
         },
@@ -336,30 +354,63 @@ export async function updatePartyRaidRecord(partyId: string, raidId: string, inp
 
       for (const attendance of input.participants) {
         const previous = raid.participants.find((row) => row.memberId === attendance.memberId);
-        const changedProfile = (previous?.profileId ?? null) !== (attendance.profileId ?? null);
-        const member = changedProfile
-          ? await transaction.partyMember.findFirst({
-              where: { partyId, id: attendance.memberId },
-              include: { profiles: { where: { isActive: true } } },
-            })
-          : null;
+        const member = await transaction.partyMember.findFirst({
+          where: { partyId, id: attendance.memberId },
+          include: { profiles: { where: { isActive: true } } },
+        });
+        if (!member)
+          throw new RaidOperationError(
+            "Участник не найден. Обновите страницу и повторите попытку.",
+          );
         const profile = attendance.profileId
-          ? member?.profiles.find(({ id }) => id === attendance.profileId)
+          ? member.profiles.find(({ id }) => id === attendance.profileId)
           : null;
-        if (changedProfile && (!member || (attendance.profileId && !profile)))
+        if (
+          attendance.profileId &&
+          !profile &&
+          (previous?.profileId ?? null) !== attendance.profileId
+        )
           throw new RaidOperationError(
             "Профиль участника не найден. Обновите страницу и повторите попытку.",
           );
-        const attendanceData = changedProfile
-          ? {
+        const previousOverride =
+          previous?.profileId ||
+          !previous?.classSnapshot ||
+          previous.classSnapshot.trim().toLocaleLowerCase() ===
+            member.className?.trim().toLocaleLowerCase()
+            ? null
+            : previous.classSnapshot;
+        const selectionUnchanged =
+          (previous?.profileId ?? null) === (attendance.profileId ?? null) &&
+          (attendance.classOverride ?? null) === previousOverride;
+        if (attendance.classOverride && !selectionUnchanged) {
+          const normalizedOverride = attendance.classOverride.trim().toLocaleLowerCase();
+          const supported = LINEAGE2_HIGH_FIVE_CLASSES.some(
+            (className) => className.toLocaleLowerCase() === normalizedOverride,
+          );
+          const unchangedLegacy =
+            previousOverride?.trim().toLocaleLowerCase() === normalizedOverride;
+          const duplicatesSavedClass = [
+            member.className,
+            ...member.profiles.map((row) => row.className),
+          ].some((className) => className?.trim().toLocaleLowerCase() === normalizedOverride);
+          if ((!supported && !unchangedLegacy) || duplicatesSavedClass)
+            throw new RaidOperationError(
+              "Выбранная профессия недоступна или уже сохранена как Main/Subclass.",
+            );
+        }
+        const attendanceData = selectionUnchanged
+          ? { status: attendance.status }
+          : {
               status: attendance.status,
               profileId: attendance.profileId || null,
-              classSnapshot: profile ? profile.className : member?.className,
-              roleSnapshot: profile ? profile.role : member?.role,
+              classSnapshot: profile
+                ? profile.className
+                : (attendance.classOverride ?? member.className),
+              roleSnapshot: profile ? profile.role : member.role,
               profileSnapshot: profile?.name ?? null,
-              levelSnapshot: profile ? profile.level : member?.level,
-            }
-          : { status: attendance.status };
+              levelSnapshot: profile ? profile.level : member.level,
+            };
         const result = await transaction.raidParticipant.updateMany({
           where: { partyId, raidId, memberId: attendance.memberId },
           data: attendanceData,

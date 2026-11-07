@@ -42,6 +42,7 @@ async function CompositionsContent() {
       className,
       role,
       level,
+      isActive: true,
       profiles: profiles
         .filter((profile) => profile.memberId === id)
         .map(
@@ -67,13 +68,14 @@ async function CompositionsContent() {
     name: composition.name,
     description: composition.description,
     focus: composition.focus,
-    members: composition.members.map(({ member, profile }) => ({
+    members: composition.members.map(({ member, profile, classOverride }) => ({
       member: {
         id: member.id,
         nickname: member.nickname,
         className: member.className,
         role: member.role,
         level: member.level,
+        isActive: member.isActive,
         profiles: members.find((item) => item.id === member.id)?.profiles ?? [],
       },
       profile: profile
@@ -86,7 +88,10 @@ async function CompositionsContent() {
             subclassSlot: profile.subclassSlot,
           }
         : null,
+      classOverride,
     })),
   }));
-  return <CompositionManager compositions={rows} members={members} canManage={workspace.canManage} />;
+  return (
+    <CompositionManager compositions={rows} members={members} canManage={workspace.canManage} />
+  );
 }

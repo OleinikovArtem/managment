@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { DateInput } from "@/components/ui/date-input";
 import { Textarea } from "@/components/ui/textarea";
 import { EditorDialog } from "@/components/ui/editor-dialog";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { GameIcon } from "@/components/ui/game-icon";
 import { createRaidAction, updateRaidAction } from "@/app/(dashboard)/raids/actions";
 import {
@@ -30,7 +31,7 @@ import type {
 import { raidFormSchema, type RaidFormValues } from "./raid-schema";
 import { localDateTimeToUtc, toLocalDateTimeInput } from "./local-date-time";
 import { InstancePicker } from "./instance-picker";
-import { RaidProfilePicker } from "./profile-picker";
+import { ProfessionSelect } from "@/features/members/profession-select";
 import { LootPicker } from "./loot-picker";
 import "./raid-form.css";
 
@@ -55,7 +56,14 @@ export type RaidCompositionOption = {
   id: string;
   name: string;
   focus: string | null;
-  slots: { memberId: string; profileId: string | null }[];
+  slots: RosterSelectionSlot[];
+};
+type RosterSelectionSlot = {
+  memberId: string;
+  profileId: string | null;
+  classOverride?: string | null;
+  profileClassName?: string | null;
+  status?: "PRESENT" | "ABSENT";
 };
 type Props = {
   members: RaidMemberOption[];
@@ -87,6 +95,14 @@ export function RaidForm({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState("");
+  const [pendingRoster, setPendingRoster] = useState<RosterSelectionSlot[] | null>(null);
+  const [confirmation, setConfirmation] = useState<
+    "replace-roster" | "leave-raid" | "delete-loot" | null
+  >(null);
+  const [pendingRaidValues, setPendingRaidValues] = useState<RaidFormValues | null>(null);
+  const [preservedProfiles, setPreservedProfiles] = useState<
+    Record<string, { profileId: string; className: string }>
+  >({});
   const [stageConflict, setStageConflict] = useState(false);
   const [instances, setInstances] = useState(originalInstances);
   const [stages, setStages] = useState(originalStages);
@@ -139,6 +155,14 @@ export function RaidForm({
     (raidId ? historicalStageName : null) ??
     (viewStage.stageId ? "Стадия недоступна" : "Без стадии");
   const presentCount = participants.filter((row) => row.status === "PRESENT").length;
+  const removedLootNames = (initialValues?.lootDrops ?? [])
+    .filter(
+      (drop) => drop.id && !pendingRaidValues?.lootDrops.some((current) => current.id === drop.id),
+    )
+    .map((drop) => {
+      const item = items.find(({ id }) => id === drop.itemId);
+      return item?.displayName || item?.canonicalName || drop.itemId;
+    });
   const creationKey = useRef<string | null>(null);
 
   useEffect(() => {
@@ -251,40 +275,39 @@ export function RaidForm({
       form.setValue("stageRevision", context.revision, { shouldDirty: true });
     }
   }
-  function chooseRoster(
-    slots: { memberId: string; profileId: string | null; status?: "PRESENT" | "ABSENT" }[],
-  ) {
+  function applyRoster(slots: RosterSelectionSlot[]) {
     if (raidId) return false;
-    if (
-      form.formState.dirtyFields.participants &&
-      !window.confirm("Заменить ручной выбор участников и профилей?")
-    )
-      return false;
     members.forEach((member, index) => {
       const slot = slots.find((row) => row.memberId === member.id);
-      const profile =
-        slot?.profileId && member.profiles?.some((row) => row.id === slot.profileId)
-          ? slot.profileId
-          : undefined;
+      const profile = slot?.profileId ?? undefined;
       form.setValue(`participants.${index}.status`, slot?.status ?? (slot ? "PRESENT" : "ABSENT"), {
         shouldDirty: true,
         shouldValidate: true,
       });
       form.setValue(`participants.${index}.profileId`, profile, { shouldDirty: true });
+      form.setValue(`participants.${index}.classOverride`, slot?.classOverride ?? undefined, {
+        shouldDirty: true,
+      });
     });
-    if (
-      slots.some(
-        (slot) =>
-          slot.profileId &&
-          members.some(
-            (member) =>
-              member.id === slot.memberId &&
-              !member.profiles?.some((profile) => profile.id === slot.profileId),
-          ),
-      )
-    )
-      toast.info("Недоступные профили заменены на Main.");
+    setPreservedProfiles(
+      Object.fromEntries(
+        slots.flatMap((slot) =>
+          slot.profileId && slot.profileClassName
+            ? [[slot.memberId, { profileId: slot.profileId, className: slot.profileClassName }]]
+            : [],
+        ),
+      ),
+    );
     return true;
+  }
+  function chooseRoster(slots: RosterSelectionSlot[]) {
+    if (raidId) return false;
+    if (form.formState.dirtyFields.participants) {
+      setPendingRoster(slots);
+      setConfirmation("replace-roster");
+      return false;
+    }
+    return applyRoster(slots);
   }
   async function mutateDialog(work: () => Promise<void>) {
     setCatalogPending(true);
@@ -297,46 +320,71 @@ export function RaidForm({
       setCatalogPending(false);
     }
   }
+  async function setCustomInstanceActive(id: string, isActive: boolean) {
+    setCatalogPending(true);
+    setDialogMessage("");
+    try {
+      const result = await manageInstanceAction(id, { isActive });
+      if (!result.ok) throw new Error(result.message);
+      setInstances((await loadRaidSetupAction()).instances);
+    } catch (error) {
+      setDialogMessage(error instanceof Error ? error.message : "Не удалось изменить инстанс.");
+      throw error;
+    } finally {
+      setCatalogPending(false);
+    }
+  }
+  function saveRaid(values: RaidFormValues) {
+    const utc = localDateTimeToUtc(values.occurredAt);
+    if (!utc) {
+      setMessage("Время недопустимо или неоднозначно из-за перевода часов.");
+      return;
+    }
+    if (!creationKey.current) creationKey.current = crypto.randomUUID();
+    setMessage("");
+    startTransition(async () => {
+      try {
+        const payload = {
+          ...values,
+          occurredAt: utc,
+          creationKey: raidId ? undefined : creationKey.current!,
+        };
+        const result = raidId
+          ? await updateRaidAction(raidId, payload)
+          : await createRaidAction(payload);
+        if (!result.ok) {
+          setMessage(result.message);
+          if (result.stageConflict) {
+            setStageConflict(true);
+            setCatalogError(result.message);
+            const setup = await loadRaidSetupAction();
+            setStages(setup.stages.available);
+          }
+          toast.error(result.message);
+          return;
+        }
+        toast.success(result.message);
+        router.push(`/raids/${result.raidId}`);
+        router.refresh();
+      } catch {
+        setMessage(
+          "Не удалось получить ответ. Повторите сохранение: ключ запроса защитит от дубликата.",
+        );
+      }
+    });
+  }
   function submit(event: FormEvent<HTMLFormElement>) {
     if (event.target !== event.currentTarget) return;
     void form.handleSubmit((values) => {
-      const utc = localDateTimeToUtc(values.occurredAt);
-      if (!utc) {
-        setMessage("Время недопустимо или неоднозначно из-за перевода часов.");
+      const removedDrops = (initialValues?.lootDrops ?? []).filter(
+        (drop) => drop.id && !values.lootDrops.some((current) => current.id === drop.id),
+      );
+      if (raidId && removedDrops.length) {
+        setPendingRaidValues(values);
+        setConfirmation("delete-loot");
         return;
       }
-      if (!creationKey.current) creationKey.current = crypto.randomUUID();
-      setMessage("");
-      startTransition(async () => {
-        try {
-          const payload = {
-            ...values,
-            occurredAt: utc,
-            creationKey: raidId ? undefined : creationKey.current!,
-          };
-          const result = raidId
-            ? await updateRaidAction(raidId, payload)
-            : await createRaidAction(payload);
-          if (!result.ok) {
-            setMessage(result.message);
-            if (result.stageConflict) {
-              setStageConflict(true);
-              setCatalogError(result.message);
-              const setup = await loadRaidSetupAction();
-              setStages(setup.stages.available);
-            }
-            toast.error(result.message);
-            return;
-          }
-          toast.success(result.message);
-          router.push(`/raids/${result.raidId}`);
-          router.refresh();
-        } catch {
-          setMessage(
-            "Не удалось получить ответ. Повторите сохранение: ключ запроса защитит от дубликата.",
-          );
-        }
-      });
+      saveRaid(values);
     })(event);
   }
   return (
@@ -536,7 +584,7 @@ export function RaidForm({
               const row = participants[index];
               const present = row?.status === "PRESENT";
               const profile = member.profiles?.find((profile) => profile.id === row?.profileId);
-              const className = profile?.className ?? member.className;
+              const className = row?.classOverride ?? profile?.className ?? member.className;
               return (
                 <div key={member.id} className={`raid-member ${present ? "is-present" : ""}`}>
                   <label>
@@ -556,13 +604,49 @@ export function RaidForm({
                     <span>{member.nickname}</span>
                     <small>{present ? "В рейде" : "Отсутствует"}</small>
                   </label>
-                  <RaidProfilePicker
-                    member={member}
-                    value={row?.profileId}
-                    disabled={isPending}
-                    onChange={(id) =>
-                      form.setValue(`participants.${index}.profileId`, id, { shouldDirty: true })
+                  <ProfessionSelect
+                    mainClass={member.className}
+                    profiles={member.profiles ?? []}
+                    preserved={
+                      row?.profileId
+                        ? profile
+                          ? { profileId: row.profileId, className: profile.className }
+                          : preservedProfiles[member.id]?.profileId === row.profileId
+                            ? preservedProfiles[member.id]
+                            : null
+                        : row?.classOverride
+                          ? { className: row.classOverride }
+                          : null
                     }
+                    value={
+                      row?.profileId
+                        ? `profile:${row.profileId}`
+                        : row?.classOverride
+                          ? `class:${row.classOverride}`
+                          : member.className
+                            ? "main"
+                            : undefined
+                    }
+                    aria-label={`Профессия ${member.nickname}`}
+                    disabled={isPending}
+                    onChange={(option) => {
+                      setPreservedProfiles((current) => {
+                        const next = { ...current };
+                        delete next[member.id];
+                        return next;
+                      });
+                      form.setValue(`participants.${index}.profileId`, option?.profileId, {
+                        shouldDirty: true,
+                      });
+                      form.setValue(
+                        `participants.${index}.classOverride`,
+                        !option?.profileId &&
+                          (option?.source === "catalog" || option?.source === "legacy")
+                          ? option.className
+                          : undefined,
+                        { shouldDirty: true },
+                      );
+                    }}
                   />
                 </div>
               );
@@ -656,7 +740,10 @@ export function RaidForm({
               variant="ghost"
               disabled={isPending}
               onClick={() => {
-                if (form.formState.isDirty && !window.confirm("Выйти без сохранения?")) return;
+                if (form.formState.isDirty) {
+                  setConfirmation("leave-raid");
+                  return;
+                }
                 router.push(raidId ? `/raids/${raidId}` : "/raids");
               }}
             >
@@ -763,26 +850,38 @@ export function RaidForm({
                   >
                     Переименовать
                   </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={catalogPending}
-                    onClick={() =>
-                      void mutateDialog(async () => {
-                        const result = await manageInstanceAction(row.id, {
-                          isActive: !row.isActive,
-                        });
-                        if (!result.ok) {
-                          setDialogMessage(result.message);
-                          return;
-                        }
-                        setInstances((await loadRaidSetupAction()).instances);
-                      })
-                    }
-                  >
-                    {row.isActive ? "В архив" : "Восстановить"}
-                  </Button>
+                  {row.isActive ? (
+                    <ConfirmationDialog
+                      trigger={
+                        <Button type="button" size="sm" variant="outline" disabled={catalogPending}>
+                          В архив
+                        </Button>
+                      }
+                      title={`Переместить инстанс «${row.displayName}» в архив?`}
+                      description="Инстанс останется доступен в истории существующих рейдов. Новые рейды не смогут выбрать его, пока вы не восстановите запись."
+                      confirmLabel="В архив"
+                      onConfirm={() => setCustomInstanceActive(row.id, false)}
+                    />
+                  ) : (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={catalogPending}
+                      onClick={() =>
+                        void mutateDialog(async () => {
+                          const result = await manageInstanceAction(row.id, { isActive: true });
+                          if (!result.ok) {
+                            setDialogMessage(result.message);
+                            return;
+                          }
+                          setInstances((await loadRaidSetupAction()).instances);
+                        })
+                      }
+                    >
+                      Восстановить
+                    </Button>
+                  )}
                 </div>
               ))}
           </div>
@@ -850,6 +949,45 @@ export function RaidForm({
           </p>
         )}
       </EditorDialog>
+      <ConfirmationDialog
+        open={confirmation !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmation(null);
+            setPendingRoster(null);
+            setPendingRaidValues(null);
+          }
+        }}
+        title={
+          confirmation === "replace-roster"
+            ? "Заменить ручной состав?"
+            : confirmation === "delete-loot"
+              ? "Подтвердить удаление добычи?"
+              : "Выйти без сохранения?"
+        }
+        description={
+          confirmation === "replace-roster"
+            ? "Текущие изменения участников и выбранных профессий заменятся составом шаблона."
+            : confirmation === "delete-loot"
+              ? `Из рейда будут удалены записи добычи: ${removedLootNames.join(", ")}. Если по записи уже прошла продажа, сервер не разрешит сохранить изменение.`
+              : "Изменения в рейде будут потеряны."
+        }
+        confirmLabel={
+          confirmation === "replace-roster"
+            ? "Заменить состав"
+            : confirmation === "delete-loot"
+              ? "Сохранить без добычи"
+              : "Выйти"
+        }
+        onConfirm={async () => {
+          if (confirmation === "replace-roster" && pendingRoster) applyRoster(pendingRoster);
+          if (confirmation === "leave-raid") router.push(raidId ? `/raids/${raidId}` : "/raids");
+          if (confirmation === "delete-loot" && pendingRaidValues) saveRaid(pendingRaidValues);
+          setPendingRoster(null);
+          setPendingRaidValues(null);
+          setConfirmation(null);
+        }}
+      />
     </>
   );
 }

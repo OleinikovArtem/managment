@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, useWatch } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { Plus, X } from "lucide-react";
 import { toast } from "sonner";
@@ -64,9 +64,6 @@ function MemberForm({ initialValues, submitLabel, action, onSuccess, onCancel }:
     },
   });
 
-  const mainClass = useWatch({ control: form.control, name: "className" });
-  const subclasses = useWatch({ control: form.control, name: "subclasses" });
-
   const onSubmit = form.handleSubmit((values) => {
     setMessage(null);
     startTransition(async () => {
@@ -123,12 +120,20 @@ function MemberForm({ initialValues, submitLabel, action, onSuccess, onCancel }:
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <ClassSelect
-          id={initialValues ? "edit-main-class" : "new-main-class"}
-          label="Main"
-          {...form.register("className")}
-          value={mainClass ?? ""}
-          disabled={isPending}
+        <Controller
+          control={form.control}
+          name="className"
+          render={({ field }) => (
+            <ClassSelect
+              id={initialValues ? "edit-main-class" : "new-main-class"}
+              label="Main"
+              value={field.value ?? ""}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              inputRef={field.ref}
+              disabled={isPending}
+            />
+          )}
         />
         <label className="space-y-1.5 text-xs font-medium">
           Роль
@@ -142,12 +147,20 @@ function MemberForm({ initialValues, submitLabel, action, onSuccess, onCancel }:
         </legend>
         <div className="grid gap-4 sm:grid-cols-2">
           {[0, 1, 2, 3].map((index) => (
-            <ClassSelect
+            <Controller
               key={index}
-              id={`${initialValues ? "edit" : "new"}-subclass-${index + 1}`}
-              label={`Subclass ${index + 1}`}
-              {...form.register(`subclasses.${index}.className`)}
-              value={subclasses?.[index]?.className ?? ""}
+              control={form.control}
+              name={`subclasses.${index}.className`}
+              render={({ field }) => (
+                <ClassSelect
+                  id={`${initialValues ? "edit" : "new"}-subclass-${index + 1}`}
+                  label={`Subclass ${index + 1}`}
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  inputRef={field.ref}
+                />
+              )}
             />
           ))}
         </div>
@@ -227,16 +240,23 @@ export function MemberManager({
     router.refresh();
   }
   function deactivate(member: MemberRow) {
-    if (!window.confirm(`Деактивировать участника «${member.nickname}»? История будет сохранена.`))
-      return;
-    startTransition(async () => {
-      const result = await deactivateMemberAction(member.id);
-      setMessage(result.message);
-      if (result.ok) {
-        toast.success(result.message);
-        router.refresh();
-      } else toast.error(result.message);
-    });
+    return new Promise<void>((resolve, reject) =>
+      startTransition(async () => {
+        try {
+          const result = await deactivateMemberAction(member.id);
+          setMessage(result.message);
+          if (!result.ok) {
+            reject(new Error(result.message));
+            return;
+          }
+          toast.success(result.message);
+          router.refresh();
+          resolve();
+        } catch (error) {
+          reject(error);
+        }
+      }),
+    );
   }
 
   return (
@@ -317,6 +337,12 @@ export function MemberManager({
                             {
                               label: "Деактивировать",
                               destructive: true,
+                              confirmation: {
+                                title: `Деактивировать «${member.nickname}»?`,
+                                description:
+                                  "Участник исчезнет из активного списка. История рейдов и финансовые записи сохранятся.",
+                                confirmLabel: "Деактивировать",
+                              },
                               onClick: () => deactivate(member),
                             },
                           ]
@@ -384,12 +410,8 @@ export function MemberManager({
                         {member.comment}
                       </p>
                     )}
-                    {member.profiles.length > 4 ? (
-                      <MemberProfileManager
-                        memberId={member.id}
-                        profiles={member.profiles}
-                        canManage={canManage}
-                      />
+                    {member.isActive && member.profiles.length > 0 ? (
+                      <MemberProfileManager profiles={member.profiles} canManage={canManage} />
                     ) : (
                       <p className="text-xs text-muted-foreground">
                         {member.isActive

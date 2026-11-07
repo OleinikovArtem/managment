@@ -332,6 +332,7 @@ model PartyCompositionMember {
   compositionId String
   memberId      String
   profileId     String?
+  classOverride String?
   slotOrder     Int      @default(0)
   roleOverride  String?
   note          String?

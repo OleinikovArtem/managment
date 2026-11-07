@@ -26,14 +26,19 @@ export function UserDisplayNameForm({ displayName }: { displayName: string }) {
       <label className="block space-y-1.5 text-sm font-medium">
         <span>Имя для отображения</span>
         <Input
+          id="user-display-name"
           name="displayName"
           autoComplete="nickname"
           minLength={2}
           maxLength={80}
           defaultValue={displayName}
+          aria-describedby="user-display-name-hint"
           required
           disabled={pending}
         />
+        <span id="user-display-name-hint" className="block text-xs leading-5 text-muted-foreground">
+          Отображается во всех ваших группах. Это не игровой никнейм и не логин.
+        </span>
       </label>
       {message && (
         <p role="status" className="text-sm text-muted-foreground">

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { ItemActionResult } from "@/features/items/item-action-result";
-import { itemInputSchema, type ItemInput } from "@/features/items/item-schema";
+import { ITEM_GRADES, itemInputSchema, type ItemInput } from "@/features/items/item-schema";
 
 type ItemFormProps = {
   initialValues?: ItemInput;
@@ -147,23 +147,62 @@ export function ItemForm({
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            {fields.map(({ name, label, maxLength, placeholder }) => (
-              <div key={name} className="space-y-2">
-                <label htmlFor={name} className="text-sm font-medium">
-                  {label} <span className="text-xs text-muted-foreground">(необязательно)</span>
-                </label>
-                <Input
-                  id={name}
-                  maxLength={maxLength}
-                  placeholder={placeholder}
-                  aria-invalid={Boolean(form.formState.errors[name])}
-                  {...form.register(name)}
-                />
-                {form.formState.errors[name] && (
-                  <p className="text-xs text-destructive">{form.formState.errors[name]?.message}</p>
-                )}
-              </div>
-            ))}
+            {fields.map(({ name, label, maxLength, placeholder }) => {
+              if (name === "itemSubtype" || name === "gameVersion") return null;
+              if (name === "grade") {
+                const legacyGrade = initialValues?.grade?.trim();
+                const grades =
+                  legacyGrade && !ITEM_GRADES.includes(legacyGrade as (typeof ITEM_GRADES)[number])
+                    ? [legacyGrade, ...ITEM_GRADES]
+                    : ITEM_GRADES;
+                return (
+                  <div key={name} className="space-y-2">
+                    <label htmlFor={name} className="text-sm font-medium">
+                      {label} <span className="text-xs text-muted-foreground">(необязательно)</span>
+                    </label>
+                    <select
+                      id={name}
+                      className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm text-foreground"
+                      aria-invalid={Boolean(form.formState.errors[name])}
+                      {...form.register(name)}
+                    >
+                      <option value="">Не указан</option>
+                      {grades.map((grade) => (
+                        <option key={grade} value={grade}>
+                          {grade}
+                        </option>
+                      ))}
+                    </select>
+                    {form.formState.errors[name] && (
+                      <p className="text-xs text-destructive">
+                        {form.formState.errors[name]?.message}
+                      </p>
+                    )}
+                  </div>
+                );
+              }
+              return (
+                <div key={name} className="space-y-2">
+                  <label htmlFor={name} className="text-sm font-medium">
+                    {label} <span className="text-xs text-muted-foreground">(необязательно)</span>
+                  </label>
+                  <Input
+                    id={name}
+                    maxLength={maxLength}
+                    placeholder={placeholder}
+                    aria-invalid={Boolean(form.formState.errors[name])}
+                    {...form.register(name)}
+                  />
+                  {form.formState.errors[name] && (
+                    <p className="text-xs text-destructive">
+                      {form.formState.errors[name]?.message}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+            <input type="hidden" {...form.register("itemSubtype")} />
+            <input type="hidden" {...form.register("gameVersion")} />
           </div>
 
           <label className="flex items-center gap-3 text-sm font-medium">

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { AdenaAmount } from "@/components/ui/adena-amount";
 import { Button } from "@/components/ui/button";
 import { PaymentForm } from "@/features/sales/payment-form";
+import type { PaymentDraft } from "@/features/sales/payment-form";
 import { cn } from "cn";
 
 type Row = { memberId: string; nickname: string; isActive: boolean; payable: string };
@@ -24,6 +25,8 @@ export function PayoutList({
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [drafts, setDrafts] = useState<Record<string, PaymentDraft>>({});
   const activeMember = members.find((member) => member.memberId === activeId);
   const filters = [
     { value: "all", label: "Все" },
@@ -82,22 +85,36 @@ export function PayoutList({
             <PayoutCard
               member={member}
               canManage={canManage}
-              onSelect={() => setActiveId(member.memberId)}
+              onSelect={() => {
+                setActiveId(member.memberId);
+                setPanelOpen(true);
+              }}
             />
           </li>
         ))}
       </ul>
-      {canManage && activeMember && BigInt(activeMember.payable) > 0n && (
+      {canManage && activeMember && (
         <PaymentForm
-          key={activeMember.memberId}
+          key={`${activeMember.memberId}:${activeMember.payable}:${partyCash}:${totalOutstanding}`}
           memberId={activeMember.memberId}
           nickname={activeMember.nickname}
           remaining={activeMember.payable}
           partyCash={partyCash}
           totalOutstanding={totalOutstanding}
-          open
+          open={panelOpen && BigInt(activeMember.payable) > 0n}
+          draft={drafts[activeMember.memberId]}
+          onDraftChange={(draft) =>
+            setDrafts((current) => ({ ...current, [activeMember.memberId]: draft }))
+          }
+          onSuccess={() =>
+            setDrafts((current) => {
+              const next = { ...current };
+              delete next[activeMember.memberId];
+              return next;
+            })
+          }
           onOpenChange={(open) => {
-            if (!open) setActiveId(null);
+            setPanelOpen(open);
           }}
         />
       )}

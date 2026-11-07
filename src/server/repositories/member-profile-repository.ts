@@ -1,5 +1,6 @@
 import "server-only";
 
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import type {
   MemberProfileInput,
@@ -71,23 +72,37 @@ export async function updatePartyMemberProfile(
   id: string,
   input: MemberProfileUpdateInput,
 ) {
-  return prisma.$transaction(async (tx) => {
-    const profile = await tx.partyMemberProfile.findFirst({
-      where: { partyId, id, isActive: true },
-      select: { memberId: true },
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const initial = await tx.partyMemberProfile.findFirst({
+        where: { partyId, id, isActive: true },
+        select: { memberId: true },
+      });
+      if (!initial) return { status: "not-found" as const };
+      await tx.$queryRaw`SELECT id FROM "PartyMember" WHERE "partyId" = ${partyId} AND id = ${initial.memberId} FOR UPDATE`;
+      const current = await tx.partyMemberProfile.findFirst({
+        where: { partyId, id, isActive: true },
+        select: { updatedAt: true },
+      });
+      if (!current) return { status: "not-found" as const };
+      if (current.updatedAt.getTime() !== new Date(input.expectedUpdatedAt).getTime())
+        return { status: "stale" as const };
+      const result = await tx.partyMemberProfile.updateMany({
+        where: { partyId, id, isActive: true, updatedAt: current.updatedAt },
+        data: {
+          name: input.name,
+          className: input.className,
+          role: input.role || null,
+          ...(input.level !== undefined ? { level: input.level } : {}),
+          note: input.note || null,
+          updatedAt: new Date(Math.max(Date.now(), current.updatedAt.getTime() + 1)),
+        },
+      });
+      return result.count === 1 ? { status: "updated" as const } : { status: "stale" as const };
     });
-    if (!profile) return false;
-    await tx.$queryRaw`SELECT id FROM "PartyMember" WHERE "partyId" = ${partyId} AND id = ${profile.memberId} FOR UPDATE`;
-    const result = await tx.partyMemberProfile.updateMany({
-      where: { partyId, id, isActive: true },
-      data: {
-        name: input.name,
-        className: input.className,
-        role: input.role || null,
-        ...(input.level !== undefined ? { level: input.level } : {}),
-        note: input.note || null,
-      },
-    });
-    return result.count === 1;
-  });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002")
+      throw new Error("Профиль с таким названием уже существует у участника.");
+    throw error;
+  }
 }

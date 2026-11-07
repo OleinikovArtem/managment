@@ -1,8 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { resetRequestSchema, resolveResetCategories } from "./reset-plan";
+import { resetCategorySchema, resetRequestSchema, resolveResetCategories } from "./reset-plan";
 import { RESET_PARTY_CONFIRMATION } from "./reset-confirmation";
 
 describe("selective reset dependencies", () => {
+  it.each(
+    Array.from({ length: 2 ** resetCategorySchema.options.length - 1 }, (_, index) => index + 1),
+  )("closes every nonempty selection and is idempotent (mask %i)", (mask) => {
+    const categories = resetCategorySchema.options.filter(
+      (_, index) => (mask & (1 << index)) !== 0,
+    );
+    const resolved = resolveResetCategories(categories);
+    expect(new Set(resolved).size).toBe(resolved.length);
+    expect(categories.every((category) => resolved.includes(category))).toBe(true);
+    expect(resolveResetCategories(resolved)).toEqual(resolved);
+  });
   it("keeps unrelated sales when only payouts or saved compositions are selected", () => {
     expect(resolveResetCategories(["payments"])).toEqual(["payments"]);
     expect(resolveResetCategories(["compositions"])).toEqual(["compositions"]);

@@ -10,6 +10,7 @@ import {
   createItem,
   DuplicateItemError,
   ItemNotFoundError,
+  UnsupportedItemGradeError,
   updateItem,
 } from "@/server/services/item-service";
 
@@ -41,6 +42,12 @@ export async function createItemAction(payload: unknown): Promise<ItemActionResu
       itemId: item.id,
     };
   } catch (error) {
+    if (error instanceof UnsupportedItemGradeError)
+      return {
+        ok: false,
+        message: error.message,
+        fieldErrors: { grade: [error.message] },
+      };
     if (error instanceof DuplicateItemError) {
       return {
         ok: false,
@@ -77,6 +84,12 @@ export async function updateItemAction(
       summary: `Изменил свой предмет «${parsed.data.displayName || parsed.data.canonicalName}».`,
     });
   } catch (error) {
+    if (error instanceof UnsupportedItemGradeError)
+      return {
+        ok: false,
+        message: error.message,
+        fieldErrors: { grade: [error.message] },
+      };
     if (error instanceof DuplicateItemError) {
       return {
         ok: false,

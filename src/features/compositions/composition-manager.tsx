@@ -7,10 +7,13 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ActionMenu } from "@/components/ui/action-menu";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { GameIcon } from "@/components/ui/game-icon";
+import { ProfessionSelect } from "@/features/members/profession-select";
 import {
   createCompositionAction,
   deleteCompositionAction,
+  updateCompositionAction,
 } from "@/app/(dashboard)/members/composition-actions";
 
 export type CompositionProfile = {
@@ -28,13 +31,18 @@ export type CompositionMember = {
   role: string | null;
   level: number | null;
   profiles: CompositionProfile[];
+  isActive?: boolean;
 };
 export type CompositionRow = {
   id: string;
   name: string;
   description: string | null;
   focus: string | null;
-  members: { member: CompositionMember; profile: CompositionProfile | null }[];
+  members: {
+    member: CompositionMember;
+    profile: CompositionProfile | null;
+    classOverride: string | null;
+  }[];
 };
 
 export function CompositionManager({
@@ -49,22 +57,44 @@ export function CompositionManager({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [activeId, setActiveId] = useState(compositions[0]?.id ?? "");
-  const [selected, setSelected] = useState<{ memberId: string; profileId?: string }[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [cancelConfirmationOpen, setCancelConfirmationOpen] = useState(false);
+  const [builderDirty, setBuilderDirty] = useState(false);
+  const [selected, setSelected] = useState<
+    { memberId: string; profileId?: string; classOverride?: string }[]
+  >([]);
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const active = compositions.find((item) => item.id === activeId) ?? compositions[0];
+  const editing = compositions.find((item) => item.id === editingId);
+  const editingMembers = editing?.members.map(({ member, profile }) => ({
+    ...member,
+    profiles:
+      profile && !member.profiles.some((savedProfile) => savedProfile.id === profile.id)
+        ? [...member.profiles, profile]
+        : member.profiles,
+  }));
+  const formMembers = [
+    ...members,
+    ...(editingMembers ?? []).filter(
+      (member) => !members.some((activeMember) => activeMember.id === member.id),
+    ),
+  ];
   function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const element = event.currentTarget;
     const data = new FormData(element);
     setMessage(null);
     startTransition(async () => {
-      const result = await createCompositionAction({
+      const payload = {
         name: data.get("name"),
         description: data.get("description"),
         focus: data.get("focus"),
         slots: selected,
-      });
+      };
+      const result = editingId
+        ? await updateCompositionAction(editingId, payload)
+        : await createCompositionAction(payload);
       if (!result.ok) {
         setMessage(result.message);
         toast.error(result.message);
@@ -73,42 +103,88 @@ export function CompositionManager({
       toast.success(result.message);
       element.reset();
       setSelected([]);
+      setEditingId(null);
+      setBuilderDirty(false);
       setOpen(false);
       router.refresh();
     });
   }
   function remove(item: CompositionRow) {
-    if (!window.confirm(`Удалить состав «${item.name}»? Исторические рейды сохранятся.`)) return;
-    startTransition(async () => {
-      const result = await deleteCompositionAction(item.id);
-      if (result.ok) {
-        toast.success(result.message);
-        router.refresh();
-      } else toast.error(result.message);
-    });
+    return new Promise<void>((resolve, reject) =>
+      startTransition(async () => {
+        try {
+          const result = await deleteCompositionAction(item.id);
+          if (!result.ok) {
+            reject(new Error(result.message));
+            return;
+          }
+          toast.success(result.message);
+          router.refresh();
+          resolve();
+        } catch (error) {
+          reject(error);
+        }
+      }),
+    );
+  }
+  function cancelBuilder() {
+    setOpen(false);
+    setSelected([]);
+    setEditingId(null);
+    setBuilderDirty(false);
+    setMessage(null);
   }
 
   return (
     <section>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">Сохранённых составов: {compositions.length}</p>
-        {canManage && !open && <Button onClick={() => setOpen(true)}>Новый состав</Button>}
+        {canManage && !open && (
+          <Button
+            onClick={() => {
+              setEditingId(null);
+              setSelected([]);
+              setBuilderDirty(false);
+              setOpen(true);
+            }}
+          >
+            Новый состав
+          </Button>
+        )}
       </div>
       {open ? (
-        <form onSubmit={save} className="editor-surface space-y-6">
-          <h2 className="section-heading">Новый состав</h2>
+        <form
+          key={editingId ?? "new"}
+          onSubmit={save}
+          onChange={() => setBuilderDirty(true)}
+          className="editor-surface space-y-6"
+        >
+          <h2 className="section-heading">{editing ? "Изменить состав" : "Новый состав"}</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="space-y-2 text-sm">
               Название
-              <Input name="name" required placeholder="Основной рейд" />
+              <Input
+                name="name"
+                required
+                defaultValue={editing?.name}
+                placeholder="Основной рейд"
+              />
             </label>
             <label className="space-y-2 text-sm">
               Направление
-              <Input name="focus" placeholder="Melee, Mage, Archer" />
+              <Input
+                name="focus"
+                defaultValue={editing?.focus ?? ""}
+                placeholder="Melee, Mage, Archer"
+              />
             </label>
             <label className="space-y-2 text-sm sm:col-span-2">
               Описание
-              <Input name="description" placeholder="Необязательная заметка" />
+              <Input
+                name="description"
+                defaultValue={editing?.description ?? ""}
+                placeholder="Необязательная заметка"
+              />
             </label>
           </div>
           <div>
@@ -125,43 +201,66 @@ export function CompositionManager({
                 .
               </p>
             ) : (
-              members.map((member) => {
+              formMembers.map((member) => {
                 const slot = selected.find((item) => item.memberId === member.id);
                 const checked = Boolean(slot);
+                const savedSlot = editing?.members.find((row) => row.member.id === member.id);
+                const savedProfile = slot?.profileId
+                  ? (member.profiles.find((profile) => profile.id === slot.profileId) ??
+                    savedSlot?.profile)
+                  : null;
                 return (
                   <div key={member.id} className="slot-row">
                     <div className="min-w-0">
                       <p className="text-sm font-medium break-words">{member.nickname}</p>
                       <p className="mt-1 text-xs text-muted-foreground">
                         {member.className || member.role || "Класс не указан"}
+                        {member.isActive === false && " · Неактивен"}
                       </p>
                     </div>
-                    <select
-                      aria-label={`Профиль ${member.nickname}`}
-                      className="min-w-0 w-full"
-                      disabled={!checked || pending}
-                      value={slot?.profileId ?? ""}
-                      onChange={(e) =>
+                    <ProfessionSelect
+                      aria-label={`Профессия ${member.nickname}`}
+                      mainClass={member.className}
+                      profiles={member.profiles}
+                      preserved={
+                        savedProfile
+                          ? { profileId: savedProfile.id, className: savedProfile.className }
+                          : null
+                      }
+                      disabled={!checked || pending || member.isActive === false}
+                      value={
+                        slot?.profileId
+                          ? `profile:${slot.profileId}`
+                          : slot?.classOverride
+                            ? `class:${slot.classOverride}`
+                            : member.className
+                              ? "main"
+                              : undefined
+                      }
+                      onChange={(option) =>
                         setSelected((current) =>
                           current.map((item) =>
-                            item.memberId === member.id
-                              ? { ...item, profileId: e.target.value || undefined }
-                              : item,
+                            item.memberId !== member.id
+                              ? item
+                              : {
+                                  memberId: member.id,
+                                  ...(option?.profileId ? { profileId: option.profileId } : {}),
+                                  ...(!option?.profileId &&
+                                  (option?.source === "catalog" || option?.source === "legacy")
+                                    ? { classOverride: option.className }
+                                    : {}),
+                                },
                           ),
                         )
                       }
-                    >
-                      <option value="">Базовый профиль</option>
-                      {member.profiles.map((profile) => (
-                        <option key={profile.id} value={profile.id}>
-                          {profile.name} · {profile.className}
-                        </option>
-                      ))}
-                    </select>
+                    />
                     <input
                       type="checkbox"
                       checked={checked}
-                      disabled={pending || (!checked && selected.length >= 36)}
+                      disabled={
+                        pending ||
+                        (!checked && (selected.length >= 36 || member.isActive === false))
+                      }
                       aria-label={`Добавить ${member.nickname} в состав`}
                       onChange={() =>
                         setSelected((current) =>
@@ -190,13 +289,8 @@ export function CompositionManager({
               variant="ghost"
               disabled={pending}
               onClick={() => {
-                if (
-                  selected.length &&
-                  !window.confirm("Отменить создание состава? Выбранные участники не сохранятся.")
-                )
-                  return;
-                setOpen(false);
-                setSelected([]);
+                if (builderDirty) setCancelConfirmationOpen(true);
+                else cancelBuilder();
               }}
             >
               Отмена
@@ -238,25 +332,51 @@ export function CompositionManager({
                   label={`Действия состава ${active.name}`}
                   disabled={pending}
                   items={[
-                    { label: "Удалить состав", destructive: true, onClick: () => remove(active) },
+                    {
+                      label: "Изменить состав",
+                      onClick: () => {
+                        setEditingId(active.id);
+                        setBuilderDirty(false);
+                        setSelected(
+                          active.members.map(({ member, profile, classOverride }) => ({
+                            memberId: member.id,
+                            ...(profile ? { profileId: profile.id } : {}),
+                            ...(classOverride ? { classOverride } : {}),
+                          })),
+                        );
+                        setOpen(true);
+                      },
+                    },
+                    {
+                      label: "Удалить состав",
+                      destructive: true,
+                      confirmation: {
+                        title: `Удалить состав «${active.name}»?`,
+                        description:
+                          "Исторические рейды сохраняются. Если состав используется рейдом, сервер запретит удаление.",
+                      },
+                      onClick: () => remove(active),
+                    },
                   ]}
                 />
               )}
             </div>
             <ul className="composition-roster">
-              {active.members.map(({ member, profile }) => (
+              {active.members.map(({ member, profile, classOverride }) => (
                 <li key={member.id}>
                   <GameIcon
                     kind="class"
-                    name={profile?.className || member.className || "Support"}
+                    name={classOverride || profile?.className || member.className || "Support"}
                     size="sm"
                   />
                   <div className="min-w-0">
                     <p className="text-sm font-medium break-words">{member.nickname}</p>
                     <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                      {profile
-                        ? `${profile.name} · ${profile.className}`
-                        : member.className || "Базовый профиль"}
+                      {classOverride
+                        ? classOverride
+                        : profile
+                          ? `${profile.name} · ${profile.className}`
+                          : member.className || "Базовый профиль"}
                     </p>
                   </div>
                 </li>
@@ -270,6 +390,18 @@ export function CompositionManager({
           </section>
         </div>
       )}
+      <ConfirmationDialog
+        open={cancelConfirmationOpen}
+        onOpenChange={setCancelConfirmationOpen}
+        title={editingId ? "Отменить изменение состава?" : "Отменить создание состава?"}
+        description={
+          editingId
+            ? "Изменения названия, описания и выбранных участников не сохранятся."
+            : "Выбранные участники не будут сохранены в состав."
+        }
+        confirmLabel="Отменить изменения"
+        onConfirm={async () => cancelBuilder()}
+      />
     </section>
   );
 }

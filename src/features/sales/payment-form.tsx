@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, LoaderCircle, MessageSquarePlus } from "lucide-react";
@@ -21,7 +21,18 @@ type PaymentFormProps = {
   partyCash: string;
   totalOutstanding: string;
   open: boolean;
+  draft?: PaymentDraft;
+  onDraftChange: (draft: PaymentDraft) => void;
+  onSuccess: () => void;
   onOpenChange: (open: boolean) => void;
+};
+
+export type PaymentDraft = {
+  amount: string;
+  paidAt: string;
+  comment: string;
+  showComment: boolean;
+  idempotencyKey: { fingerprint: string; key: string } | null;
 };
 
 function getLocalDateTimeValue(date: Date) {
@@ -36,10 +47,12 @@ export function PaymentForm({
   partyCash,
   totalOutstanding,
   open,
+  draft,
+  onDraftChange,
+  onSuccess,
   onOpenChange,
 }: PaymentFormProps) {
   const router = useRouter();
-  const idempotencyKey = useRef<{ fingerprint: string; key: string } | null>(null);
   const [isPending, startTransition] = useTransition();
   const currentPayable = BigInt(remaining);
   const recommendedAmount = (() => {
@@ -49,11 +62,42 @@ export function PaymentForm({
       ((BigInt(partyCash) > 0n ? BigInt(partyCash) : 0n) * BigInt(remaining)) / outstandingTotal;
     return proportional > BigInt(remaining) ? BigInt(remaining) : proportional;
   })();
-  const [amount, setAmount] = useState(() => floorToMillionsInput(recommendedAmount));
-  const [paidAt, setPaidAt] = useState(() => getLocalDateTimeValue(new Date()));
-  const [comment, setComment] = useState("");
-  const [showComment, setShowComment] = useState(false);
+  const [initialDraft] = useState<PaymentDraft>(
+    () =>
+      draft ?? {
+        amount: floorToMillionsInput(recommendedAmount),
+        paidAt: getLocalDateTimeValue(new Date()),
+        comment: "",
+        showComment: false,
+        idempotencyKey: null,
+      },
+  );
+  const [amount, setAmountState] = useState(initialDraft.amount);
+  const [paidAt, setPaidAtState] = useState(initialDraft.paidAt);
+  const [comment, setCommentState] = useState(initialDraft.comment);
+  const [showComment, setShowCommentState] = useState(initialDraft.showComment);
+  const [idempotencyKey, setIdempotencyKey] = useState(initialDraft.idempotencyKey);
   const [message, setMessage] = useState<string | null>(null);
+  function updateDraft(next: Partial<PaymentDraft>) {
+    const updated = { amount, paidAt, comment, showComment, idempotencyKey, ...next };
+    onDraftChange(updated);
+  }
+  function setAmount(value: string) {
+    setAmountState(value);
+    updateDraft({ amount: value });
+  }
+  function setPaidAt(value: string) {
+    setPaidAtState(value);
+    updateDraft({ paidAt: value });
+  }
+  function setComment(value: string) {
+    setCommentState(value);
+    updateDraft({ comment: value });
+  }
+  function setShowComment(value: boolean) {
+    setShowCommentState(value);
+    updateDraft({ showComment: value });
+  }
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage(null);
@@ -75,10 +119,13 @@ export function PaymentForm({
       comment: comment.trim() || undefined,
     };
     const fingerprint = JSON.stringify(request);
-    if (idempotencyKey.current?.fingerprint !== fingerprint) {
-      idempotencyKey.current = { fingerprint, key: crypto.randomUUID() };
+    let currentKey = idempotencyKey;
+    if (currentKey?.fingerprint !== fingerprint) {
+      currentKey = { fingerprint, key: crypto.randomUUID() };
+      setIdempotencyKey(currentKey);
+      updateDraft({ idempotencyKey: currentKey });
     }
-    const payload = { ...request, idempotencyKey: idempotencyKey.current.key };
+    const payload = { ...request, idempotencyKey: currentKey.key };
 
     startTransition(async () => {
       const result: PaymentActionResult = await registerPaymentAction(payload);
@@ -89,12 +136,20 @@ export function PaymentForm({
       }
 
       toast.success(result.message);
-      idempotencyKey.current = null;
-      setAmount("");
-      setComment("");
-      setShowComment(false);
+      setIdempotencyKey(null);
+      setAmountState(floorToMillionsInput(recommendedAmount));
+      setPaidAtState(getLocalDateTimeValue(new Date()));
+      setCommentState("");
+      setShowCommentState(false);
+      onDraftChange({
+        amount: floorToMillionsInput(recommendedAmount),
+        paidAt: getLocalDateTimeValue(new Date()),
+        comment: "",
+        showComment: false,
+        idempotencyKey: null,
+      });
+      onSuccess();
       onOpenChange(false);
-      setPaidAt(getLocalDateTimeValue(new Date()));
       router.refresh();
     });
   }
@@ -160,7 +215,7 @@ export function PaymentForm({
             variant="ghost"
             size="xs"
             className="-ml-2 h-7 text-xs text-muted-foreground"
-            onClick={() => setShowComment((visible) => !visible)}
+            onClick={() => setShowComment(!showComment)}
             aria-expanded={showComment}
           >
             <MessageSquarePlus aria-hidden="true" />

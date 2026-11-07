@@ -79,8 +79,25 @@ export async function updateMemberProfileAction(
     };
   const access = await requirePartyActionAccess("ADMIN");
   const { partyId } = access;
-  const updated = await updatePartyMemberProfile(partyId, id.data, parsed.data);
-  if (!updated) return { ok: false, message: "Профиль не найден или уже отключён." };
+  let updated: Awaited<ReturnType<typeof updatePartyMemberProfile>>;
+  try {
+    updated = await updatePartyMemberProfile(partyId, id.data, parsed.data);
+  } catch (error) {
+    return {
+      ok: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Не удалось обновить профиль. Проверьте данные и повторите.",
+    };
+  }
+  if (updated.status === "not-found")
+    return { ok: false, message: "Профиль не найден или уже отключён." };
+  if (updated.status === "stale")
+    return {
+      ok: false,
+      message: "Профиль изменился в другой вкладке. Закройте форму и загрузите актуальные данные.",
+    };
   await recordPartyAuditEvent(access, {
     action: "UPDATE",
     entityType: "member-profile",

@@ -13,7 +13,6 @@ import {
   createItemAction,
   updateItemAction,
 } from "@/app/(dashboard)/items/actions";
-import { toast } from "sonner";
 
 export type ItemListRow = ItemInput & {
   id: string;
@@ -148,13 +147,22 @@ export function ItemManager({
                         },
                         {
                           label: item.isActive === false ? "Восстановить" : "В архив",
-                          onClick: () => {
-                            void archiveItemAction(item.id, item.isActive === false)
-                              .then((result) => {
-                                if (result.ok) router.refresh();
-                                else toast.error(result.message);
-                              })
-                              .catch(() => toast.error("Не удалось изменить предмет."));
+                          ...(item.isActive === false
+                            ? {}
+                            : {
+                                confirmation: {
+                                  title: `В архив «${item.displayName || item.canonicalName}»?`,
+                                  description:
+                                    "Предмет останется в каталоге и будет доступен в существующей истории.",
+                                },
+                              }),
+                          onClick: async () => {
+                            const result = await archiveItemAction(
+                              item.id,
+                              item.isActive === false,
+                            );
+                            if (!result.ok) throw new Error(result.message);
+                            router.refresh();
                           },
                         },
                       ]}

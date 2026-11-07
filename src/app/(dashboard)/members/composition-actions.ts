@@ -11,6 +11,7 @@ import type { CompositionActionResult } from "@/features/compositions/compositio
 import {
   createPartyComposition,
   deletePartyComposition,
+  updatePartyComposition,
 } from "@/server/repositories/composition-repository";
 
 export async function createCompositionAction(payload: unknown): Promise<CompositionActionResult> {
@@ -26,7 +27,10 @@ export async function createCompositionAction(payload: unknown): Promise<Composi
   try {
     await createPartyComposition(partyId, parsed.data);
   } catch (error) {
-    if (error instanceof Error && error.message.startsWith("Выберите"))
+    if (
+      error instanceof Error &&
+      (error.message.startsWith("Выберите") || error.message.startsWith("Профессия"))
+    )
       return { ok: false, message: error.message };
     return {
       ok: false,
@@ -42,6 +46,40 @@ export async function createCompositionAction(payload: unknown): Promise<Composi
   revalidatePath("/compositions");
   revalidatePath("/raids/new");
   return { ok: true, message: "Профиль состава сохранён." };
+}
+
+export async function updateCompositionAction(
+  idValue: unknown,
+  payload: unknown,
+): Promise<CompositionActionResult> {
+  const id = compositionIdSchema.safeParse(idValue);
+  const parsed = compositionInputSchema.safeParse(payload);
+  if (!id.success || !parsed.success)
+    return { ok: false, message: "Проверьте данные состава и выбранные профессии." };
+  const access = await requirePartyActionAccess("ADMIN");
+  let updated: boolean;
+  try {
+    updated = await updatePartyComposition(access.partyId, id.data, parsed.data);
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      (error.message.startsWith("Выберите") || error.message.startsWith("Профессия"))
+    )
+      return { ok: false, message: error.message };
+    return { ok: false, message: "Не удалось обновить состав. Обновите страницу и повторите." };
+  }
+  if (!updated) return { ok: false, message: "Состав не найден." };
+  await recordPartyAuditEvent(access, {
+    action: "UPDATE",
+    entityType: "composition",
+    entityId: id.data,
+    summary: `Обновил сохранённый состав «${parsed.data.name}».`,
+  });
+  revalidatePath("/members");
+  revalidatePath("/compositions");
+  revalidatePath("/raids/new");
+  revalidatePath("/raids");
+  return { ok: true, message: "Состав обновлён." };
 }
 
 export async function deleteCompositionAction(idValue: unknown): Promise<CompositionActionResult> {

@@ -24,6 +24,28 @@ describe("raid input validation", () => {
     );
   });
 
+  it("accepts a class override and rejects a profile plus override in one slot", () => {
+    expect(
+      raidInputSchema.safeParse({
+        ...validInput,
+        participants: [{ memberId: "member-1", status: "PRESENT", classOverride: "Duelist" }],
+      }).success,
+    ).toBe(true);
+    expect(
+      raidInputSchema.safeParse({
+        ...validInput,
+        participants: [
+          {
+            memberId: "member-1",
+            status: "PRESENT",
+            profileId: "profile-1",
+            classOverride: "Duelist",
+          },
+        ],
+      }).success,
+    ).toBe(false);
+  });
+
   it.each([0, -1, 1.5])("rejects loot quantity %s", (quantity) => {
     const result = raidInputSchema.safeParse({
       ...validInput,

@@ -60,9 +60,14 @@ export function SettingsForm({ partyName, canManage }: { partyName: string; canM
             maxLength={80}
             readOnly={!canManage}
             aria-invalid={Boolean(form.formState.errors.name)}
-            aria-describedby={form.formState.errors.name ? "party-name-error" : undefined}
+            aria-describedby={
+              form.formState.errors.name ? "party-name-hint party-name-error" : "party-name-hint"
+            }
             {...form.register("name")}
           />
+          <p id="party-name-hint" className="text-xs leading-5 text-muted-foreground">
+            Название только этой группы.
+          </p>
           {form.formState.errors.name && (
             <p id="party-name-error" className="text-sm text-destructive">
               {form.formState.errors.name.message}
@@ -84,10 +89,6 @@ export function SettingsForm({ partyName, canManage }: { partyName: string; canM
               Изменять настройки группы может администратор.
             </p>
           )}
-          <p className="text-xs leading-5 text-muted-foreground">
-            Для локальной базы используйте резервную копию Docker. В продакшене резервирование
-            настраивается у провайдера базы.
-          </p>
         </form>
       </CardContent>
     </Card>

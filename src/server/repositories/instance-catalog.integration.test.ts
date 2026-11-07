@@ -311,6 +311,7 @@ describe.skipIf(!url?.startsWith("postgres"))(
             globalItem.id,
             { canonicalName: "Forbidden" },
             "forbidden",
+            globalItem.grade,
           ),
         ).toBeNull();
         expect(await itemRepo.setCustomItemActive(b.id, ownItem.id, false)).toBe(false);

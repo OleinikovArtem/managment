@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LocalDateTime } from "@/components/ui/local-date-time";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import {
   removeTelegramTokenAction,
   saveTelegramTokenAction,
@@ -96,20 +97,22 @@ export function TelegramBotSettings({ settings }: { settings: Settings }) {
             >
               Подключить webhook
             </Button>
-            <Button
-              variant="ghost"
-              disabled={pending}
-              onClick={() => {
-                if (
-                  window.confirm(
-                    "Отключить автоматический импорт Telegram? Учтённые продажи сохранятся.",
-                  )
-                )
-                  run(removeTelegramTokenAction);
+            <ConfirmationDialog
+              trigger={
+                <Button variant="ghost" disabled={pending}>
+                  Отключить
+                </Button>
+              }
+              title="Отключить Telegram?"
+              description="Автоматический импорт остановится. Учтённые продажи сохранятся."
+              confirmLabel="Отключить"
+              onConfirm={async () => {
+                const response = await removeTelegramTokenAction();
+                setResult(response);
+                if (!response.ok) throw new Error(response.message);
+                router.refresh();
               }}
-            >
-              Отключить
-            </Button>
+            />
           </div>
         )}
         <p className="text-xs leading-5 text-muted-foreground">

@@ -4,16 +4,15 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ProfessionSelect } from "@/features/members/profession-select";
 import { Input } from "@/components/ui/input";
 import { ActionMenu } from "@/components/ui/action-menu";
 import { EditorDialog } from "@/components/ui/editor-dialog";
 import { GameIcon } from "@/components/ui/game-icon";
 import {
-  createMemberProfileAction,
   deleteMemberProfileAction,
   updateMemberProfileAction,
 } from "@/app/(dashboard)/members/profile-actions";
-import { LINEAGE2_HIGH_FIVE_CLASSES } from "@/features/members/lineage2-classes";
 
 export type MemberProfileRow = {
   id: string;
@@ -23,9 +22,11 @@ export type MemberProfileRow = {
   level: number | null;
   note: string | null;
   subclassSlot: number | null;
+  updatedAt: string;
 };
 
-function ProfileFields({ profile }: { profile?: MemberProfileRow }) {
+function ProfileFields({ profile }: { profile: MemberProfileRow }) {
+  const [className, setClassName] = useState(profile.className);
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <label className="space-y-2 text-sm">
@@ -38,24 +39,20 @@ function ProfileFields({ profile }: { profile?: MemberProfileRow }) {
           placeholder="Основной профиль"
         />
       </label>
-      <label className="space-y-2 text-sm">
-        Класс
-        <select
-          name="className"
-          required
-          defaultValue={profile?.className ?? ""}
-          className="w-full"
-        >
-          <option value="" disabled>
-            Выберите класс
-          </option>
-          {LINEAGE2_HIGH_FIVE_CLASSES.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-      </label>
+      <div className="space-y-2 text-sm">
+        <label className="block" htmlFor={`profile-class-${profile.id}`}>
+          Класс
+        </label>
+        <input type="hidden" name="className" value={className} />
+        <ProfessionSelect
+          id={`profile-class-${profile.id}`}
+          aria-label={`Класс Subclass ${profile.subclassSlot ?? "legacy"}`}
+          mainClass={profile.className}
+          profiles={[]}
+          value={className === profile.className ? "main" : `class:${className}`}
+          onChange={(option) => setClassName(option?.className ?? "")}
+        />
+      </div>
       <label className="space-y-2 text-sm">
         Роль
         <Input name="role" defaultValue={profile?.role ?? ""} placeholder="Healer, Buffer, DPS" />
@@ -69,21 +66,19 @@ function ProfileFields({ profile }: { profile?: MemberProfileRow }) {
 }
 
 export function MemberProfileManager({
-  memberId,
   profiles,
   canManage,
 }: {
-  memberId: string;
   profiles: MemberProfileRow[];
   canManage: boolean;
 }) {
   const router = useRouter();
-  const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<MemberProfileRow | null>(null);
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!editing) return;
     const element = event.currentTarget;
     const data = new FormData(element);
     const values = {
@@ -91,12 +86,11 @@ export function MemberProfileManager({
       className: data.get("className"),
       role: data.get("role"),
       note: data.get("note"),
+      expectedUpdatedAt: editing.updatedAt,
     };
     setMessage(null);
     startTransition(async () => {
-      const result = editing
-        ? await updateMemberProfileAction(editing.id, values)
-        : await createMemberProfileAction({ ...values, memberId });
+      const result = await updateMemberProfileAction(editing.id, values);
       if (!result.ok) {
         setMessage(result.message);
         toast.error(result.message);
@@ -104,7 +98,6 @@ export function MemberProfileManager({
       }
       toast.success(result.message);
       element.reset();
-      setCreating(false);
       setEditing(null);
       router.refresh();
     });
@@ -113,25 +106,9 @@ export function MemberProfileManager({
     <div>
       <div className="mb-3 flex items-center justify-between gap-3">
         <h3 className="text-sm font-medium">Игровые профили</h3>
-        {canManage && (
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            disabled={pending}
-            onClick={() => {
-              setCreating(true);
-              setMessage(null);
-            }}
-          >
-            Добавить профиль
-          </Button>
-        )}
       </div>
       {profiles.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Можно добавить альтернативные классы для разных составов.
-        </p>
+        <p className="text-sm text-muted-foreground">Subclass редактируются вместе с участником.</p>
       ) : (
         <ul className="divide-y divide-border">
           {profiles.map((profile) => (
@@ -160,21 +137,29 @@ export function MemberProfileManager({
                     {
                       label: "Отключить профиль",
                       destructive: true,
-                      onClick: () => {
-                        if (
-                          !window.confirm(
-                            `Отключить профиль «${profile.name}»? История рейдов сохранится.`,
-                          )
-                        )
-                          return;
-                        startTransition(async () => {
-                          const result = await deleteMemberProfileAction(profile.id);
-                          if (result.ok) {
-                            toast.success(result.message);
-                            router.refresh();
-                          } else toast.error(result.message);
-                        });
+                      confirmation: {
+                        title: `Отключить профиль «${profile.name}»?`,
+                        description:
+                          "История рейдов сохранится. Профиль перестанет быть доступен для новых составов.",
+                        confirmLabel: "Отключить профиль",
                       },
+                      onClick: () =>
+                        new Promise<void>((resolve, reject) => {
+                          startTransition(async () => {
+                            try {
+                              const result = await deleteMemberProfileAction(profile.id);
+                              if (!result.ok) {
+                                reject(new Error(result.message));
+                                return;
+                              }
+                              toast.success(result.message);
+                              router.refresh();
+                              resolve();
+                            } catch (error) {
+                              reject(error);
+                            }
+                          });
+                        }),
                     },
                   ]}
                 />
@@ -186,40 +171,40 @@ export function MemberProfileManager({
 
       {canManage && (
         <EditorDialog
-          open={creating || Boolean(editing)}
+          open={Boolean(editing)}
           onClose={() => {
             if (!pending) {
-              setCreating(false);
               setEditing(null);
             }
           }}
-          title={editing ? "Изменить профиль" : "Новый профиль"}
+          title="Изменить Subclass"
           description="Изменения используются в будущих составах. История рейдов сохраняется."
         >
-          <form key={editing?.id ?? "new"} onSubmit={save} className="space-y-5">
-            <ProfileFields profile={editing ?? undefined} />
-            {message && (
-              <p role="alert" className="text-sm text-destructive">
-                {message}
-              </p>
-            )}
-            <div className="flex gap-2">
-              <Button disabled={pending} type="submit">
-                {pending ? "Сохранение…" : "Сохранить"}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                disabled={pending}
-                onClick={() => {
-                  setCreating(false);
-                  setEditing(null);
-                }}
-              >
-                Отмена
-              </Button>
-            </div>
-          </form>
+          {editing && (
+            <form key={editing.id} onSubmit={save} className="space-y-5">
+              <ProfileFields profile={editing} />
+              {message && (
+                <p role="alert" className="text-sm text-destructive">
+                  {message}
+                </p>
+              )}
+              <div className="flex gap-2">
+                <Button disabled={pending} type="submit">
+                  {pending ? "Сохранение…" : "Сохранить"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={pending}
+                  onClick={() => {
+                    setEditing(null);
+                  }}
+                >
+                  Отмена
+                </Button>
+              </div>
+            </form>
+          )}
         </EditorDialog>
       )}
     </div>

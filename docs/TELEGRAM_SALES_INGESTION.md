@@ -195,7 +195,8 @@ production party's bot. See [DEPLOYMENT.md](./DEPLOYMENT.md).
 Tests cover parsing, amount reconciliation, exact FIFO allocation, permissions,
 header verification, encrypted connection lifecycle, duplicate/concurrent
 delivery, full rollback, historical snapshots and edits. PostgreSQL integration
-tests require a disposable `TEST_DATABASE_URL`. A live end-to-end Telegram check
+tests use the preconfigured local test database selected by `TEST_DATABASE_URL`;
+do not create extra local databases. A live end-to-end Telegram check
 additionally requires the owner's receiving bot and an actual BohPTSbot notice.
 
 References: [Bot API webhooks](https://core.telegram.org/bots/api#setwebhook),

@@ -97,6 +97,7 @@ async function SalesContent() {
           </p>
         </header>
         <PayoutList
+          key={workspace.partyId}
           members={rows.map((member) => ({ ...member, payable: member.payable.toString() }))}
           partyCash={balances.partyCash.toString()}
           totalOutstanding={outstanding.toString()}

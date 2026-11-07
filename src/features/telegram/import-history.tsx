@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { AdenaAmount } from "@/components/ui/adena-amount";
 import { LocalDateTime } from "@/components/ui/local-date-time";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import {
   dismissTelegramImportAction,
   readTelegramImportsAction,
@@ -113,17 +114,22 @@ function ImportRow({ record, canManage }: { record: Record; canManage: boolean }
               <Button type="submit" disabled={pending}>
                 {pending ? "Обрабатываем…" : "Повторить обработку"}
               </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                disabled={pending}
-                onClick={() => {
-                  if (window.confirm("Исключить сообщение из импорта без создания продаж?"))
-                    run(() => dismissTelegramImportAction(record.id));
+              <ConfirmationDialog
+                trigger={
+                  <Button type="button" variant="ghost" disabled={pending}>
+                    Исключить сообщение
+                  </Button>
+                }
+                title="Исключить сообщение из импорта?"
+                description="Для сообщения не будут созданы продажи. Его запись останется в истории импорта."
+                confirmLabel="Исключить"
+                onConfirm={async () => {
+                  const response = await dismissTelegramImportAction(record.id);
+                  setResult(response);
+                  if (!response.ok) throw new Error(response.message);
+                  router.refresh();
                 }}
-              >
-                Исключить сообщение
-              </Button>
+              />
             </div>
           </form>
         )}
@@ -299,22 +305,21 @@ export function TelegramImportHistory({
                 <span>
                   {alias.name} → {alias.item.canonicalName}
                 </span>
-                <Button
-                  variant="ghost"
-                  disabled={pending}
-                  onClick={() =>
-                    startTransition(async () => {
-                      try {
-                        setMessage(await removeTelegramAliasAction(alias.id));
-                        router.refresh();
-                      } catch {
-                        setMessage({ ok: false, message: "Не удалось удалить соответствие." });
-                      }
-                    })
+                <ConfirmationDialog
+                  trigger={
+                    <Button variant="ghost" disabled={pending}>
+                      Удалить
+                    </Button>
                   }
-                >
-                  Удалить
-                </Button>
+                  title={`Удалить соответствие «${alias.name}»?`}
+                  description={`Связь с предметом «${alias.item.canonicalName}» перестанет использоваться при разборе новых сообщений.`}
+                  onConfirm={async () => {
+                    const response = await removeTelegramAliasAction(alias.id);
+                    setMessage(response);
+                    if (!response.ok) throw new Error(response.message);
+                    router.refresh();
+                  }}
+                />
               </li>
             ))}
           </ul>

@@ -12,6 +12,8 @@ export const memberProfileInputSchema = z
   .strict();
 
 export const memberProfileIdSchema = z.string().trim().min(1);
-export const memberProfileUpdateSchema = memberProfileInputSchema.omit({ memberId: true });
+export const memberProfileUpdateSchema = memberProfileInputSchema
+  .omit({ memberId: true })
+  .extend({ expectedUpdatedAt: z.iso.datetime() });
 export type MemberProfileInput = z.infer<typeof memberProfileInputSchema>;
 export type MemberProfileUpdateInput = z.infer<typeof memberProfileUpdateSchema>;

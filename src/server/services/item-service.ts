@@ -1,7 +1,7 @@
 import "server-only";
 
 import { Prisma } from "@/generated/prisma/client";
-import { normalizeItemName, type ItemInput } from "@/features/items/item-schema";
+import { ITEM_GRADES, normalizeItemName, type ItemInput } from "@/features/items/item-schema";
 import {
   createPartyItemRecord,
   countPartyItems,
@@ -22,6 +22,13 @@ export class ItemNotFoundError extends Error {
   constructor() {
     super("Предмет не найден.");
     this.name = "ItemNotFoundError";
+  }
+}
+
+export class UnsupportedItemGradeError extends Error {
+  constructor() {
+    super("Выберите ранг из списка. Старое значение можно сохранить без изменений.");
+    this.name = "UnsupportedItemGradeError";
   }
 }
 
@@ -70,6 +77,9 @@ export async function createItem(partyId: string, input: ItemInput) {
   if (!normalizedName) {
     throw new Error("Название не может состоять только из пробелов.");
   }
+  const grade = input.grade?.trim();
+  if (grade && !ITEM_GRADES.includes(grade as (typeof ITEM_GRADES)[number]))
+    throw new UnsupportedItemGradeError();
 
   try {
     return await createPartyItemRecord(partyId, input, normalizedName);
@@ -87,8 +97,19 @@ export async function updateItem(partyId: string, itemId: string, input: ItemInp
     throw new Error("Название не может состоять только из пробелов.");
   }
 
+  const current = await getPartyItemById(partyId, itemId);
+  if (!current) throw new ItemNotFoundError();
+  const grade = input.grade?.trim() || null;
+  if (
+    input.grade !== undefined &&
+    grade &&
+    !ITEM_GRADES.includes(grade as (typeof ITEM_GRADES)[number]) &&
+    grade !== (current.grade?.trim() || null)
+  )
+    throw new UnsupportedItemGradeError();
+
   try {
-    const item = await updatePartyItemRecord(partyId, itemId, input, normalizedName);
+    const item = await updatePartyItemRecord(partyId, itemId, input, normalizedName, current.grade);
     if (!item) {
       throw new ItemNotFoundError();
     }

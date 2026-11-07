@@ -27,6 +27,7 @@ import {
   getPartyItemById,
   listPartyItemCategories,
   listPartyItems,
+  updatePartyItemRecord,
 } from "@/server/repositories/item-repository";
 
 describe("shared item catalog", () => {
@@ -82,8 +83,9 @@ describe("shared item catalog", () => {
           category: "Armor",
           grade: "S",
           itemType: "Boots",
-          itemSubtype: "Light",
+          itemSubtype: null,
           isRare: true,
+          gameVersion: null,
         }),
       }),
     );
@@ -117,5 +119,31 @@ describe("shared item catalog", () => {
     expect(findFirst).toHaveBeenCalledWith({
       where: { id: "item-b", OR: [{ partyId: null }, { partyId: "party-a" }] },
     });
+  });
+
+  it("preserves hidden subtype and game-version metadata on update", async () => {
+    updateMany.mockResolvedValue({ count: 1 });
+    findFirst.mockResolvedValue({ id: "item-1", itemSubtype: "Light", gameVersion: "High Five" });
+
+    const result = await updatePartyItemRecord(
+      "party-a",
+      "item-1",
+      {
+        canonicalName: "Updated Boots",
+        itemSubtype: "stale client value",
+        gameVersion: "stale client value",
+      },
+      "updated boots",
+      "S85",
+    );
+
+    const update = updateMany.mock.calls[0][0];
+    expect(update.where).toMatchObject({ grade: "S85" });
+    expect(update.data).not.toHaveProperty("itemSubtype");
+    expect(update.data).not.toHaveProperty("gameVersion");
+    expect(findFirst).toHaveBeenCalledWith({
+      where: { id: "item-1", OR: [{ partyId: null }, { partyId: "party-a" }] },
+    });
+    expect(result).toMatchObject({ itemSubtype: "Light", gameVersion: "High Five" });
   });
 });

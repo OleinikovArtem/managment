@@ -9,6 +9,8 @@ DO $$ BEGIN
  ALTER TABLE "ServerStage" ADD CONSTRAINT "ServerStage_valid_check" CHECK (sequence>0 AND revision>0 AND (NOT "isSelectable" OR "publishedAt" IS NOT NULL)); END IF;
  IF NOT EXISTS(SELECT 1 FROM pg_constraint WHERE conname='ServerStageConfig_singleton_check') THEN
  ALTER TABLE "ServerStageConfig" ADD CONSTRAINT "ServerStageConfig_singleton_check" CHECK (id='GLOBAL'); END IF;
+ IF NOT EXISTS(SELECT 1 FROM pg_constraint WHERE conname='PartyCompositionMember_profile_class_override_check') THEN
+ ALTER TABLE "PartyCompositionMember" ADD CONSTRAINT "PartyCompositionMember_profile_class_override_check" CHECK ("profileId" IS NULL OR "classOverride" IS NULL); END IF;
  IF NOT EXISTS(SELECT 1 FROM pg_constraint WHERE conname='Raid_stage_snapshot_check') THEN
  ALTER TABLE "Raid" ADD CONSTRAINT "Raid_stage_snapshot_check" CHECK (("stageId" IS NULL AND "stageRevisionSnapshot" IS NULL AND "stageNameSnapshot" IS NULL AND "stageCodeSnapshot" IS NULL) OR ("stageId" IS NOT NULL AND "stageRevisionSnapshot">0 AND "stageNameSnapshot" IS NOT NULL AND "stageCodeSnapshot" IS NOT NULL)); END IF;
  IF NOT EXISTS(SELECT 1 FROM pg_constraint WHERE conname='InstanceStageLootRecommendation_order_check') THEN

@@ -90,7 +90,7 @@ actions не меняют общие записи; ID исторических �
 | ------------------------------------------------ | ------------------------------------------------------------------------------------------ |
 | `PartyMember`                                    | Персонаж с уникальным нормализованным ником и признаком активности                         |
 | `PartyMemberProfile`                             | Игровые профили персонажа с классом, ролью, уровнем и заметкой                             |
-| `PartyComposition` / `PartyCompositionMember`    | Шаблон до 36 слотов «участник + профиль»                                                   |
+| `PartyComposition` / `PartyCompositionMember`    | Шаблон до 36 слотов «участник + профессия»                                                 |
 | `Item`                                           | Общая или собственная запись каталога с классификацией; не удаляется при очистке партии    |
 | `Instance` / `ServerStage`                       | Общие/свои инстансы и глобальные публикуемые стадии                                        |
 | `ServerStageConfig` / `ServerStageAuditEvent`    | Явная текущая Stage либо max available, атомарный аудит административных операций          |
@@ -113,8 +113,18 @@ FOR UPDATE участника. Удалённый Subclass деактивиру�
 шаблонах состава обнуляются; исторические RaidParticipant.profileId и snapshots
 сохраняются. Старые профили мигрируют в первые четыре слота без смены ID;
 лишние legacy-профили остаются до явного отключения. API создания профиля
-также сериализует проверку лимита четырёх. Уровень скрыт в текущих формах и
+также сериализует проверку лимита четырёх. Изменение записи проверяет `updatedAt`
+под блокировкой участника и возвращает конфликт при устаревшей форме; уникальный
+конфликт имени преобразуется в ожидаемую ошибку. Уровень скрыт в текущих формах и
 карточках, существующие значения и исторические снимки не очищаются.
+
+Слот состава выбирает Main, сохранённый Subclass или профессию из каталога High Five.
+Для последней `PartyCompositionMember.classOverride` хранит nullable класс; одновременно
+с `profileId` он запрещён PostgreSQL constraint. Override принадлежит только слоту и
+не меняет профиль участника. При создании рейда профессия записывается в
+`RaidParticipant.classSnapshot`, `profileId` и `profileSnapshot` остаются пустыми.
+При редактировании неизменённый выбор сохраняет прежний class snapshot; редактирование
+состава не меняет уже созданные рейды.
 
 Ник, профиль, класс, роль и уровень сохраняются в снимке рейда. Деактивация
 участника/профиля не переписывает снимок. При редактировании посещаемости обновляются
@@ -248,11 +258,14 @@ SQLite сохраняется только как источник однокр�
 - PostgreSQL schema is created by migrations under
   `prisma/migrations-postgresql/`; `db:deploy` also applies repeatable SQL guards.
 - SQLite migrations and integration fixtures remain legacy material and do not
-  validate the PostgreSQL runtime. PostgreSQL integration tests require a separate
-  disposable test database before use as a CI gate.
+  validate the PostgreSQL runtime. PostgreSQL integration tests use the one
+  preconfigured local test database selected by `TEST_DATABASE_URL`; do not create
+  extra local databases or point tests at the working/production database.
 - Vitest работает в Node; тесты находятся рядом с кодом. Проверяются Zod, services,
   repositories, распределение, даты и CSV. PostgreSQL integration tests требуют
-  отдельный `TEST_DATABASE_URL`; SQLite backup tests оставлены как legacy tests.
-  Сохраняемого браузерного набора тестов нет.
+  заранее заданный `TEST_DATABASE_URL`; SQLite backup tests оставлены как legacy tests.
+  Сохраняемые browser E2E tests лежат в `e2e/`, запускаются через Playwright и
+  поднимают приложение из текущего checkout. Не создавайте копии проекта, временные
+  checkout или большие сгенерированные наборы файлов для браузерной проверки.
 - Проверки `lint`, `typecheck`, `test`, `build` не заменяют визуальную проверку
   UI, accessibility и реальной конкуренции нескольких клиентов.

@@ -33,6 +33,7 @@ import {
   getItem,
   ItemNotFoundError,
   searchItems,
+  UnsupportedItemGradeError,
   updateItem,
 } from "@/server/services/item-service";
 
@@ -96,18 +97,39 @@ describe("item service", () => {
 
   it("updates the existing party-scoped item instead of creating another", async () => {
     updatePartyItemRecord.mockResolvedValue({ id: "item-1" });
+    getPartyItemById.mockResolvedValue({ id: "item-1", grade: "S" });
 
     await updateItem("party-a", "item-1", {
       canonicalName: "Updated Sword",
       category: "Weapon",
+      grade: "S",
     });
 
     expect(updatePartyItemRecord).toHaveBeenCalledWith(
       "party-a",
       "item-1",
-      { canonicalName: "Updated Sword", category: "Weapon" },
+      { canonicalName: "Updated Sword", category: "Weapon", grade: "S" },
       "updated sword",
+      "S",
     );
+    expect(createPartyItemRecord).not.toHaveBeenCalled();
+  });
+
+  it("allows an unchanged legacy grade but rejects a newly submitted unsupported grade", async () => {
+    getPartyItemById.mockResolvedValue({ id: "item-1", grade: "S85" });
+    updatePartyItemRecord.mockResolvedValue({ id: "item-1" });
+    await expect(
+      updateItem("party-a", "item-1", { canonicalName: "Boots", grade: "S85" }),
+    ).resolves.toBeTruthy();
+    await expect(
+      updateItem("party-a", "item-1", { canonicalName: "Boots", grade: "S86" }),
+    ).rejects.toBeInstanceOf(UnsupportedItemGradeError);
+  });
+
+  it("rejects unsupported grades on create", async () => {
+    await expect(
+      createItem("party-a", { canonicalName: "Boots", grade: "S85" }),
+    ).rejects.toBeInstanceOf(UnsupportedItemGradeError);
     expect(createPartyItemRecord).not.toHaveBeenCalled();
   });
 });

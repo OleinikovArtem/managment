@@ -41,7 +41,12 @@ async function NewRaidContent() {
           id: composition.id,
           name: composition.name,
           focus: composition.focus,
-          slots: composition.members.map(({ memberId, profileId }) => ({ memberId, profileId })),
+          slots: composition.members.map(({ memberId, profileId, classOverride, profile }) => ({
+            memberId,
+            profileId,
+            classOverride,
+            profileClassName: profile?.className ?? null,
+          })),
         }))}
         submitLabel="Создать рейд"
       />

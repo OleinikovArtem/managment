@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import {
   acceptInvitationAction,
   createInvitationAction,
@@ -162,6 +163,7 @@ export function InvitationManager({
     role: string;
   }>;
 }) {
+  const router = useRouter();
   const [pending, setPending] = useState(false);
   const [invitePath, setInvitePath] = useState("");
   const [result, setResult] = useState<SimpleActionResult | null>(null);
@@ -253,18 +255,27 @@ export function InvitationManager({
                   </p>
                 </div>
                 {status === "Ожидает" && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={pending}
-                    onClick={async () => {
+                  <ConfirmationDialog
+                    trigger={
+                      <Button size="sm" variant="outline" disabled={pending}>
+                        Отозвать
+                      </Button>
+                    }
+                    title="Отозвать приглашение?"
+                    description="По этой ссылке больше нельзя будет присоединиться к группе."
+                    confirmLabel="Отозвать"
+                    onConfirm={async () => {
                       setPending(true);
-                      setResult(await revokeInvitationAction(invite.id));
-                      setPending(false);
+                      try {
+                        const result = await revokeInvitationAction(invite.id);
+                        setResult(result);
+                        if (!result.ok) throw new Error(result.message);
+                        router.refresh();
+                      } finally {
+                        setPending(false);
+                      }
                     }}
-                  >
-                    Отозвать
-                  </Button>
+                  />
                 )}
               </li>
             );
@@ -301,24 +312,25 @@ export function PartyMemberAccessManager({
 
   async function changeRole(memberId: string) {
     setPendingId(memberId);
-    const response = await updatePartyMemberRoleAction(memberId, draftRoles[memberId]);
-    setResult(response);
-    setPendingId("");
-    if (response.ok) router.refresh();
+    try {
+      const response = await updatePartyMemberRoleAction(memberId, draftRoles[memberId]);
+      setResult(response);
+      if (response.ok) router.refresh();
+    } finally {
+      setPendingId("");
+    }
   }
 
   async function removeMember(member: (typeof members)[number]) {
-    if (
-      !window.confirm(
-        `Отозвать доступ ${member.displayName} к группе? История рейдов и финансовые записи сохранятся.`,
-      )
-    )
-      return;
     setPendingId(member.id);
-    const response = await removePartyMemberAction(member.id);
-    setResult(response);
-    setPendingId("");
-    if (response.ok) router.refresh();
+    try {
+      const response = await removePartyMemberAction(member.id);
+      setResult(response);
+      if (!response.ok) throw new Error(response.message);
+      router.refresh();
+    } finally {
+      setPendingId("");
+    }
   }
 
   return (
@@ -379,14 +391,17 @@ export function PartyMemberAccessManager({
                       {pendingId === member.id ? "Сохраняем…" : "Сохранить"}
                     </Button>
                   )}
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    disabled={Boolean(pendingId)}
-                    onClick={() => removeMember(member)}
-                  >
-                    Отозвать доступ
-                  </Button>
+                  <ConfirmationDialog
+                    trigger={
+                      <Button size="sm" variant="ghost" disabled={Boolean(pendingId)}>
+                        Отозвать доступ
+                      </Button>
+                    }
+                    title={`Отозвать доступ ${member.displayName}?`}
+                    description="История рейдов и финансовые записи сохранятся."
+                    confirmLabel="Отозвать доступ"
+                    onConfirm={() => removeMember(member)}
+                  />
                 </>
               )}
             </li>

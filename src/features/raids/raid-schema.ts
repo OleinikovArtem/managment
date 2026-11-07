@@ -8,8 +8,12 @@ const participantSchema = z
     memberId: z.string().trim().min(1, "Некорректный участник."),
     status: z.enum(["PRESENT", "ABSENT"]),
     profileId: z.string().trim().min(1).optional(),
+    classOverride: z.string().trim().min(1).max(80).optional(),
   })
-  .strict();
+  .strict()
+  .refine((participant) => !(participant.profileId && participant.classOverride), {
+    message: "Выберите сохранённый профиль или профессию из каталога, не оба варианта.",
+  });
 
 const lootDropSchema = z
   .object({
