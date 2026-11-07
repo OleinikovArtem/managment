@@ -9,10 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { ItemActionResult } from "@/features/items/item-action-result";
-import {
-  itemInputSchema,
-  type ItemInput,
-} from "@/features/items/item-schema";
+import { itemInputSchema, type ItemInput } from "@/features/items/item-schema";
 
 type ItemFormProps = {
   initialValues?: ItemInput;
@@ -64,8 +61,7 @@ export function ItemForm({
     },
   });
   const availableCategories =
-    initialValues?.category &&
-    !itemCategories.includes(initialValues.category)
+    initialValues?.category && !itemCategories.includes(initialValues.category)
       ? [initialValues.category, ...itemCategories]
       : itemCategories;
 
@@ -100,7 +96,14 @@ export function ItemForm({
   });
 
   return (
-    <form className="space-y-4" onSubmit={event => { event.stopPropagation(); void onSubmit(event); }} noValidate>
+    <form
+      className="space-y-4"
+      onSubmit={(event) => {
+        event.stopPropagation();
+        void onSubmit(event);
+      }}
+      noValidate
+    >
       <div className="space-y-2">
         <label htmlFor="canonical-name" className="text-sm font-medium">
           Оригинальное название <span className="text-destructive">*</span>
@@ -114,90 +117,80 @@ export function ItemForm({
           placeholder="Название предмета в игре"
         />
         {form.formState.errors.canonicalName && (
-          <p className="text-xs text-destructive">
-            {form.formState.errors.canonicalName.message}
-          </p>
+          <p className="text-xs text-destructive">{form.formState.errors.canonicalName.message}</p>
         )}
       </div>
 
       <details className="disclosure">
         <summary className="text-sm font-medium">Классификация и заметка</summary>
         <div className="space-y-4 pt-4">
-      <div className="space-y-2">
-        <label htmlFor="category" className="text-sm font-medium">
-          Группа предмета{" "}
-          <span className="text-xs text-muted-foreground">(необязательно)</span>
-        </label>
-        <select
-          id="category"
-          aria-invalid={Boolean(form.formState.errors.category)}
-          className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm text-foreground"
-          {...form.register("category")}
-        >
-          <option value="">Не выбрана</option>
-          {availableCategories.map((category) => (
-            <option key={category} value={category}>
-              {category}
-            </option>
-          ))}
-        </select>
-        {form.formState.errors.category && (
-          <p className="text-xs text-destructive">
-            {form.formState.errors.category.message}
-          </p>
-        )}
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        {fields.map(({ name, label, maxLength, placeholder }) => (
-          <div key={name} className="space-y-2">
-            <label htmlFor={name} className="text-sm font-medium">
-              {label} <span className="text-xs text-muted-foreground">(необязательно)</span>
+          <div className="space-y-2">
+            <label htmlFor="category" className="text-sm font-medium">
+              Группа предмета <span className="text-xs text-muted-foreground">(необязательно)</span>
             </label>
-            <Input
-              id={name}
-              maxLength={maxLength}
-              placeholder={placeholder}
-              aria-invalid={Boolean(form.formState.errors[name])}
-              {...form.register(name)}
-            />
-            {form.formState.errors[name] && (
-              <p className="text-xs text-destructive">
-                {form.formState.errors[name]?.message}
-              </p>
+            <select
+              id="category"
+              aria-invalid={Boolean(form.formState.errors.category)}
+              className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm text-foreground"
+              {...form.register("category")}
+            >
+              <option value="">Не выбрана</option>
+              {availableCategories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+            {form.formState.errors.category && (
+              <p className="text-xs text-destructive">{form.formState.errors.category.message}</p>
             )}
           </div>
-        ))}
-      </div>
 
-      <label className="flex items-center gap-3 text-sm font-medium">
-        <Input
-          type="checkbox"
-          className="size-4 min-w-4 accent-primary"
-          {...form.register("isRare")}
-        />
-        Rare (редкий вариант)
-      </label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {fields.map(({ name, label, maxLength, placeholder }) => (
+              <div key={name} className="space-y-2">
+                <label htmlFor={name} className="text-sm font-medium">
+                  {label} <span className="text-xs text-muted-foreground">(необязательно)</span>
+                </label>
+                <Input
+                  id={name}
+                  maxLength={maxLength}
+                  placeholder={placeholder}
+                  aria-invalid={Boolean(form.formState.errors[name])}
+                  {...form.register(name)}
+                />
+                {form.formState.errors[name] && (
+                  <p className="text-xs text-destructive">{form.formState.errors[name]?.message}</p>
+                )}
+              </div>
+            ))}
+          </div>
 
-      <div className="space-y-2">
-        <label htmlFor="item-comment" className="text-sm font-medium">
-          Комментарий <span className="text-xs text-muted-foreground">(необязательно)</span>
-        </label>
-        <Textarea
-          id="item-comment"
-          rows={3}
-          maxLength={500}
-          aria-invalid={Boolean(form.formState.errors.comment)}
-          {...form.register("comment")}
-          placeholder="Заметка о предмете"
-        />
-        {form.formState.errors.comment && (
-          <p className="text-xs text-destructive">
-            {form.formState.errors.comment.message}
-          </p>
-        )}
-      </div>
+          <label className="flex items-center gap-3 text-sm font-medium">
+            <Input
+              type="checkbox"
+              className="size-4 min-w-4 accent-primary"
+              {...form.register("isRare")}
+            />
+            Rare (редкий вариант)
+          </label>
 
+          <div className="space-y-2">
+            <label htmlFor="item-comment" className="text-sm font-medium">
+              Комментарий <span className="text-xs text-muted-foreground">(необязательно)</span>
+            </label>
+            <Textarea
+              id="item-comment"
+              rows={3}
+              maxLength={500}
+              aria-invalid={Boolean(form.formState.errors.comment)}
+              {...form.register("comment")}
+              placeholder="Заметка о предмете"
+            />
+            {form.formState.errors.comment && (
+              <p className="text-xs text-destructive">{form.formState.errors.comment.message}</p>
+            )}
+          </div>
         </div>
       </details>
       {message && (
@@ -211,12 +204,7 @@ export function ItemForm({
           {isPending ? "Сохранение..." : submitLabel}
         </Button>
         {onCancel && (
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={onCancel}
-            disabled={isPending}
-          >
+          <Button type="button" variant="ghost" onClick={onCancel} disabled={isPending}>
             <X aria-hidden="true" />
             Отмена
           </Button>

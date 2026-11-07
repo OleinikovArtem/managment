@@ -2,9 +2,16 @@ import { Package, Shield } from "lucide-react";
 import { LOCAL_CLASS_ICONS } from "@/features/members/class-icon-map";
 
 const ITEM_ICON_BASE = "/game-icons/items";
-const LOCAL_ITEM_KEYS = new Set(["weapon_vesper_cutter_i00", "armor_t94_u_i01", "etc_scroll_of_enchant_weapon_i05", "etc_scroll_of_enchant_armor_i05", "etc_mineral_rare_i03", "etc_codex_of_giant_i00"]);
+const LOCAL_ITEM_KEYS = new Set([
+  "weapon_vesper_cutter_i00",
+  "armor_t94_u_i01",
+  "etc_scroll_of_enchant_weapon_i05",
+  "etc_scroll_of_enchant_armor_i05",
+  "etc_mineral_rare_i03",
+  "etc_codex_of_giant_i00",
+]);
 const userTableIcons: Record<string, string> = {
-  "elysian": "elysian.png",
+  elysian: "elysian.png",
   "doom crusher": "doom-crusher.png",
   "tallum glaive": "tallum-glaive.png",
   "dark legion's edge": "dark-legion-s-edge.png",
@@ -102,12 +109,21 @@ function itemIconKey(name: string, category?: string | null) {
   const namedIcon = namedItemIcons[value];
   if (namedIcon) return namedIcon;
 
-  if (category === "Armor" || /armor|breastplate|gaiters|boots|helmet|circlet|gloves|robe|stockings|shoes|tunic/i.test(name)) {
+  if (
+    category === "Armor" ||
+    /armor|breastplate|gaiters|boots|helmet|circlet|gloves|robe|stockings|shoes|tunic/i.test(name)
+  ) {
     return armorIconKey(name);
   }
 
   if (/life stone/i.test(value)) {
-    const grade = /top-grade/i.test(value) ? "legend" : /high-grade/i.test(value) ? "rare" : /mid-grade/i.test(value) ? "special" : null;
+    const grade = /top-grade/i.test(value)
+      ? "legend"
+      : /high-grade/i.test(value)
+        ? "rare"
+        : /mid-grade/i.test(value)
+          ? "special"
+          : null;
     const level = Number(/lv\.\s*(\d+)/i.exec(value)?.[1] ?? 0);
     const tier = level >= 80 ? "03" : level >= 70 ? "02" : level >= 58 ? "01" : "00";
     return `etc_mineral_${grade ? `${grade}_` : ""}i${tier}`;
@@ -140,12 +156,34 @@ export function classIconUrl(className: string) {
   return LOCAL_CLASS_ICONS[className.trim().toLowerCase()] ?? null;
 }
 
-export function GameIcon({ kind, name, category, size = "md" }: { kind: "item" | "class"; name: string; category?: string | null; size?: "sm" | "md" | "lg" }) {
+export function GameIcon({
+  kind,
+  name,
+  category,
+  size = "md",
+}: {
+  kind: "item" | "class";
+  name: string;
+  category?: string | null;
+  size?: "sm" | "md" | "lg";
+}) {
   const url = kind === "item" ? itemIconUrl(name, category) : classIconUrl(name);
   const sizeClass = size === "sm" ? "size-7" : size === "lg" ? "size-12" : "size-9";
   const Fallback = kind === "item" ? Package : Shield;
-  return <span role="img" aria-label={`${kind === "item" ? "Предмет" : "Класс"}: ${name}`} className={`${sizeClass} relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-sm text-muted-foreground`}>
-    <Fallback size={18} strokeWidth={1.5} aria-hidden="true" />
-    {url && <span aria-hidden="true" className="absolute inset-0 bg-contain bg-center bg-no-repeat" style={{ backgroundImage: `url("${url}")` }} />}
-  </span>;
+  return (
+    <span
+      role="img"
+      aria-label={`${kind === "item" ? "Предмет" : "Класс"}: ${name}`}
+      className={`${sizeClass} relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-sm text-muted-foreground`}
+    >
+      <Fallback size={18} strokeWidth={1.5} aria-hidden="true" />
+      {url && (
+        <span
+          aria-hidden="true"
+          className="absolute inset-0 bg-contain bg-center bg-no-repeat"
+          style={{ backgroundImage: `url("${url}")` }}
+        />
+      )}
+    </span>
+  );
 }

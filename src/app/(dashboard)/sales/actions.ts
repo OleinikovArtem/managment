@@ -26,7 +26,12 @@ export async function registerSaleAction(payload: unknown): Promise<SaleActionRe
     const context = await getLootDropAuditInfo(partyId, parsed.data.lootDropId);
     const sale = await registerSale(partyId, parsed.data);
     const itemName = context?.item.displayName || context?.item.canonicalName || "предмет";
-    await recordPartyAuditEvent(access, { action: "CREATE", entityType: "sale", entityId: sale.id, summary: `Отметил продажу: ${itemName} × ${sale.quantitySold} за ${new Intl.NumberFormat("ru-RU").format(BigInt(sale.totalPrice))} Adena.` });
+    await recordPartyAuditEvent(access, {
+      action: "CREATE",
+      entityType: "sale",
+      entityId: sale.id,
+      summary: `Отметил продажу: ${itemName} × ${sale.quantitySold} за ${new Intl.NumberFormat("ru-RU").format(BigInt(sale.totalPrice))} Adena.`,
+    });
     revalidatePath("/sales");
     revalidatePath("/ledger");
     revalidatePath("/dashboard");

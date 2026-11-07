@@ -55,7 +55,8 @@ Party Bank Manager — русскоязычное приложение для у
 
 ## Проверки и данные
 
-Команды: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`.
+Команды: `npm run format` (Prettier для исходников и скриптов), `npm run format:check`,
+`npm run lint`, `npm run typecheck`, `npm test`, `npm run build`.
 Тесты лежат рядом с исходниками, среда Vitest — Node. PostgreSQL integration tests
 используют только явно заданный `TEST_DATABASE_URL`; без него они пропускаются.
 Автоматического браузерного набора в репозитории нет.

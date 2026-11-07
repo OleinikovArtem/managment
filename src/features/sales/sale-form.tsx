@@ -25,7 +25,14 @@ function getLocalDateTimeValue(date: Date) {
   return localDate.toISOString().slice(0, 16);
 }
 
-export function SaleForm({ lootDropId, remainingQuantity, open, onOpenChange, onPendingChange, triggerDisabled = false }: SaleFormProps) {
+export function SaleForm({
+  lootDropId,
+  remainingQuantity,
+  open,
+  onOpenChange,
+  onPendingChange,
+  triggerDisabled = false,
+}: SaleFormProps) {
   const router = useRouter();
   const idempotencyKey = useRef<{ fingerprint: string; key: string } | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -110,8 +117,18 @@ export function SaleForm({ lootDropId, remainingQuantity, open, onOpenChange, on
   if (!showForm) {
     return (
       <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-dashed bg-muted/10 px-3 py-2">
-        <p className="text-xs text-muted-foreground">Доступно к продаже: <span className="font-semibold text-foreground">{remainingQuantity} шт.</span></p>
-        <Button ref={triggerRef} type="button" size="sm" variant="secondary" disabled={triggerDisabled} onClick={() => setShowForm(true)}>
+        <p className="text-xs text-muted-foreground">
+          Доступно к продаже:{" "}
+          <span className="font-semibold text-foreground">{remainingQuantity} шт.</span>
+        </p>
+        <Button
+          ref={triggerRef}
+          type="button"
+          size="sm"
+          variant="secondary"
+          disabled={triggerDisabled}
+          onClick={() => setShowForm(true)}
+        >
           <Banknote aria-hidden="true" size={15} />
           Отметить продажу
         </Button>
@@ -126,7 +143,9 @@ export function SaleForm({ lootDropId, remainingQuantity, open, onOpenChange, on
           <Banknote aria-hidden="true" size={16} />
           Записать полученную оплату
         </p>
-        <p className="mt-1 text-xs text-muted-foreground">Осталось: {remainingQuantity} шт. · доли рассчитаются по составу рейда.</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Осталось: {remainingQuantity} шт. · доли рассчитаются по составу рейда.
+        </p>
       </div>
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="space-y-1.5 text-xs font-medium">
@@ -158,15 +177,38 @@ export function SaleForm({ lootDropId, remainingQuantity, open, onOpenChange, on
         </label>
         <label className="space-y-1.5 text-xs font-medium">
           Дата получения
-          <DateInput required value={receivedAt} withTime onChange={setReceivedAt} aria-label="Дата получения Adena" />
+          <DateInput
+            required
+            value={receivedAt}
+            withTime
+            onChange={setReceivedAt}
+            aria-label="Дата получения Adena"
+          />
         </label>
       </div>
       <div>
-        <Button type="button" variant="ghost" size="xs" className="-ml-2 h-7 text-xs text-muted-foreground" onClick={() => setShowComment((visible) => !visible)} aria-expanded={showComment}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="xs"
+          className="-ml-2 h-7 text-xs text-muted-foreground"
+          onClick={() => setShowComment((visible) => !visible)}
+          aria-expanded={showComment}
+        >
           <MessageSquarePlus aria-hidden="true" />
           {showComment ? "Скрыть комментарий" : "Добавить комментарий"}
         </Button>
-        {showComment && <Textarea className="mt-2" maxLength={500} rows={2} value={comment} onChange={(event) => setComment(event.target.value)} aria-label="Комментарий к продаже" placeholder="Например, покупатель или условия продажи" />}
+        {showComment && (
+          <Textarea
+            className="mt-2"
+            maxLength={500}
+            rows={2}
+            value={comment}
+            onChange={(event) => setComment(event.target.value)}
+            aria-label="Комментарий к продаже"
+            placeholder="Например, покупатель или условия продажи"
+          />
+        )}
       </div>
       {message && (
         <p role="alert" className="text-sm text-destructive">

@@ -172,10 +172,7 @@ async function listUploadFiles(
   depth = 0,
 ): Promise<{ filePath: string; archivePath: string; size: number }[]> {
   traversal.directories += 1;
-  if (
-    traversal.directories > MAX_UPLOAD_DIRECTORIES ||
-    depth > MAX_UPLOAD_DEPTH
-  ) {
+  if (traversal.directories > MAX_UPLOAD_DIRECTORIES || depth > MAX_UPLOAD_DEPTH) {
     throw new BackupOperationError("Структура папки uploads слишком сложная.");
   }
   const directory = path.join(root, relativeDirectory);
@@ -183,12 +180,7 @@ async function listUploadFiles(
   try {
     directoryStat = await lstat(directory);
   } catch (error) {
-    if (
-      typeof error === "object" &&
-      error !== null &&
-      "code" in error &&
-      error.code === "ENOENT"
-    ) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT") {
       return [];
     }
     throw error;
@@ -200,12 +192,7 @@ async function listUploadFiles(
   try {
     entries = await readdir(directory, { withFileTypes: true });
   } catch (error) {
-    if (
-      typeof error === "object" &&
-      error !== null &&
-      "code" in error &&
-      error.code === "ENOENT"
-    ) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT") {
       return [];
     }
     throw error;
@@ -219,9 +206,7 @@ async function listUploadFiles(
       throw new BackupOperationError("В папке uploads обнаружена символическая ссылка.");
     }
     if (entry.isDirectory()) {
-      result.push(
-        ...(await listUploadFiles(root, childRelativePath, traversal, depth + 1)),
-      );
+      result.push(...(await listUploadFiles(root, childRelativePath, traversal, depth + 1)));
       continue;
     }
     if (!entry.isFile()) {
@@ -292,7 +277,8 @@ async function consumeEntry(
   const hash = createHash("sha256");
   let size = 0;
   const chunks: Buffer[] = [];
-  const maximumSize = entry.fileName === "manifest.json" ? MAX_MANIFEST_BYTES : MAX_UNCOMPRESSED_BYTES;
+  const maximumSize =
+    entry.fileName === "manifest.json" ? MAX_MANIFEST_BYTES : MAX_UNCOMPRESSED_BYTES;
   const meter = new Transform({
     transform(chunk: Buffer, _encoding, callback) {
       size += chunk.length;
@@ -362,11 +348,7 @@ async function validateArchive(
   extractDirectory?: string,
 ): Promise<BackupValidationResult> {
   const archiveStat = await lstat(archivePath);
-  if (
-    !archiveStat.isFile() ||
-    archiveStat.size <= 0 ||
-    archiveStat.size > MAX_ARCHIVE_BYTES
-  ) {
+  if (!archiveStat.isFile() || archiveStat.size <= 0 || archiveStat.size > MAX_ARCHIVE_BYTES) {
     throw new BackupOperationError("Размер архива не поддерживается.");
   }
 
@@ -402,10 +384,7 @@ async function validateArchive(
       }
 
       totalUncompressedSize += entry.uncompressedSize;
-      if (
-        entry.uncompressedSize < 0 ||
-        totalUncompressedSize > MAX_UNCOMPRESSED_BYTES
-      ) {
+      if (entry.uncompressedSize < 0 || totalUncompressedSize > MAX_UNCOMPRESSED_BYTES) {
         throw new BackupOperationError("Распакованный архив превышает допустимый размер.");
       }
       seenPaths.add(entry.fileName);
@@ -442,10 +421,7 @@ async function validateArchive(
     throw new BackupOperationError("Manifest резервной копии имеет неизвестный формат.");
   }
   const manifest = parsedManifest.data;
-  const expectedFiles = [
-    manifest.database,
-    ...manifest.uploads,
-  ];
+  const expectedFiles = [manifest.database, ...manifest.uploads];
   if (expectedFiles.length !== extractedFiles.size) {
     throw new BackupOperationError("Manifest не соответствует содержимому архива.");
   }
@@ -530,8 +506,7 @@ export async function createLocalBackup(): Promise<BackupSummary> {
         ...(await hashFile(file.filePath)),
       });
     }
-    const totalSize =
-      dbFile.size + uploadRecords.reduce((sum, file) => sum + file.size, 0);
+    const totalSize = dbFile.size + uploadRecords.reduce((sum, file) => sum + file.size, 0);
     if (totalSize > MAX_UNCOMPRESSED_BYTES) {
       throw new BackupOperationError("Общий размер данных превышает лимит архива.");
     }
@@ -604,11 +579,7 @@ export async function validateLocalBackup(name: string) {
 export async function prepareLocalRestore(name: string) {
   validateBackupName(name);
   const backupPath = path.join(getBackupDirectory(), name);
-  const candidatesDirectory = path.join(
-    getApplicationRoot(),
-    "data",
-    "restore-candidates",
-  );
+  const candidatesDirectory = path.join(getApplicationRoot(), "data", "restore-candidates");
   await mkdir(candidatesDirectory, { recursive: true });
   const candidatesStat = await lstat(candidatesDirectory);
   if (candidatesStat.isSymbolicLink() || !candidatesStat.isDirectory()) {

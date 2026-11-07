@@ -49,9 +49,7 @@ function isRetryableDatabaseError(error: unknown): boolean {
     if (record.originalError) pending.push(record.originalError);
   }
 
-  return /40001|40P01|sockettimeout|operation has timed out|P2034/i.test(
-    messages.join("\n"),
-  );
+  return /40001|40P01|sockettimeout|operation has timed out|P2034/i.test(messages.join("\n"));
 }
 
 function isUniqueConstraintError(error: unknown): boolean {
@@ -65,10 +63,7 @@ type ExistingPayment = {
   comment: string | null;
 };
 
-function resolveExistingPayment(
-  existing: ExistingPayment,
-  input: PaymentRecordInput,
-) {
+function resolveExistingPayment(existing: ExistingPayment, input: PaymentRecordInput) {
   if (
     existing.memberId !== input.memberId ||
     existing.amount !== input.amount ||
@@ -114,8 +109,6 @@ async function createPartyPaymentRecord(
     throw new PaymentOperationError("Участник не найден в этой группе.");
   }
 
-
-
   const shares = await transaction.saleShare.findMany({
     where: {
       partyId,
@@ -138,11 +131,7 @@ async function createPartyPaymentRecord(
         select: { amount: true },
       },
     },
-    orderBy: [
-      { saleTransaction: { receivedAt: "asc" } },
-      { createdAt: "asc" },
-      { id: "asc" },
-    ],
+    orderBy: [{ saleTransaction: { receivedAt: "asc" } }, { createdAt: "asc" }, { id: "asc" }],
   });
 
   let remaining = input.amount;
@@ -245,10 +234,7 @@ async function createPartyPaymentRecord(
   });
 }
 
-export async function registerPartyPayment(
-  partyId: string,
-  input: PaymentRecordInput,
-) {
+export async function registerPartyPayment(partyId: string, input: PaymentRecordInput) {
   for (let attempt = 0; attempt < MAX_TRANSACTION_ATTEMPTS; attempt += 1) {
     try {
       return await prisma.$transaction((transaction) =>

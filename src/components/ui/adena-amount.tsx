@@ -8,7 +8,11 @@ export function AdenaAmount({
   className?: string;
 }) {
   return (
-    <span className={className} style={{ color: adenaColor(amount) }} title={`${amount.toString()} Adena`}>
+    <span
+      className={className}
+      style={{ color: adenaColor(amount) }}
+      title={`${amount.toString()} Adena`}
+    >
       {formatAdena(amount)}
     </span>
   );

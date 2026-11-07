@@ -2,16 +2,9 @@ import { Suspense } from "react";
 import { io } from "next/cache";
 import Link from "next/link";
 import { ItemSearchControls } from "@/features/items/item-search-controls";
-import {
-  ItemManager,
-  type ItemListRow,
-} from "@/features/items/item-manager";
+import { ItemManager, type ItemListRow } from "@/features/items/item-manager";
 import { itemSearchSchema } from "@/features/items/item-schema";
-import {
-  ITEM_PAGE_SIZE,
-  getItemCategories,
-  searchItems,
-} from "@/server/services/item-service";
+import { ITEM_PAGE_SIZE, getItemCategories, searchItems } from "@/server/services/item-service";
 import { requirePartyPageAccess } from "@/server/auth/party-access";
 
 type ItemsPageProps = {
@@ -34,9 +27,7 @@ async function ItemsContent({ searchParams }: ItemsPageProps) {
     category: rawParams.category,
     page: rawParams.page,
   });
-  const params = parsedParams.success
-    ? parsedParams.data
-    : { query: "", category: "", page: 1 };
+  const params = parsedParams.success ? parsedParams.data : { query: "", category: "", page: 1 };
   const query = params.query ?? "";
   const category = params.category || undefined;
   const workspace = await requirePartyPageAccess();
@@ -65,37 +56,33 @@ async function ItemsContent({ searchParams }: ItemsPageProps) {
   return (
     <div className="space-y-7">
       <header className="page-header ">
-
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">Предметы</h1>
         <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
           Общий справочник и собственные предметы группы. Общие записи доступны только для чтения.
         </p>
       </header>
 
-      <ItemSearchControls
-        query={query}
-        category={category ?? ""}
-        categories={categories}
-      />
+      <ItemSearchControls query={query} category={category ?? ""} categories={categories} />
 
-      <ItemManager items={items} canManage={workspace.canManage} summary={records.total === 0
-          ? "Найдено: 0"
-          : `Показано ${(records.page - 1) * ITEM_PAGE_SIZE + 1}–${Math.min(
-              records.page * ITEM_PAGE_SIZE,
-              records.total,
-            )} из ${records.total}`} />
+      <ItemManager
+        items={items}
+        canManage={workspace.canManage}
+        summary={
+          records.total === 0
+            ? "Найдено: 0"
+            : `Показано ${(records.page - 1) * ITEM_PAGE_SIZE + 1}–${Math.min(
+                records.page * ITEM_PAGE_SIZE,
+                records.total,
+              )} из ${records.total}`
+        }
+      />
       {records.total > ITEM_PAGE_SIZE && (
         <nav
           aria-label="Страницы каталога предметов"
           className="flex flex-wrap items-center justify-center gap-3"
         >
           {records.page > 1 ? (
-            <PageLink
-              query={query}
-              category={category}
-              page={records.page - 1}
-              label="Назад"
-            />
+            <PageLink query={query} category={category} page={records.page - 1} label="Назад" />
           ) : (
             <span className="text-sm text-muted-foreground">Назад</span>
           )}
@@ -103,12 +90,7 @@ async function ItemsContent({ searchParams }: ItemsPageProps) {
             Страница {records.page} из {records.pageCount}
           </span>
           {records.page < records.pageCount ? (
-            <PageLink
-              query={query}
-              category={category}
-              page={records.page + 1}
-              label="Вперёд"
-            />
+            <PageLink query={query} category={category} page={records.page + 1} label="Вперёд" />
           ) : (
             <span className="text-sm text-muted-foreground">Вперёд</span>
           )}

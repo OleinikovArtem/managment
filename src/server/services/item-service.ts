@@ -1,10 +1,7 @@
 import "server-only";
 
 import { Prisma } from "@/generated/prisma/client";
-import {
-  normalizeItemName,
-  type ItemInput,
-} from "@/features/items/item-schema";
+import { normalizeItemName, type ItemInput } from "@/features/items/item-schema";
 import {
   createPartyItemRecord,
   countPartyItems,
@@ -31,9 +28,7 @@ export class ItemNotFoundError extends Error {
 export const ITEM_PAGE_SIZE = 25;
 
 function isUniqueConstraintError(error: unknown): boolean {
-  return (
-    error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002"
-  );
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
 }
 
 export async function searchItems(
@@ -44,11 +39,7 @@ export async function searchItems(
 ) {
   const normalizedQuery = normalizeItemName(query);
   const normalizedCategory = category || undefined;
-  const total = await countPartyItems(
-    partyId,
-    normalizedQuery,
-    normalizedCategory,
-  );
+  const total = await countPartyItems(partyId, normalizedQuery, normalizedCategory);
   const pageCount = Math.max(1, Math.ceil(total / ITEM_PAGE_SIZE));
   const page = Math.min(Math.max(1, requestedPage), pageCount);
   const items = await listPartyItems(
@@ -90,23 +81,14 @@ export async function createItem(partyId: string, input: ItemInput) {
   }
 }
 
-export async function updateItem(
-  partyId: string,
-  itemId: string,
-  input: ItemInput,
-) {
+export async function updateItem(partyId: string, itemId: string, input: ItemInput) {
   const normalizedName = normalizeItemName(input.canonicalName);
   if (!normalizedName) {
     throw new Error("Название не может состоять только из пробелов.");
   }
 
   try {
-    const item = await updatePartyItemRecord(
-      partyId,
-      itemId,
-      input,
-      normalizedName,
-    );
+    const item = await updatePartyItemRecord(partyId, itemId, input, normalizedName);
     if (!item) {
       throw new ItemNotFoundError();
     }

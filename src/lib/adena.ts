@@ -40,7 +40,10 @@ export function formatAdena(value: bigint | string): string {
   for (const [unit, label] of units) {
     if (absolute >= unit) {
       const scaled = Number(absolute / (unit / 100n)) / 100;
-      return `${sign}${scaled.toFixed(2).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1")}${label}`;
+      return `${sign}${scaled
+        .toFixed(2)
+        .replace(/\.00$/, "")
+        .replace(/(\.\d)0$/, "$1")}${label}`;
     }
   }
   return `${sign}${absolute.toLocaleString("ru-RU")} Adena`;

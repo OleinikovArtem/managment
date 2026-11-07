@@ -1,9 +1,6 @@
 import "server-only";
 
-import {
-  raidInputSchema,
-  type RaidInput,
-} from "@/features/raids/raid-schema";
+import { raidInputSchema, type RaidInput } from "@/features/raids/raid-schema";
 import {
   createPartyRaidRecord,
   getPartyRaidById,
@@ -44,9 +41,7 @@ function parseRaidInput(input: unknown): RaidInput {
           "quantity" in drop &&
           (!Number.isInteger(drop.quantity) || Number(drop.quantity) <= 0)
         ) {
-          throw new RaidInputError(
-            "Количество предметов должно быть положительным целым числом.",
-          );
+          throw new RaidInputError("Количество предметов должно быть положительным целым числом.");
         }
       }
     }
@@ -76,7 +71,11 @@ export async function getRaidSetup(partyId: string) {
     listPartyRaidItems(partyId),
     listPartyCompositions(partyId),
     getInstanceSetup(partyId),
-    prisma.raid.findFirst({ where: { partyId }, orderBy: [{ occurredAt: "desc" }, { id: "desc" }], select: { participants: { select: { memberId: true, profileId: true, status: true } } } }),
+    prisma.raid.findFirst({
+      where: { partyId },
+      orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
+      select: { participants: { select: { memberId: true, profileId: true, status: true } } },
+    }),
   ]);
   return { members, items, compositions, catalog, lastAttendance: lastRaid?.participants ?? [] };
 }
@@ -98,11 +97,7 @@ export async function createRaid(partyId: string, input: unknown) {
   return createPartyRaidRecord(partyId, validInput);
 }
 
-export async function updateRaid(
-  partyId: string,
-  raidId: string,
-  input: unknown,
-) {
+export async function updateRaid(partyId: string, raidId: string, input: unknown) {
   const validInput = parseRaidInput(input);
   const updatedId = await updatePartyRaidRecord(partyId, raidId, validInput);
   if (!updatedId) {

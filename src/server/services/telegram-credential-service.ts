@@ -15,7 +15,11 @@ export function encryptTelegramBotToken(token: string) {
   const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", encryptionKey(), iv);
   const encryptedToken = Buffer.concat([cipher.update(token, "utf8"), cipher.final()]);
-  return { encryptedToken: encryptedToken.toString("base64"), initializationVector: iv.toString("base64"), authenticationTag: cipher.getAuthTag().toString("base64") };
+  return {
+    encryptedToken: encryptedToken.toString("base64"),
+    initializationVector: iv.toString("base64"),
+    authenticationTag: cipher.getAuthTag().toString("base64"),
+  };
 }
 
 export async function saveTelegramBotToken(partyId: string, token: string) {
@@ -38,7 +42,14 @@ export async function removeTelegramBotToken(partyId: string) {
 
 export async function readTelegramBotToken(partyId: string) {
   const config = await prisma.partyTelegramBotConfig.findUniqueOrThrow({ where: { partyId } });
-  const decipher = createDecipheriv("aes-256-gcm", encryptionKey(), Buffer.from(config.initializationVector, "base64"));
+  const decipher = createDecipheriv(
+    "aes-256-gcm",
+    encryptionKey(),
+    Buffer.from(config.initializationVector, "base64"),
+  );
   decipher.setAuthTag(Buffer.from(config.authenticationTag, "base64"));
-  return Buffer.concat([decipher.update(Buffer.from(config.encryptedToken, "base64")), decipher.final()]).toString("utf8");
+  return Buffer.concat([
+    decipher.update(Buffer.from(config.encryptedToken, "base64")),
+    decipher.final(),
+  ]).toString("utf8");
 }

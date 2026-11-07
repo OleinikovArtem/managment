@@ -32,5 +32,7 @@ async function RaidDetailContent({ params }: RaidDetailPageProps) {
     throw error;
   }
 
-  return <RaidDetailView raid={raid} partyName={workspace.partyName} canManage={workspace.canManage} />;
+  return (
+    <RaidDetailView raid={raid} partyName={workspace.partyName} canManage={workspace.canManage} />
+  );
 }

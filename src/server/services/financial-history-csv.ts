@@ -20,32 +20,25 @@ function protectSpreadsheetFormula(value: string) {
 
 function escapeCsvCell(value: string) {
   const safeValue = protectSpreadsheetFormula(value);
-  return /[",\r\n]/.test(safeValue)
-    ? `"${safeValue.replaceAll('"', '""')}"`
-    : safeValue;
+  return /[",\r\n]/.test(safeValue) ? `"${safeValue.replaceAll('"', '""')}"` : safeValue;
 }
 
 function encodeCsvRow(values: readonly string[]) {
   return values.map(escapeCsvCell).join(",");
 }
 
-export function createFinancialHistoryCsv(
-  transactions: FinancialHistory,
-): string {
+export function createFinancialHistoryCsv(transactions: FinancialHistory): string {
   const rows: string[][] = [];
 
   for (const transaction of transactions) {
     const sale = transaction.saleTransaction;
     const payment = transaction.memberPayment;
     if (!sale && !payment) {
-      throw new Error(
-        `Posted financial transaction ${transaction.id} has no sale or payment.`,
-      );
+      throw new Error(`Posted financial transaction ${transaction.id} has no sale or payment.`);
     }
 
     if (sale) {
-      const itemName =
-        sale.lootDrop.item.displayName || sale.lootDrop.item.canonicalName;
+      const itemName = sale.lootDrop.item.displayName || sale.lootDrop.item.canonicalName;
       for (const share of sale.shares) {
         rows.push([
           "Продажа",

@@ -14,9 +14,7 @@ import {
   updatePartyMember,
 } from "@/server/services/party-member-service";
 
-export async function createMemberAction(
-  payload: unknown,
-): Promise<MemberActionResult> {
+export async function createMemberAction(payload: unknown): Promise<MemberActionResult> {
   const parsed = memberInputSchema.safeParse(payload);
   if (!parsed.success) {
     return {
@@ -30,7 +28,11 @@ export async function createMemberAction(
   const { partyId } = access;
   try {
     await createPartyMember(partyId, parsed.data);
-    await recordPartyAuditEvent(access, { action: "CREATE", entityType: "member", summary: `Добавил участника «${parsed.data.nickname}».` });
+    await recordPartyAuditEvent(access, {
+      action: "CREATE",
+      entityType: "member",
+      summary: `Добавил участника «${parsed.data.nickname}».`,
+    });
   } catch (error) {
     if (error instanceof MemberClassesError) return { ok: false, message: error.message };
     if (error instanceof DuplicateNicknameError) {
@@ -68,7 +70,12 @@ export async function updateMemberAction(
   const { partyId } = access;
   try {
     await updatePartyMember(partyId, memberId.data, parsed.data);
-    await recordPartyAuditEvent(access, { action: "UPDATE", entityType: "member", entityId: memberId.data, summary: `Изменил данные участника «${parsed.data.nickname}».` });
+    await recordPartyAuditEvent(access, {
+      action: "UPDATE",
+      entityType: "member",
+      entityId: memberId.data,
+      summary: `Изменил данные участника «${parsed.data.nickname}».`,
+    });
   } catch (error) {
     if (error instanceof MemberClassesError) return { ok: false, message: error.message };
     if (error instanceof DuplicateNicknameError) {
@@ -90,9 +97,7 @@ export async function updateMemberAction(
   return { ok: true, message: "Данные участника обновлены." };
 }
 
-export async function deactivateMemberAction(
-  memberIdValue: unknown,
-): Promise<MemberActionResult> {
+export async function deactivateMemberAction(memberIdValue: unknown): Promise<MemberActionResult> {
   const memberId = memberIdSchema.safeParse(memberIdValue);
   if (!memberId.success) {
     return { ok: false, message: "Некорректный идентификатор участника." };
@@ -102,7 +107,12 @@ export async function deactivateMemberAction(
   const { partyId } = access;
   try {
     await deactivatePartyMember(partyId, memberId.data);
-    await recordPartyAuditEvent(access, { action: "DEACTIVATE", entityType: "member", entityId: memberId.data, summary: "Деактивировал участника." });
+    await recordPartyAuditEvent(access, {
+      action: "DEACTIVATE",
+      entityType: "member",
+      entityId: memberId.data,
+      summary: "Деактивировал участника.",
+    });
   } catch (error) {
     if (error instanceof PartyMemberNotFoundError) {
       return { ok: false, message: error.message };

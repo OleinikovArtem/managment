@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  itemInputSchema,
-  itemSearchSchema,
-  normalizeItemName,
-} from "@/features/items/item-schema";
+import { itemInputSchema, itemSearchSchema, normalizeItemName } from "@/features/items/item-schema";
 
 describe("normalizeItemName", () => {
   it("normalizes Unicode, case and whitespace", () => {

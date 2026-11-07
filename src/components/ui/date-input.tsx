@@ -21,10 +21,23 @@ function displayToValue(display: string, withTime: boolean) {
     : display.trim().match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
   if (!match) return null;
   const [, day, month, year, hours, minutes] = match;
-  const date = new Date(Number(year), Number(month) - 1, Number(day), Number(hours ?? 0), Number(minutes ?? 0));
-  if (date.getFullYear() !== Number(year) || date.getMonth() !== Number(month) - 1 || date.getDate() !== Number(day)) return null;
+  const date = new Date(
+    Number(year),
+    Number(month) - 1,
+    Number(day),
+    Number(hours ?? 0),
+    Number(minutes ?? 0),
+  );
+  if (
+    date.getFullYear() !== Number(year) ||
+    date.getMonth() !== Number(month) - 1 ||
+    date.getDate() !== Number(day)
+  )
+    return null;
   if (withTime && (Number(hours) > 23 || Number(minutes) > 59)) return null;
-  return withTime ? `${year}-${month}-${day}T${pad(hours)}:${pad(minutes)}` : `${year}-${month}-${day}`;
+  return withTime
+    ? `${year}-${month}-${day}T${pad(hours)}:${pad(minutes)}`
+    : `${year}-${month}-${day}`;
 }
 
 type Props = Omit<React.ComponentProps<typeof Input>, "value" | "onChange" | "type"> & {
@@ -48,7 +61,9 @@ export function DateInput({ value, onChange, withTime = false, ...props }: Props
       setError(null);
     }
   }
-  useEffect(() => { inputRef.current?.setCustomValidity(error ?? ""); }, [error]);
+  useEffect(() => {
+    inputRef.current?.setCustomValidity(error ?? "");
+  }, [error]);
 
   function commit(next: string) {
     const normalized = displayToValue(next, withTime);
@@ -67,7 +82,9 @@ export function DateInput({ value, onChange, withTime = false, ...props }: Props
       inputRef.current?.setCustomValidity("");
       if (inputRef.current) inputRef.current.value = "";
     } else {
-      const message = withTime ? "Введите дату и время: ДД.ММ.ГГГГ ЧЧ:ММ." : "Введите дату: ДД.ММ.ГГГГ.";
+      const message = withTime
+        ? "Введите дату и время: ДД.ММ.ГГГГ ЧЧ:ММ."
+        : "Введите дату: ДД.ММ.ГГГГ.";
       setError(message);
       inputRef.current?.setCustomValidity(message);
       setLastEmitted("");
@@ -75,5 +92,49 @@ export function DateInput({ value, onChange, withTime = false, ...props }: Props
     }
   }
 
-  return <div><div className="relative"><CalendarDays aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input {...props} ref={inputRef} type="text" value={draft} inputMode="numeric" placeholder={withTime ? "ДД.ММ.ГГГГ ЧЧ:ММ" : "ДД.ММ.ГГГГ"} aria-invalid={Boolean(error) || props["aria-invalid"]} aria-describedby={[props["aria-describedby"], error ? errorId : null].filter(Boolean).join(" ") || undefined} className={`pl-9 ${props.className ?? ""}`} onChange={event => { setDraft(event.target.value); setError(null); event.currentTarget.setCustomValidity(""); }} onBlur={event => { commit(event.target.value); props.onBlur?.(event); }} onKeyDown={event => { if (event.key === "Enter") { commit(event.currentTarget.value); if (event.currentTarget.validationMessage) event.preventDefault(); } props.onKeyDown?.(event); }} /></div>{error && <p id={errorId} role="alert" className="mt-1 text-xs text-destructive">{error}</p>}</div>;
+  return (
+    <div>
+      <div className="relative">
+        <CalendarDays
+          aria-hidden="true"
+          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+        />
+        <Input
+          {...props}
+          ref={inputRef}
+          type="text"
+          value={draft}
+          inputMode="numeric"
+          placeholder={withTime ? "ДД.ММ.ГГГГ ЧЧ:ММ" : "ДД.ММ.ГГГГ"}
+          aria-invalid={Boolean(error) || props["aria-invalid"]}
+          aria-describedby={
+            [props["aria-describedby"], error ? errorId : null].filter(Boolean).join(" ") ||
+            undefined
+          }
+          className={`pl-9 ${props.className ?? ""}`}
+          onChange={(event) => {
+            setDraft(event.target.value);
+            setError(null);
+            event.currentTarget.setCustomValidity("");
+          }}
+          onBlur={(event) => {
+            commit(event.target.value);
+            props.onBlur?.(event);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              commit(event.currentTarget.value);
+              if (event.currentTarget.validationMessage) event.preventDefault();
+            }
+            props.onKeyDown?.(event);
+          }}
+        />
+      </div>
+      {error && (
+        <p id={errorId} role="alert" className="mt-1 text-xs text-destructive">
+          {error}
+        </p>
+      )}
+    </div>
+  );
 }

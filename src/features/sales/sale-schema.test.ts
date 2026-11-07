@@ -22,7 +22,9 @@ describe("saleInputSchema", () => {
   );
 
   it("accepts compact million notation", () => {
-    expect(saleInputSchema.parse({ ...validInput, totalPrice: "5.25м" }).totalPrice).toBe("5250000");
+    expect(saleInputSchema.parse({ ...validInput, totalPrice: "5.25м" }).totalPrice).toBe(
+      "5250000",
+    );
   });
 
   it("rejects fractional and non-positive quantities", () => {
@@ -31,16 +33,18 @@ describe("saleInputSchema", () => {
   });
 
   it("accepts an optional bounded sale comment", () => {
-    expect(saleInputSchema.parse({ ...validInput, comment: "  Buyer  " }).comment).toBe(
-      "Buyer",
+    expect(saleInputSchema.parse({ ...validInput, comment: "  Buyer  " }).comment).toBe("Buyer");
+    expect(saleInputSchema.safeParse({ ...validInput, comment: "x".repeat(501) }).success).toBe(
+      false,
     );
-    expect(
-      saleInputSchema.safeParse({ ...validInput, comment: "x".repeat(501) }).success,
-    ).toBe(false);
   });
 
   it("rejects invalid idempotency keys and timestamps", () => {
-    expect(saleInputSchema.safeParse({ ...validInput, idempotencyKey: "retry" }).success).toBe(false);
-    expect(saleInputSchema.safeParse({ ...validInput, receivedAt: "tomorrow" }).success).toBe(false);
+    expect(saleInputSchema.safeParse({ ...validInput, idempotencyKey: "retry" }).success).toBe(
+      false,
+    );
+    expect(saleInputSchema.safeParse({ ...validInput, receivedAt: "tomorrow" }).success).toBe(
+      false,
+    );
   });
 });

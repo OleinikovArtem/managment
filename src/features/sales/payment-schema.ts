@@ -3,7 +3,11 @@ import { parseAdenaInput } from "@/lib/adena";
 
 export const paymentInputSchema = z.object({
   memberId: z.string().min(1, "Выберите участника."),
-  amount: z.string().trim().transform(parseAdenaInput).refine((value): value is string => value !== null, "Введите сумму Adena, например 5.25м."),
+  amount: z
+    .string()
+    .trim()
+    .transform(parseAdenaInput)
+    .refine((value): value is string => value !== null, "Введите сумму Adena, например 5.25м."),
   paidAt: z.string().datetime({ offset: true }),
   comment: z
     .string()

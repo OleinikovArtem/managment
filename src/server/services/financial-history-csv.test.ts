@@ -79,9 +79,7 @@ describe("financial history CSV", () => {
       },
     ]);
 
-    expect(csv).toContain(
-      `"'=HYPERLINK(""https://example.invalid"",""open""), reviewed"`,
-    );
+    expect(csv).toContain(`"'=HYPERLINK(""https://example.invalid"",""open""), reviewed"`);
     const [header, saleRow] = csv.slice(1).split("\r\n");
     expect(header).toContain("Доля с продажи Adena");
     expect(saleRow).toContain('"Raid, Alpha"');

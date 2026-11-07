@@ -2,18 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@/generated/prisma/client";
-import {
-  PaymentOperationError,
-} from "@/features/sales/payment-errors";
+import { PaymentOperationError } from "@/features/sales/payment-errors";
 import { paymentInputSchema } from "@/features/sales/payment-schema";
 import type { PaymentActionResult } from "@/features/sales/payment-action-result";
 import { requirePartyActionAccess } from "@/server/auth/party-access";
 import { registerPayment } from "@/server/services/payment-service";
 import { recordPartyAuditEvent } from "@/server/services/party-audit-service";
 
-export async function registerPaymentAction(
-  payload: unknown,
-): Promise<PaymentActionResult> {
+export async function registerPaymentAction(payload: unknown): Promise<PaymentActionResult> {
   const parsed = paymentInputSchema.safeParse(payload);
   if (!parsed.success) {
     return {
@@ -27,7 +23,12 @@ export async function registerPaymentAction(
   const { partyId } = access;
   try {
     const payment = await registerPayment(partyId, parsed.data);
-    await recordPartyAuditEvent(access, { action: "CREATE", entityType: "payment", entityId: payment.id, summary: `Передал ${new Intl.NumberFormat("ru-RU").format(BigInt(payment.amount))} Adena участнику ${payment.nicknameSnapshot}.` });
+    await recordPartyAuditEvent(access, {
+      action: "CREATE",
+      entityType: "payment",
+      entityId: payment.id,
+      summary: `Передал ${new Intl.NumberFormat("ru-RU").format(BigInt(payment.amount))} Adena участнику ${payment.nicknameSnapshot}.`,
+    });
     revalidatePath("/sales");
     revalidatePath("/ledger");
     revalidatePath("/dashboard");

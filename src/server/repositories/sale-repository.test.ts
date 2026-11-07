@@ -112,7 +112,10 @@ describe("sale repository", () => {
     await registerPartySale("party-1", input);
 
     expect(mocks.$transaction).toHaveBeenCalledOnce();
-    expect(mocks.raidUpdateMany).toHaveBeenCalledWith({ where: { partyId: "party-1", id: "raid-1", lockedAt: null }, data: { lockedAt: expect.any(Date) } });
+    expect(mocks.raidUpdateMany).toHaveBeenCalledWith({
+      where: { partyId: "party-1", id: "raid-1", lockedAt: null },
+      data: { lockedAt: expect.any(Date) },
+    });
     expect(mocks.lootDropFindFirst).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { partyId: "party-1", id: "drop-1" },
@@ -150,9 +153,11 @@ describe("sale repository", () => {
       debit: 101n,
       credit: 0n,
     });
-    expect(ledgerEntries.slice(1).reduce((sum: bigint, entry: { credit: bigint }) => sum + entry.credit, 0n)).toBe(
-      101n,
-    );
+    expect(
+      ledgerEntries
+        .slice(1)
+        .reduce((sum: bigint, entry: { credit: bigint }) => sum + entry.credit, 0n),
+    ).toBe(101n);
     expect(mocks.ledgerTransactionUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ status: "POSTED" }),
@@ -192,9 +197,7 @@ describe("sale repository", () => {
       saleTransactions: [{ quantitySold: 8 }],
     });
 
-    await expect(registerPartySale("party-1", input)).rejects.toBeInstanceOf(
-      SaleOperationError,
-    );
+    await expect(registerPartySale("party-1", input)).rejects.toBeInstanceOf(SaleOperationError);
     expect(mocks.saleCreate).not.toHaveBeenCalled();
     expect(mocks.saleShareCreateMany).not.toHaveBeenCalled();
   });
@@ -215,9 +218,7 @@ describe("sale repository", () => {
   it("does not report success when posting the ledger fails", async () => {
     mocks.ledgerTransactionUpdate.mockRejectedValue(new Error("ledger posting failed"));
 
-    await expect(registerPartySale("party-1", input)).rejects.toThrow(
-      "ledger posting failed",
-    );
+    await expect(registerPartySale("party-1", input)).rejects.toThrow("ledger posting failed");
     expect(mocks.ledgerTransactionUpdate).toHaveBeenCalledOnce();
   });
 
@@ -232,9 +233,7 @@ describe("sale repository", () => {
   });
 
   it("returns an explicit temporary failure after exhausting lock retries", async () => {
-    mocks.$transaction.mockRejectedValue(
-      new Error("40P01: deadlock detected"),
-    );
+    mocks.$transaction.mockRejectedValue(new Error("40P01: deadlock detected"));
 
     await expect(registerPartySale("party-1", input)).rejects.toBeInstanceOf(
       SaleTemporaryDatabaseError,
@@ -282,9 +281,7 @@ describe("sale repository", () => {
 
     expect(balances).toEqual({
       partyCash: 80n,
-      memberBalances: [
-        { memberId: "member-a", nickname: "A", isActive: false, payable: 60n },
-      ],
+      memberBalances: [{ memberId: "member-a", nickname: "A", isActive: false, payable: 60n }],
     });
     expect(mocks.ledgerEntryFindMany).toHaveBeenCalledWith(
       expect.objectContaining({

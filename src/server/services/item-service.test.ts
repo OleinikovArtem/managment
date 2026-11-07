@@ -50,11 +50,7 @@ describe("item service", () => {
 
     await createItem("party-a", input);
 
-    expect(createPartyItemRecord).toHaveBeenCalledWith(
-      "party-a",
-      input,
-      "ancient sword",
-    );
+    expect(createPartyItemRecord).toHaveBeenCalledWith("party-a", input, "ancient sword");
   });
 
   it("translates database unique conflicts into a domain error", async () => {
@@ -66,21 +62,15 @@ describe("item service", () => {
       }),
     );
 
-    await expect(
-      createItem("party-a", { canonicalName: "Ancient Sword" }),
-    ).rejects.toBeInstanceOf(DuplicateItemError);
+    await expect(createItem("party-a", { canonicalName: "Ancient Sword" })).rejects.toBeInstanceOf(
+      DuplicateItemError,
+    );
   });
 
   it("normalizes search text before the party-scoped repository query", async () => {
     await searchItems("party-a", "  ANCIENT   SWORD ", "Weapon");
 
-    expect(listPartyItems).toHaveBeenCalledWith(
-      "party-a",
-      "ancient sword",
-      "Weapon",
-      0,
-      25,
-    );
+    expect(listPartyItems).toHaveBeenCalledWith("party-a", "ancient sword", "Weapon", 0, 25);
   });
 
   it("returns a party-scoped page and clamps requests past the last page", async () => {
@@ -100,13 +90,8 @@ describe("item service", () => {
   it("scopes item details by party and rejects IDs from another party", async () => {
     getPartyItemById.mockResolvedValue(null);
 
-    await expect(getItem("party-a", "item-from-party-b")).rejects.toBeInstanceOf(
-      ItemNotFoundError,
-    );
-    expect(getPartyItemById).toHaveBeenCalledWith(
-      "party-a",
-      "item-from-party-b",
-    );
+    await expect(getItem("party-a", "item-from-party-b")).rejects.toBeInstanceOf(ItemNotFoundError);
+    expect(getPartyItemById).toHaveBeenCalledWith("party-a", "item-from-party-b");
   });
 
   it("updates the existing party-scoped item instead of creating another", async () => {

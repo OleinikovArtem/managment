@@ -23,9 +23,11 @@ async function NewRaidContent() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-5">
-      <Link href="/raids" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft aria-hidden="true" size={16} />
-        К рейдам
+      <Link
+        href="/raids"
+        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft aria-hidden="true" size={16} />К рейдам
       </Link>
       <h1 className="sr-only">Создание рейда</h1>
       <RaidForm
@@ -35,7 +37,12 @@ async function NewRaidContent() {
         stages={setup.catalog.stages.available}
         defaultStage={setup.catalog.stages.context}
         lastAttendance={setup.lastAttendance}
-        compositions={setup.compositions.map((composition) => ({ id: composition.id, name: composition.name, focus: composition.focus, slots: composition.members.map(({ memberId, profileId }) => ({ memberId, profileId })) }))}
+        compositions={setup.compositions.map((composition) => ({
+          id: composition.id,
+          name: composition.name,
+          focus: composition.focus,
+          slots: composition.members.map(({ memberId, profileId }) => ({ memberId, profileId })),
+        }))}
         submitLabel="Создать рейд"
       />
     </div>

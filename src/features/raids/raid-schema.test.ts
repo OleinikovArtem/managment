@@ -19,7 +19,9 @@ describe("raid input validation", () => {
   });
 
   it("accepts a manually selected roster without an optional composition", () => {
-    expect(raidInputSchema.safeParse({ ...validInput, compositionId: undefined }).success).toBe(true);
+    expect(raidInputSchema.safeParse({ ...validInput, compositionId: undefined }).success).toBe(
+      true,
+    );
   });
 
   it.each([0, -1, 1.5])("rejects loot quantity %s", (quantity) => {

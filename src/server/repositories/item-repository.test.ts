@@ -91,11 +91,7 @@ describe("shared item catalog", () => {
   });
 
   it("defaults omitted Rare status to false", async () => {
-    await createPartyItemRecord(
-      "party-a",
-      { canonicalName: "Ancient Sword" },
-      "ancient sword",
-    );
+    await createPartyItemRecord("party-a", { canonicalName: "Ancient Sword" }, "ancient sword");
 
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({

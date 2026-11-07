@@ -111,23 +111,21 @@ function getArmorSlot(name: string): string | null {
   return slot?.[1] ?? null;
 }
 
-export function classifyHighFiveItem(
-  item: BaseItemDumpEntry,
-): ItemClassification {
+export function classifyHighFiveItem(item: BaseItemDumpEntry): ItemClassification {
   const isRare = /^Rare /i.test(item.canonicalName);
   const canonicalName = item.canonicalName.replace(/^Rare /i, "");
 
   if (item.category === "Armor") {
-    const grade = canonicalName.startsWith("Imperial Crusader ") ||
+    const grade =
+      canonicalName.startsWith("Imperial Crusader ") ||
       canonicalName.startsWith("Draconic Leather ") ||
       canonicalName.startsWith("Major Arcana ")
-      ? "S"
-      : canonicalName.startsWith("Dynasty ")
-        ? "S80"
-        : canonicalName.startsWith("Vesper Noble ") ||
-            canonicalName.startsWith("Elegia ")
-          ? "S84"
-          : null;
+        ? "S"
+        : canonicalName.startsWith("Dynasty ")
+          ? "S80"
+          : canonicalName.startsWith("Vesper Noble ") || canonicalName.startsWith("Elegia ")
+            ? "S84"
+            : null;
     const itemType = getArmorSlot(canonicalName);
     const itemSubtype = getArmorType(canonicalName);
 
@@ -151,9 +149,7 @@ export function classifyHighFiveItem(
   }
 
   if (item.category === "Materials" && /Life Stone/i.test(canonicalName)) {
-    const itemSubtype = /^(Mid-grade|High-grade|Top-grade) /i.exec(
-      canonicalName,
-    )?.[1] ?? null;
+    const itemSubtype = /^(Mid-grade|High-grade|Top-grade) /i.exec(canonicalName)?.[1] ?? null;
     const level = /Lv\. (\d+)/i.exec(canonicalName)?.[1];
     return {
       category: "Materials",
@@ -164,10 +160,7 @@ export function classifyHighFiveItem(
     };
   }
 
-  if (
-    item.category === "Materials" &&
-    /Neolithic Crystal/i.test(canonicalName)
-  ) {
+  if (item.category === "Materials" && /Neolithic Crystal/i.test(canonicalName)) {
     return {
       category: "Materials",
       grade: null,

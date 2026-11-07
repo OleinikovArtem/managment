@@ -27,7 +27,12 @@ export async function createItemAction(payload: unknown): Promise<ItemActionResu
   const { partyId } = access;
   try {
     const item = await createItem(partyId, parsed.data);
-    await recordPartyAuditEvent(access, { action: "CREATE", entityType: "item", entityId: item.id, summary: `Добавил свой предмет «${parsed.data.displayName || parsed.data.canonicalName}».` });
+    await recordPartyAuditEvent(access, {
+      action: "CREATE",
+      entityType: "item",
+      entityId: item.id,
+      summary: `Добавил свой предмет «${parsed.data.displayName || parsed.data.canonicalName}».`,
+    });
     revalidatePath("/items");
     revalidatePath("/dashboard");
     return {
@@ -65,7 +70,12 @@ export async function updateItemAction(
   const { partyId } = access;
   try {
     await updateItem(partyId, itemId.data, parsed.data);
-    await recordPartyAuditEvent(access, { action: "UPDATE", entityType: "item", entityId: itemId.data, summary: `Изменил свой предмет «${parsed.data.displayName || parsed.data.canonicalName}».` });
+    await recordPartyAuditEvent(access, {
+      action: "UPDATE",
+      entityType: "item",
+      entityId: itemId.data,
+      summary: `Изменил свой предмет «${parsed.data.displayName || parsed.data.canonicalName}».`,
+    });
   } catch (error) {
     if (error instanceof DuplicateItemError) {
       return {
@@ -88,8 +98,14 @@ export async function updateItemAction(
 export async function archiveItemAction(idValue: unknown, isActive: boolean) {
   const access = await requirePartyActionAccess("ADMIN");
   const id = itemIdSchema.parse(idValue);
-  if (typeof isActive !== "boolean" || !await setCustomItemActive(access.partyId, id, isActive)) return { ok: false, message: "Свой предмет не найден." };
-  await recordPartyAuditEvent(access, { action: "UPDATE", entityType: "item", entityId: id, summary: isActive ? "Восстановил свой предмет." : "Переместил свой предмет в архив." });
+  if (typeof isActive !== "boolean" || !(await setCustomItemActive(access.partyId, id, isActive)))
+    return { ok: false, message: "Свой предмет не найден." };
+  await recordPartyAuditEvent(access, {
+    action: "UPDATE",
+    entityType: "item",
+    entityId: id,
+    summary: isActive ? "Восстановил свой предмет." : "Переместил свой предмет в архив.",
+  });
   revalidatePath("/items");
   return { ok: true, message: "Сохранено." };
 }

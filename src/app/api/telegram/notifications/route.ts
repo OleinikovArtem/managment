@@ -1,4 +1,8 @@
-import { AuthenticationRequiredError, PartyAccessRequiredError, requirePartyActionAccess } from "@/server/auth/party-access";
+import {
+  AuthenticationRequiredError,
+  PartyAccessRequiredError,
+  requirePartyActionAccess,
+} from "@/server/auth/party-access";
 import { unreadTelegramImports } from "@/server/telegram/query-service";
 import { unstable_rethrow } from "next/navigation";
 
@@ -6,7 +10,10 @@ export async function GET() {
   try {
     const access = await requirePartyActionAccess("MEMBER");
     const items = await unreadTelegramImports(access.partyId, access.userId);
-    return Response.json({ partyId: access.partyId, items }, { headers: { "Cache-Control": "private, no-store" } });
+    return Response.json(
+      { partyId: access.partyId, items },
+      { headers: { "Cache-Control": "private, no-store" } },
+    );
   } catch (error) {
     unstable_rethrow(error);
     if (error instanceof AuthenticationRequiredError) return new Response(null, { status: 401 });

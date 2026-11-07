@@ -47,8 +47,13 @@ export function PaymentForm({
   const [localOpen, setLocalOpen] = useState(false);
   const showForm = open ?? localOpen;
   const triggerRef = useRef<HTMLButtonElement>(null);
-  function setShowForm(next: boolean) { setLocalOpen(next); onOpenChange?.(next); }
-  useEffect(() => { onPendingChange?.(isPending); }, [isPending, onPendingChange]);
+  function setShowForm(next: boolean) {
+    setLocalOpen(next);
+    onOpenChange?.(next);
+  }
+  useEffect(() => {
+    onPendingChange?.(isPending);
+  }, [isPending, onPendingChange]);
   const [amount, setAmount] = useState("");
   const [paidAt, setPaidAt] = useState(() => getLocalDateTimeValue(new Date()));
   const [comment, setComment] = useState("");
@@ -58,7 +63,8 @@ export function PaymentForm({
   const recommendedAmount = (() => {
     const outstandingTotal = BigInt(totalOutstanding);
     if (outstandingTotal <= 0n) return 0n;
-    const proportional = ((BigInt(partyCash) > 0n ? BigInt(partyCash) : 0n) * BigInt(remaining)) / outstandingTotal;
+    const proportional =
+      ((BigInt(partyCash) > 0n ? BigInt(partyCash) : 0n) * BigInt(remaining)) / outstandingTotal;
     return proportional > BigInt(remaining) ? BigInt(remaining) : proportional;
   })();
   function openForm() {
@@ -74,7 +80,9 @@ export function PaymentForm({
 
     const paidDate = new Date(paidAt);
     const enteredAmount = amount.trim();
-    const normalizedAmount = parseAdenaInput(/[kкmмbб]$/iu.test(enteredAmount) ? enteredAmount : `${enteredAmount}м`);
+    const normalizedAmount = parseAdenaInput(
+      /[kкmмbб]$/iu.test(enteredAmount) ? enteredAmount : `${enteredAmount}м`,
+    );
     if (!normalizedAmount || !Number.isFinite(paidDate.getTime())) {
       setMessage("Проверьте сумму и дату передачи Adena.");
       return;
@@ -119,7 +127,14 @@ export function PaymentForm({
         <p className="text-xs text-muted-foreground">
           Начислено сейчас: <AdenaAmount amount={currentPayable} />
         </p>
-        <Button ref={triggerRef} type="button" size="sm" variant="secondary" disabled={triggerDisabled} onClick={openForm}>
+        <Button
+          ref={triggerRef}
+          type="button"
+          size="sm"
+          variant="secondary"
+          disabled={triggerDisabled}
+          onClick={openForm}
+        >
           <Check aria-hidden="true" size={15} />
           Передать
         </Button>
@@ -133,7 +148,8 @@ export function PaymentForm({
       onSubmit={onSubmit}
     >
       <p className="text-xs text-muted-foreground">
-        Передача для {nickname}. Можно выдать больше начисленного — разница уйдёт в долг. Сумма вводится в миллионах.
+        Передача для {nickname}. Можно выдать больше начисленного — разница уйдёт в долг. Сумма
+        вводится в миллионах.
       </p>
       <div className="grid gap-2 sm:grid-cols-[minmax(0,1.15fr)_minmax(220px,0.85fr)]">
         <label className="space-y-1.5 text-xs font-medium">
@@ -145,7 +161,11 @@ export function PaymentForm({
             value={amount}
             onChange={(event) => setAmount(event.target.value)}
             aria-label={`Сумма передачи Adena для ${nickname}`}
-            placeholder={recommendedAmount > 0n ? formatAdena(recommendedAmount).replace(/м$/, "") : "Например, 22.5"}
+            placeholder={
+              recommendedAmount > 0n
+                ? formatAdena(recommendedAmount).replace(/м$/, "")
+                : "Например, 22.5"
+            }
           />
           {recommendedAmount > 0n && (
             <p className="text-[11px] font-normal text-muted-foreground">
@@ -155,7 +175,13 @@ export function PaymentForm({
         </label>
         <label className="space-y-1.5 text-xs font-medium">
           Дата передачи
-          <DateInput required value={paidAt} withTime onChange={setPaidAt} aria-label={`Дата передачи Adena для ${nickname}`} />
+          <DateInput
+            required
+            value={paidAt}
+            withTime
+            onChange={setPaidAt}
+            aria-label={`Дата передачи Adena для ${nickname}`}
+          />
         </label>
       </div>
       <div>
@@ -182,7 +208,11 @@ export function PaymentForm({
           />
         )}
       </div>
-      {message && <p role="alert" className="text-sm text-destructive">{message}</p>}
+      {message && (
+        <p role="alert" className="text-sm text-destructive">
+          {message}
+        </p>
+      )}
       <div className="flex flex-wrap items-center gap-2">
         <Button type="submit" size="sm" disabled={isPending || !paidAt}>
           {isPending ? (
@@ -192,7 +222,18 @@ export function PaymentForm({
           )}
           {isPending ? "Сохраняем передачу..." : "Записать передачу"}
         </Button>
-        <Button type="button" variant="ghost" size="sm" disabled={isPending} onClick={() => { setShowForm(false); requestAnimationFrame(() => triggerRef.current?.focus()); }}>Свернуть</Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          disabled={isPending}
+          onClick={() => {
+            setShowForm(false);
+            requestAnimationFrame(() => triggerRef.current?.focus());
+          }}
+        >
+          Свернуть
+        </Button>
       </div>
     </form>
   );

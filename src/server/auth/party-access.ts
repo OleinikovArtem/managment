@@ -48,7 +48,10 @@ async function resolvePartyAccess() {
   return { user: session.user, memberships, membership };
 }
 
-function toAccess(user: NonNullable<Awaited<ReturnType<typeof resolvePartyAccess>>["user"]>, membership: NonNullable<Awaited<ReturnType<typeof resolvePartyAccess>>["membership"]>): PartyAccess {
+function toAccess(
+  user: NonNullable<Awaited<ReturnType<typeof resolvePartyAccess>>["user"]>,
+  membership: NonNullable<Awaited<ReturnType<typeof resolvePartyAccess>>["membership"]>,
+): PartyAccess {
   const canManage = membership.role !== PartyRole.MEMBER;
   return {
     userId: user.id,
@@ -85,7 +88,8 @@ export async function requirePartyPageAccess() {
 export async function requirePartyActionAccess(minimum: "MEMBER" | "ADMIN" | "OWNER" = "ADMIN") {
   const { user, memberships, membership } = await resolvePartyAccess();
   if (!user) throw new AuthenticationRequiredError();
-  if (memberships.length === 0) throw new PartyAccessRequiredError("Сначала создайте группу или примите приглашение.");
+  if (memberships.length === 0)
+    throw new PartyAccessRequiredError("Сначала создайте группу или примите приглашение.");
   if (!membership) throw new PartyAccessRequiredError("Выберите активную группу.");
 
   const access = toAccess(user, membership);

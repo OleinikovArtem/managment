@@ -6,10 +6,16 @@ import { TelegramNotifications } from "@/features/telegram/notifications";
 
 export const instant = false;
 
-export default function DashboardLayout({
-  children,
-}: Readonly<{ children: ReactNode }>) {
-  return <Suspense fallback={<div className="min-h-screen bg-background" role="status" aria-label="Загрузка группы" />}><DashboardShell>{children}</DashboardShell></Suspense>;
+export default function DashboardLayout({ children }: Readonly<{ children: ReactNode }>) {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-background" role="status" aria-label="Загрузка группы" />
+      }
+    >
+      <DashboardShell>{children}</DashboardShell>
+    </Suspense>
+  );
 }
 
 async function DashboardShell({ children }: Readonly<{ children: ReactNode }>) {
@@ -18,7 +24,9 @@ async function DashboardShell({ children }: Readonly<{ children: ReactNode }>) {
     <div className="min-h-screen lg:flex">
       <Sidebar displayName={access.displayName} partyName={access.partyName} />
       <div className="min-w-0 flex-1">
-        <a href="#main-content" className="skip-link">К содержимому</a>
+        <a href="#main-content" className="skip-link">
+          К содержимому
+        </a>
         <main id="main-content" className="app-content">
           <TelegramNotifications key={access.partyId} partyId={access.partyId} />
           {children}

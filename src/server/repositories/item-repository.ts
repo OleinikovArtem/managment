@@ -106,7 +106,7 @@ export async function updatePartyItemRecord(
 }
 
 export async function setCustomItemActive(partyId: string, id: string, isActive: boolean) {
-  return prisma.$transaction(async tx => {
+  return prisma.$transaction(async (tx) => {
     await lockParty(tx, partyId);
     const changed = await tx.item.updateMany({ where: { id, partyId }, data: { isActive } });
     return changed.count === 1;
@@ -114,5 +114,31 @@ export async function setCustomItemActive(partyId: string, id: string, isActive:
 }
 
 export function searchSelectableItems(partyId: string, query: string) {
-  return prisma.item.findMany({ where: { AND: [selectableCatalog(partyId), ...(query ? [{ OR: [{ normalizedName: { contains: query } }, { displayName: { contains: query, mode: "insensitive" as const } }] }] : [])] }, take: 40, orderBy: [{ normalizedName: "asc" }, { id: "asc" }], select: { id: true, canonicalName: true, displayName: true, category: true, partyId: true, isActive: true } });
+  return prisma.item.findMany({
+    where: {
+      AND: [
+        selectableCatalog(partyId),
+        ...(query
+          ? [
+              {
+                OR: [
+                  { normalizedName: { contains: query } },
+                  { displayName: { contains: query, mode: "insensitive" as const } },
+                ],
+              },
+            ]
+          : []),
+      ],
+    },
+    take: 40,
+    orderBy: [{ normalizedName: "asc" }, { id: "asc" }],
+    select: {
+      id: true,
+      canonicalName: true,
+      displayName: true,
+      category: true,
+      partyId: true,
+      isActive: true,
+    },
+  });
 }

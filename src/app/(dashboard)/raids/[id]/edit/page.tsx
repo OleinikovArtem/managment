@@ -33,26 +33,43 @@ async function EditRaidContent({ params }: EditRaidPageProps) {
     }
     throw error;
   }
-  if (raid.lockedAt || raid.lootDrops.some(drop => drop.saleTransactions.length > 0)) {
-    return <section className="max-w-2xl"><header className="page-header"><h1>Рейд недоступен для редактирования</h1><p className="mt-3">В рейде уже есть продажи. Состав и количество добычи сохранены в финансовой истории.</p></header><Link href={`/raids/${raid.id}`} className="inline-flex min-h-11 items-center text-sm underline underline-offset-4">К рейду и оставшейся добыче</Link></section>;
+  if (raid.lockedAt || raid.lootDrops.some((drop) => drop.saleTransactions.length > 0)) {
+    return (
+      <section className="max-w-2xl">
+        <header className="page-header">
+          <h1>Рейд недоступен для редактирования</h1>
+          <p className="mt-3">
+            В рейде уже есть продажи. Состав и количество добычи сохранены в финансовой истории.
+          </p>
+        </header>
+        <Link
+          href={`/raids/${raid.id}`}
+          className="inline-flex min-h-11 items-center text-sm underline underline-offset-4"
+        >
+          К рейду и оставшейся добыче
+        </Link>
+      </section>
+    );
   }
   const setup = await getRaidSetup(workspace.partyId);
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <Link href={`/raids/${raid.id}`} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft aria-hidden="true" size={16} />
-        К рейду
+      <Link
+        href={`/raids/${raid.id}`}
+        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft aria-hidden="true" size={16} />К рейду
       </Link>
       <header className="page-header ">
-
         <h1 className="mt-2 text-3xl font-semibold tracking-tight">Редактирование рейда</h1>
       </header>
       <Card>
         <CardHeader>
           <CardTitle>{raid.name}</CardTitle>
           <CardDescription>
-            Отметьте присутствующих и уточните добычу. После первой продажи редактирование будет закрыто.
+            Отметьте присутствующих и уточните добычу. После первой продажи редактирование будет
+            закрыто.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -65,16 +82,45 @@ async function EditRaidContent({ params }: EditRaidPageProps) {
               role: participant.member.role,
               level: participant.member.level,
               profiles: [
-                ...(setup.members.find((member) => member.id === participant.memberId)?.profiles ?? []),
-                ...(participant.profileId && !setup.members.find(member=>member.id===participant.memberId)?.profiles.some(profile=>profile.id===participant.profileId) ? [{ id: participant.profileId, name: participant.profileSnapshot ?? "Исторический профиль", className: participant.classSnapshot ?? "Исторический класс", role: participant.roleSnapshot, level: participant.levelSnapshot }] : []),
+                ...(setup.members.find((member) => member.id === participant.memberId)?.profiles ??
+                  []),
+                ...(participant.profileId &&
+                !setup.members
+                  .find((member) => member.id === participant.memberId)
+                  ?.profiles.some((profile) => profile.id === participant.profileId)
+                  ? [
+                      {
+                        id: participant.profileId,
+                        name: participant.profileSnapshot ?? "Исторический профиль",
+                        className: participant.classSnapshot ?? "Исторический класс",
+                        role: participant.roleSnapshot,
+                        level: participant.levelSnapshot,
+                      },
+                    ]
+                  : []),
               ],
             }))}
-            items={[...new Map([...setup.items, ...raid.lootDrops.map(drop => drop.item)].map(item => [item.id, item])).values()]}
+            items={[
+              ...new Map(
+                [...setup.items, ...raid.lootDrops.map((drop) => drop.item)].map((item) => [
+                  item.id,
+                  item,
+                ]),
+              ).values(),
+            ]}
             instances={setup.catalog.instances}
             stages={setup.catalog.stages.available}
             defaultStage={setup.catalog.stages.context}
             historicalStageName={raid.stageNameSnapshot}
-            compositions={setup.compositions.map((composition) => ({ id: composition.id, name: composition.name, focus: composition.focus, slots: composition.members.map(({ memberId, profileId }) => ({ memberId, profileId })) }))}
+            compositions={setup.compositions.map((composition) => ({
+              id: composition.id,
+              name: composition.name,
+              focus: composition.focus,
+              slots: composition.members.map(({ memberId, profileId }) => ({
+                memberId,
+                profileId,
+              })),
+            }))}
             raidId={raid.id}
             initialValues={{
               name: raid.name,

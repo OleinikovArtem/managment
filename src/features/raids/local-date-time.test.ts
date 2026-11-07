@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  localDateTimeToUtc,
-  toLocalDateTimeInput,
-} from "@/features/raids/local-date-time";
+import { localDateTimeToUtc, toLocalDateTimeInput } from "@/features/raids/local-date-time";
 
 describe("raid local date-time conversion", () => {
   it("converts local time to UTC and back in the selected system time zone", () => {

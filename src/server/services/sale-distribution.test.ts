@@ -34,7 +34,10 @@ describe("calculateWeightedShares", () => {
       { id: "b", weight: 1 },
     ]);
 
-    expect(shares.map(({ amount }) => amount)).toEqual([4_503_599_627_370_500n, 4_503_599_627_370_499n]);
+    expect(shares.map(({ amount }) => amount)).toEqual([
+      4_503_599_627_370_500n,
+      4_503_599_627_370_499n,
+    ]);
     expect(shares.reduce((sum, { amount }) => sum + amount, 0n)).toBe(total);
   });
 

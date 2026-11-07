@@ -19,12 +19,16 @@ async function main() {
   const source = new Database(sourcePath, { readonly: true, fileMustExist: true });
   let items;
   try {
-    items = source.prepare(`
+    items = source
+      .prepare(
+        `
       SELECT id, canonicalName, normalizedName, displayName, category, grade,
              itemType, itemSubtype, isRare, gameVersion, comment, createdAt, updatedAt
       FROM Item
       ORDER BY updatedAt ASC, id ASC
-    `).all();
+    `,
+      )
+      .all();
   } finally {
     source.close();
   }
@@ -35,12 +39,17 @@ async function main() {
 
   const uniqueNames = new Set(items.map((item) => item.normalizedName));
   if (dryRun) {
-    console.log(`Read-only catalog check: ${items.length} rows, ${uniqueNames.size} unique normalized names.`);
+    console.log(
+      `Read-only catalog check: ${items.length} rows, ${uniqueNames.size} unique normalized names.`,
+    );
     return;
   }
 
   const connectionString = process.env.DATABASE_URL;
-  if (!connectionString?.startsWith("postgresql://") && !connectionString?.startsWith("postgres://")) {
+  if (
+    !connectionString?.startsWith("postgresql://") &&
+    !connectionString?.startsWith("postgres://")
+  ) {
     throw new Error("DATABASE_URL must point to the new PostgreSQL database.");
   }
   const pool = new Pool({ connectionString });
@@ -87,7 +96,9 @@ async function main() {
       );
     }
     await client.query("COMMIT");
-    console.log(`Imported ${items.length} catalog rows (${uniqueNames.size} unique names) from ${sourcePath}.`);
+    console.log(
+      `Imported ${items.length} catalog rows (${uniqueNames.size} unique names) from ${sourcePath}.`,
+    );
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;

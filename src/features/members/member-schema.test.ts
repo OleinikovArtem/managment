@@ -14,17 +14,39 @@ describe("normalizeNickname", () => {
 
 describe("memberInputSchema", () => {
   it("accepts Main and four fixed Subclass slots, including Kamael", () => {
-    const data = memberInputSchema.parse({ nickname: "Korsa", className: "Grand Khavatari", subclasses: [
-      { slot: 1, className: "Cardinal" }, { slot: 2, className: "Doombringer" },
-      { slot: 3, className: "Male Soul Hound" }, { slot: 4, className: "Trickster" },
-    ] });
+    const data = memberInputSchema.parse({
+      nickname: "Korsa",
+      className: "Grand Khavatari",
+      subclasses: [
+        { slot: 1, className: "Cardinal" },
+        { slot: 2, className: "Doombringer" },
+        { slot: 3, className: "Male Soul Hound" },
+        { slot: 4, className: "Trickster" },
+      ],
+    });
     expect(data.subclasses).toHaveLength(4);
     expect(data.level).toBeUndefined();
   });
   it("keeps empty subclass slots and rejects a fifth slot or duplicate profile identity", () => {
-    expect(memberInputSchema.parse({ nickname: "Korsa", subclasses: [{ slot: 4, className: "" }] }).subclasses).toEqual([{ slot: 4, className: "" }]);
-    expect(memberInputSchema.safeParse({ nickname: "Korsa", subclasses: [{ slot: 5, className: "Cardinal" }] }).success).toBe(false);
-    expect(memberInputSchema.safeParse({ nickname: "Korsa", subclasses: [{ slot: 1, id: "same", className: "Cardinal" }, { slot: 2, id: "same", className: "Titan" }] }).success).toBe(false);
+    expect(
+      memberInputSchema.parse({ nickname: "Korsa", subclasses: [{ slot: 4, className: "" }] })
+        .subclasses,
+    ).toEqual([{ slot: 4, className: "" }]);
+    expect(
+      memberInputSchema.safeParse({
+        nickname: "Korsa",
+        subclasses: [{ slot: 5, className: "Cardinal" }],
+      }).success,
+    ).toBe(false);
+    expect(
+      memberInputSchema.safeParse({
+        nickname: "Korsa",
+        subclasses: [
+          { slot: 1, id: "same", className: "Cardinal" },
+          { slot: 2, id: "same", className: "Titan" },
+        ],
+      }).success,
+    ).toBe(false);
   });
   it("rejects a nickname whose normalized value is empty", () => {
     const result = memberInputSchema.safeParse({ nickname: " \t ", comment: "" });

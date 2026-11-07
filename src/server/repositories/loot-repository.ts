@@ -2,9 +2,17 @@ import "server-only";
 import { prisma } from "@/lib/db/prisma";
 
 type LootRecord = {
-  id: string; itemId: string; canonicalName: string; displayName: string | null;
-  raidId: string; raidName: string; occurredAt: Date; createdAt: Date;
-  quantity: number; sold: number; proceeds: string;
+  id: string;
+  itemId: string;
+  canonicalName: string;
+  displayName: string | null;
+  raidId: string;
+  raidName: string;
+  occurredAt: Date;
+  createdAt: Date;
+  quantity: number;
+  sold: number;
+  proceeds: string;
 };
 
 export async function listPartyLoot(partyId: string) {
@@ -21,11 +29,18 @@ export async function listPartyLoot(partyId: string) {
     GROUP BY l.id, r.id, i.id
     ORDER BY l."createdAt" DESC, l.id DESC
   `;
-  return rows.map(row => ({
-    ...row, name: row.displayName || row.canonicalName,
+  return rows.map((row) => ({
+    ...row,
+    name: row.displayName || row.canonicalName,
     remaining: row.quantity - row.sold,
-    status: row.sold === 0 ? "unsold" as const : row.sold < row.quantity ? "partial" as const : "sold" as const,
-    occurredAt: row.occurredAt.toISOString(), createdAt: row.createdAt.toISOString(),
+    status:
+      row.sold === 0
+        ? ("unsold" as const)
+        : row.sold < row.quantity
+          ? ("partial" as const)
+          : ("sold" as const),
+    occurredAt: row.occurredAt.toISOString(),
+    createdAt: row.createdAt.toISOString(),
   }));
 }
 

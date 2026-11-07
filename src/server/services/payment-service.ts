@@ -2,10 +2,7 @@ import "server-only";
 
 import { PaymentOperationError } from "@/features/sales/payment-errors";
 import { paymentInputSchema } from "@/features/sales/payment-schema";
-import {
-  listPartyPayments,
-  registerPartyPayment,
-} from "@/server/repositories/payment-repository";
+import { listPartyPayments, registerPartyPayment } from "@/server/repositories/payment-repository";
 
 export class PaymentInputError extends PaymentOperationError {
   constructor(message: string) {
@@ -17,9 +14,7 @@ export class PaymentInputError extends PaymentOperationError {
 export async function registerPayment(partyId: string, input: unknown) {
   const parsed = paymentInputSchema.safeParse(input);
   if (!parsed.success) {
-    throw new PaymentInputError(
-      parsed.error.issues[0]?.message ?? "Проверьте данные выплаты.",
-    );
+    throw new PaymentInputError(parsed.error.issues[0]?.message ?? "Проверьте данные выплаты.");
   }
 
   const payment = await registerPartyPayment(partyId, {

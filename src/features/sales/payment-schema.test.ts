@@ -25,10 +25,12 @@ describe("paymentInputSchema", () => {
   });
 
   it("rejects malformed dates, IDs and overlong comments", () => {
-    expect(paymentInputSchema.safeParse({ ...validInput, paidAt: "yesterday" }).success).toBe(false);
+    expect(paymentInputSchema.safeParse({ ...validInput, paidAt: "yesterday" }).success).toBe(
+      false,
+    );
     expect(paymentInputSchema.safeParse({ ...validInput, memberId: "" }).success).toBe(false);
-    expect(
-      paymentInputSchema.safeParse({ ...validInput, comment: "x".repeat(501) }).success,
-    ).toBe(false);
+    expect(paymentInputSchema.safeParse({ ...validInput, comment: "x".repeat(501) }).success).toBe(
+      false,
+    );
   });
 });

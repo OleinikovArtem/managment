@@ -55,9 +55,7 @@ export function isRetryableDatabaseError(error: unknown): boolean {
     if (record.originalError) pending.push(record.originalError);
   }
 
-  return /40001|40P01|sockettimeout|operation has timed out|P2034/i.test(
-    messages.join("\n"),
-  );
+  return /40001|40P01|sockettimeout|operation has timed out|P2034/i.test(messages.join("\n"));
 }
 
 function isUniqueConstraintError(error: unknown): boolean {
@@ -135,17 +133,16 @@ export async function createPartySaleRecord(
     throw new SaleOperationError("Выпадение не найдено в этой группе.");
   }
 
-  const soldQuantity = lootDrop.saleTransactions.reduce(
-    (sum, sale) => sum + sale.quantitySold,
-    0,
-  );
+  const soldQuantity = lootDrop.saleTransactions.reduce((sum, sale) => sum + sale.quantitySold, 0);
   if (input.quantitySold > lootDrop.quantity - soldQuantity) {
     throw new SaleOperationError("Количество продажи превышает оставшееся количество предметов.");
   }
 
   const participants = lootDrop.raid.participants;
   if (participants.length === 0) {
-    throw new SaleOperationError("Нельзя распределить продажу: в рейде нет присутствовавших участников.");
+    throw new SaleOperationError(
+      "Нельзя распределить продажу: в рейде нет присутствовавших участников.",
+    );
   }
 
   const shares = calculateWeightedShares(
@@ -279,7 +276,11 @@ export async function listPartySales(partyId: string) {
   return prisma.saleTransaction.findMany({
     where: { partyId },
     include: {
-      lootDrop: { include: { item: { select: { id: true, canonicalName: true, displayName: true, category: true } } } },
+      lootDrop: {
+        include: {
+          item: { select: { id: true, canonicalName: true, displayName: true, category: true } },
+        },
+      },
       raid: { select: { id: true, name: true, instanceName: true, occurredAt: true } },
       shares: { orderBy: { memberId: "asc" } },
     },

@@ -42,10 +42,7 @@ vi.mock("@/lib/db/prisma", () => ({
   },
 }));
 
-import {
-  listPartyPayments,
-  registerPartyPayment,
-} from "@/server/repositories/payment-repository";
+import { listPartyPayments, registerPartyPayment } from "@/server/repositories/payment-repository";
 import {
   PaymentIdempotencyConflictError,
   PaymentTemporaryDatabaseError,
@@ -116,11 +113,7 @@ describe("payment repository", () => {
             ledgerTransaction: { is: { status: "POSTED" } },
           },
         }),
-        orderBy: [
-          { saleTransaction: { receivedAt: "asc" } },
-          { createdAt: "asc" },
-          { id: "asc" },
-        ],
+        orderBy: [{ saleTransaction: { receivedAt: "asc" } }, { createdAt: "asc" }, { id: "asc" }],
       }),
     );
     expect(mocks.allocationCreateMany).toHaveBeenCalledWith({
@@ -190,15 +183,11 @@ describe("payment repository", () => {
   it("does not report success when ledger posting fails", async () => {
     mocks.ledgerUpdate.mockRejectedValue(new Error("ledger posting failed"));
 
-    await expect(registerPartyPayment("party-1", input)).rejects.toThrow(
-      "ledger posting failed",
-    );
+    await expect(registerPartyPayment("party-1", input)).rejects.toThrow("ledger posting failed");
   });
 
   it("returns an explicit temporary error after bounded lock retries", async () => {
-    mocks.$transaction.mockRejectedValue(
-      new Error("40001: serialization failure"),
-    );
+    mocks.$transaction.mockRejectedValue(new Error("40001: serialization failure"));
 
     await expect(registerPartyPayment("party-1", input)).rejects.toBeInstanceOf(
       PaymentTemporaryDatabaseError,

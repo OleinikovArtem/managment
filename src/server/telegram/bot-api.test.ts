@@ -16,9 +16,17 @@ describe("Telegram transport security", () => {
   });
   it("does not expose tokens, remote response text or credential-bearing fetch errors", async () => {
     const token = "123456:never-print-this-token";
-    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error(`https://api.telegram.org/bot${token}/getMe`)));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new Error(`https://api.telegram.org/bot${token}/getMe`)),
+    );
     await expect(telegramApi(token, "getMe")).rejects.not.toThrow(token);
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, json: async () => ({ ok: false, description: token }) }));
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue({ ok: false, json: async () => ({ ok: false, description: token }) }),
+    );
     await expect(telegramApi(token, "getMe")).rejects.not.toThrow(token);
   });
 });

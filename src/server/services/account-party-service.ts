@@ -58,7 +58,11 @@ function hashInvitationToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
-export async function createPartyInvitation(partyId: string, createdByUserId: string, role: PartyRole = PartyRole.MEMBER) {
+export async function createPartyInvitation(
+  partyId: string,
+  createdByUserId: string,
+  role: PartyRole = PartyRole.MEMBER,
+) {
   const token = randomBytes(32).toString("base64url");
   const expiresAt = new Date(Date.now() + INVITATION_TTL_MS);
   const invitation = await prisma.partyInvitation.create({
@@ -77,7 +81,14 @@ export async function createPartyInvitation(partyId: string, createdByUserId: st
 export async function listPartyInvitations(partyId: string) {
   return prisma.partyInvitation.findMany({
     where: { partyId },
-    select: { id: true, expiresAt: true, acceptedAt: true, revokedAt: true, createdAt: true, role: true },
+    select: {
+      id: true,
+      expiresAt: true,
+      acceptedAt: true,
+      revokedAt: true,
+      createdAt: true,
+      role: true,
+    },
     orderBy: { createdAt: "desc" },
     take: 20,
   });
@@ -96,9 +107,17 @@ export async function listPartyMembers(partyId: string) {
   });
 }
 
-export async function changePartyMemberRole(partyId: string, membershipId: string, role: typeof PartyRole.ADMIN | typeof PartyRole.MEMBER) {
+export async function changePartyMemberRole(
+  partyId: string,
+  membershipId: string,
+  role: typeof PartyRole.ADMIN | typeof PartyRole.MEMBER,
+) {
   const result = await prisma.partyMembership.updateMany({
-    where: { id: membershipId, partyId, role: { in: [PartyRole.MANAGER, PartyRole.ADMIN, PartyRole.MEMBER] } },
+    where: {
+      id: membershipId,
+      partyId,
+      role: { in: [PartyRole.MANAGER, PartyRole.ADMIN, PartyRole.MEMBER] },
+    },
     data: { role },
   });
   return result.count === 1;
@@ -106,13 +125,22 @@ export async function changePartyMemberRole(partyId: string, membershipId: strin
 
 export async function removePartyMember(partyId: string, membershipId: string) {
   const result = await prisma.partyMembership.deleteMany({
-    where: { id: membershipId, partyId, role: { in: [PartyRole.MANAGER, PartyRole.ADMIN, PartyRole.MEMBER] } },
+    where: {
+      id: membershipId,
+      partyId,
+      role: { in: [PartyRole.MANAGER, PartyRole.ADMIN, PartyRole.MEMBER] },
+    },
   });
   return result.count === 1;
 }
 
 export async function hasPartyTelegramBot(partyId: string) {
-  return Boolean(await prisma.partyTelegramBotConfig.findUnique({ where: { partyId }, select: { partyId: true } }));
+  return Boolean(
+    await prisma.partyTelegramBotConfig.findUnique({
+      where: { partyId },
+      select: { partyId: true },
+    }),
+  );
 }
 
 export async function revokePartyInvitation(partyId: string, invitationId: string) {
@@ -140,8 +168,13 @@ export async function getInvitationPreview(token: string) {
     invitation.acceptedAt ||
     invitation.revokedAt ||
     invitation.expiresAt <= new Date()
-  ) return null;
-  return { partyName: invitation.party.name, expiresAt: invitation.expiresAt, role: invitation.role };
+  )
+    return null;
+  return {
+    partyName: invitation.party.name,
+    expiresAt: invitation.expiresAt,
+    role: invitation.role,
+  };
 }
 
 export async function acceptPartyInvitation(token: string, userId: string) {
@@ -152,9 +185,21 @@ export async function acceptPartyInvitation(token: string, userId: string) {
   return prisma.$transaction(async (transaction) => {
     const invitation = await transaction.partyInvitation.findUnique({
       where: { tokenHash },
-      select: { id: true, partyId: true, role: true, expiresAt: true, acceptedAt: true, revokedAt: true },
+      select: {
+        id: true,
+        partyId: true,
+        role: true,
+        expiresAt: true,
+        acceptedAt: true,
+        revokedAt: true,
+      },
     });
-    if (!invitation || invitation.acceptedAt || invitation.revokedAt || invitation.expiresAt <= now) {
+    if (
+      !invitation ||
+      invitation.acceptedAt ||
+      invitation.revokedAt ||
+      invitation.expiresAt <= now
+    ) {
       throw new InvitationUnavailableError();
     }
 
@@ -172,7 +217,11 @@ export async function acceptPartyInvitation(token: string, userId: string) {
       await transaction.partyMembership.create({
         data: { partyId: invitation.partyId, userId, role: invitation.role },
       });
-    } else if (membership.role !== PartyRole.OWNER && invitation.role === PartyRole.ADMIN && membership.role !== PartyRole.ADMIN) {
+    } else if (
+      membership.role !== PartyRole.OWNER &&
+      invitation.role === PartyRole.ADMIN &&
+      membership.role !== PartyRole.ADMIN
+    ) {
       await transaction.partyMembership.update({
         where: { id: membership.id },
         data: { role: PartyRole.ADMIN },

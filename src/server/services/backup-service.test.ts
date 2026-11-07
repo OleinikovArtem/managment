@@ -11,19 +11,10 @@ vi.mock("server-only", () => ({}));
 
 const root = process.cwd();
 const sourceDatabasePath = path.join(root, "prisma", "dev.db");
-const testDatabasePath = path.join(
-  root,
-  "prisma",
-  `backup-integration-${process.pid}.db`,
-);
+const testDatabasePath = path.join(root, "prisma", `backup-integration-${process.pid}.db`);
 const previousDatabaseUrl = process.env.DATABASE_URL;
 const backupDirectory = path.join(root, "data", "backups");
-const uploadTestDirectory = path.join(
-  root,
-  "data",
-  "uploads",
-  `backup-test-${randomUUID()}`,
-);
+const uploadTestDirectory = path.join(root, "data", "uploads", `backup-test-${randomUUID()}`);
 let createdBackupPath: string | undefined;
 let restoreCandidatePath: string | undefined;
 
@@ -68,11 +59,8 @@ describe.skipIf(process.env.LEGACY_SQLITE_TESTS !== "1")("legacy SQLite backup s
     process.env.DATABASE_URL = `file:./prisma/${path.basename(testDatabasePath)}`;
     vi.resetModules();
 
-    const {
-      createLocalBackup,
-      prepareLocalRestore,
-      validateLocalBackup,
-    } = await import("@/server/services/backup-service");
+    const { createLocalBackup, prepareLocalRestore, validateLocalBackup } =
+      await import("@/server/services/backup-service");
     const backup = await createLocalBackup();
     createdBackupPath = path.join(backupDirectory, backup.name);
 
@@ -82,10 +70,7 @@ describe.skipIf(process.env.LEGACY_SQLITE_TESTS !== "1")("legacy SQLite backup s
     expect(validation.uploadCount).toBeGreaterThanOrEqual(1);
 
     const restored = await prepareLocalRestore(backup.name);
-    restoreCandidatePath = path.join(
-      root,
-      restored.relativePath.replaceAll("/", path.sep),
-    );
+    restoreCandidatePath = path.join(root, restored.relativePath.replaceAll("/", path.sep));
     expect(restored.databaseSize).toBeGreaterThan(0);
     expect(restored.uploadCount).toBeGreaterThanOrEqual(1);
     await expect(
@@ -99,14 +84,11 @@ describe.skipIf(process.env.LEGACY_SQLITE_TESTS !== "1")("legacy SQLite backup s
       ),
     ).resolves.toEqual(screenshotBytes);
 
-    const restoredDatabase = new Database(
-      path.join(restoreCandidatePath, "database.sqlite"),
-      { readonly: true },
-    );
+    const restoredDatabase = new Database(path.join(restoreCandidatePath, "database.sqlite"), {
+      readonly: true,
+    });
     try {
-      expect(restoredDatabase.pragma("integrity_check")).toEqual([
-        { integrity_check: "ok" },
-      ]);
+      expect(restoredDatabase.pragma("integrity_check")).toEqual([{ integrity_check: "ok" }]);
     } finally {
       restoredDatabase.close();
     }
@@ -129,17 +111,11 @@ describe.skipIf(process.env.LEGACY_SQLITE_TESTS !== "1")("legacy SQLite backup s
     await writing;
 
     try {
-      await expect(validateLocalBackup(name)).rejects.toBeInstanceOf(
-        BackupOperationError,
-      );
-      await expect(validateLocalBackup("..\\dev.db")).rejects.toBeInstanceOf(
-        BackupOperationError,
-      );
+      await expect(validateLocalBackup(name)).rejects.toBeInstanceOf(BackupOperationError);
+      await expect(validateLocalBackup("..\\dev.db")).rejects.toBeInstanceOf(BackupOperationError);
 
       await writeFile(archivePath, "truncated archive");
-      await expect(validateLocalBackup(name)).rejects.toBeInstanceOf(
-        BackupOperationError,
-      );
+      await expect(validateLocalBackup(name)).rejects.toBeInstanceOf(BackupOperationError);
     } finally {
       if (existsSync(archivePath)) await rm(archivePath);
     }

@@ -34,14 +34,11 @@ describe("createPartyMember", () => {
   });
 
   it("translates database uniqueness conflicts into a service conflict", async () => {
-    const uniqueError = new Prisma.PrismaClientKnownRequestError(
-      "Unique constraint failed",
-      {
-        code: "P2002",
-        clientVersion: "7.10.1",
-        meta: { target: ["partyId", "normalizedNickname"] },
-      },
-    );
+    const uniqueError = new Prisma.PrismaClientKnownRequestError("Unique constraint failed", {
+      code: "P2002",
+      clientVersion: "7.10.1",
+      meta: { target: ["partyId", "normalizedNickname"] },
+    });
     createPartyMemberRecord.mockRejectedValue(uniqueError);
 
     await expect(

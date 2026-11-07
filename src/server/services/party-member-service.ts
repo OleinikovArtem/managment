@@ -1,10 +1,7 @@
 import "server-only";
 
 import { Prisma } from "@/generated/prisma/client";
-import {
-  normalizeNickname,
-  type MemberInput,
-} from "@/features/members/member-schema";
+import { normalizeNickname, type MemberInput } from "@/features/members/member-schema";
 import {
   createPartyMemberRecord,
   deactivatePartyMemberRecord,
@@ -26,9 +23,7 @@ export class PartyMemberNotFoundError extends Error {
 }
 
 function isUniqueConstraintError(error: unknown): boolean {
-  return (
-    error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002"
-  );
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
 }
 
 function getNormalizedNickname(nickname: string): string {
@@ -39,10 +34,7 @@ function getNormalizedNickname(nickname: string): string {
   return normalizedNickname;
 }
 
-export async function createPartyMember(
-  partyId: string,
-  input: MemberInput,
-): Promise<void> {
+export async function createPartyMember(partyId: string, input: MemberInput): Promise<void> {
   const normalizedNickname = getNormalizedNickname(input.nickname);
 
   try {
@@ -63,12 +55,7 @@ export async function updatePartyMember(
   const normalizedNickname = getNormalizedNickname(input.nickname);
 
   try {
-    const member = await updatePartyMemberRecord(
-      partyId,
-      memberId,
-      input,
-      normalizedNickname,
-    );
+    const member = await updatePartyMemberRecord(partyId, memberId, input, normalizedNickname);
     if (!member) {
       throw new PartyMemberNotFoundError();
     }
@@ -80,10 +67,7 @@ export async function updatePartyMember(
   }
 }
 
-export async function deactivatePartyMember(
-  partyId: string,
-  memberId: string,
-): Promise<void> {
+export async function deactivatePartyMember(partyId: string, memberId: string): Promise<void> {
   const member = await deactivatePartyMemberRecord(partyId, memberId);
   if (!member) {
     throw new PartyMemberNotFoundError();

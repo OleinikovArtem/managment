@@ -6,7 +6,12 @@ import { betterAuth } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
 import { username } from "better-auth/plugins";
 import { prisma } from "@/lib/db/prisma";
-import { isValidNewPassword, PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH, PASSWORD_RULE_MESSAGE } from "@/lib/password-policy";
+import {
+  isValidNewPassword,
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_RULE_MESSAGE,
+} from "@/lib/password-policy";
 
 const baseURL = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
 
@@ -44,9 +49,13 @@ export const auth = betterAuth({
     },
   },
   hooks: {
-    before: createAuthMiddleware(async context => {
+    before: createAuthMiddleware(async (context) => {
       const registration = context.path === "/sign-up/email";
-      if (!registration && !["/change-password", "/reset-password", "/set-password"].includes(context.path)) return;
+      if (
+        !registration &&
+        !["/change-password", "/reset-password", "/set-password"].includes(context.path)
+      )
+        return;
       const password = registration ? context.body?.password : context.body?.newPassword;
       if (typeof password !== "string" || !isValidNewPassword(password)) {
         throw new APIError("BAD_REQUEST", { message: PASSWORD_RULE_MESSAGE });

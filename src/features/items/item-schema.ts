@@ -1,12 +1,7 @@
 import { z } from "zod";
 
 export function normalizeItemName(name: string): string {
-  return name
-    .normalize("NFC")
-    .trim()
-    .replace(/\s+/gu, " ")
-    .toLowerCase()
-    .normalize("NFC");
+  return name.normalize("NFC").trim().replace(/\s+/gu, " ").toLowerCase().normalize("NFC");
 }
 
 const itemNameSchema = z
@@ -18,11 +13,7 @@ const itemNameSchema = z
   });
 
 const optionalText = (max: number, label: string) =>
-  z
-    .string()
-    .trim()
-    .max(max, `${label} должно содержать не более ${max} символов.`)
-    .optional();
+  z.string().trim().max(max, `${label} должно содержать не более ${max} символов.`).optional();
 
 export const itemInputSchema = z
   .object({

@@ -13,16 +13,35 @@ describe("selective reset dependencies", () => {
   });
   it("keeps the live roster when raids are selected; deleting roster requires all dependents", () => {
     expect(resolveResetCategories(["raids"])).toEqual(["raids", "loot", "sales", "payments"]);
-    expect(resolveResetCategories(["members"])).toEqual(["raids", "loot", "sales", "payments", "compositions", "members"]);
+    expect(resolveResetCategories(["members"])).toEqual([
+      "raids",
+      "loot",
+      "sales",
+      "payments",
+      "compositions",
+      "members",
+    ]);
   });
   it("deduplicates overlapping selections", () => {
-    expect(resolveResetCategories(["loot", "sales", "payments"])).toEqual(resolveResetCategories(["loot"]));
+    expect(resolveResetCategories(["loot", "sales", "payments"])).toEqual(
+      resolveResetCategories(["loot"]),
+    );
   });
-  it.each([[], ["items"], ["catalog"], ["users"], ["loot", "catalog"]].map(categories => ({ categories })))("rejects an empty or unsupported request: $categories", ({ categories }) => {
-    expect(resetRequestSchema.safeParse({ categories, confirmation: RESET_PARTY_CONFIRMATION }).success).toBe(false);
+  it.each(
+    [[], ["items"], ["catalog"], ["users"], ["loot", "catalog"]].map((categories) => ({
+      categories,
+    })),
+  )("rejects an empty or unsupported request: $categories", ({ categories }) => {
+    expect(
+      resetRequestSchema.safeParse({ categories, confirmation: RESET_PARTY_CONFIRMATION }).success,
+    ).toBe(false);
   });
   it("requires both explicit selection and the confirmation phrase", () => {
-    expect(resetRequestSchema.safeParse({ confirmation: RESET_PARTY_CONFIRMATION }).success).toBe(false);
-    expect(resetRequestSchema.safeParse({ categories: ["raids"], confirmation: "delete" }).success).toBe(false);
+    expect(resetRequestSchema.safeParse({ confirmation: RESET_PARTY_CONFIRMATION }).success).toBe(
+      false,
+    );
+    expect(
+      resetRequestSchema.safeParse({ categories: ["raids"], confirmation: "delete" }).success,
+    ).toBe(false);
   });
 });

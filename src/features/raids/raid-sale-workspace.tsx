@@ -23,7 +23,13 @@ export function RaidSaleWorkspace({ children }: { children: ReactNode }) {
   );
 }
 
-export function RaidSaleEditor({ lootDropId, remainingQuantity }: { lootDropId: string; remainingQuantity: number }) {
+export function RaidSaleEditor({
+  lootDropId,
+  remainingQuantity,
+}: {
+  lootDropId: string;
+  remainingQuantity: number;
+}) {
   const workspace = useContext(SaleWorkspace);
   if (!workspace) throw new Error("RaidSaleEditor requires RaidSaleWorkspace.");
 
@@ -32,7 +38,11 @@ export function RaidSaleEditor({ lootDropId, remainingQuantity }: { lootDropId: 
       lootDropId={lootDropId}
       remainingQuantity={remainingQuantity}
       open={workspace.activeId === lootDropId}
-      onOpenChange={(open) => workspace.setActiveId((current) => open ? lootDropId : current === lootDropId ? null : current)}
+      onOpenChange={(open) =>
+        workspace.setActiveId((current) =>
+          open ? lootDropId : current === lootDropId ? null : current,
+        )
+      }
       onPendingChange={workspace.setPending}
       triggerDisabled={workspace.pending}
     />

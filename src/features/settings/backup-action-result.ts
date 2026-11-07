@@ -1,11 +1,7 @@
-import type {
-  BackupSummary,
-  BackupValidationResult,
-} from "@/server/services/backup-service";
+import type { BackupSummary, BackupValidationResult } from "@/server/services/backup-service";
 
 export type BackupActionResult =
-  | { ok: true; message: string; backup?: BackupSummary }
-  | { ok: false; message: string };
+  { ok: true; message: string; backup?: BackupSummary } | { ok: false; message: string };
 
 export type BackupValidationActionResult =
   | { ok: true; message: string; validation: BackupValidationResult }

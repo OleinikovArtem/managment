@@ -30,19 +30,29 @@ async function MembersContent() {
     className: member.className,
     level: member.level,
     role: member.role,
-    profiles: profiles.filter((profile) => profile.memberId === member.id).map(({ id, name, className, role, level, note, subclassSlot }) => ({ id, name, className, role, level, note, subclassSlot })),
+    profiles: profiles
+      .filter((profile) => profile.memberId === member.id)
+      .map(({ id, name, className, role, level, note, subclassSlot }) => ({
+        id,
+        name,
+        className,
+        role,
+        level,
+        note,
+        subclassSlot,
+      })),
     createdAt: member.createdAt.toLocaleDateString("ru-RU"),
   }));
 
   return (
     <div className="space-y-7">
       <header className="page-header ">
-
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">Участники</h1>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Участники</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Ведите постоянный состав и сохраняйте историю, когда персонаж перестаёт участвовать.
         </p>
-      </header><SectionNavigation section="group" active="/members" />
+      </header>
+      <SectionNavigation section="group" active="/members" />
       <MemberManager members={members} canManage={workspace.canManage} />
     </div>
   );

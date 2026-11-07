@@ -3,13 +3,7 @@
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 
-export default function DashboardError({
-  error,
-  retry,
-}: {
-  error: unknown;
-  retry: () => void;
-}) {
+export default function DashboardError({ error, retry }: { error: unknown; retry: () => void }) {
   useEffect(() => {
     console.error("Dashboard route failed to render.", error);
   }, [error]);
