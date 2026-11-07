@@ -9,8 +9,10 @@ import {
   assertUserBelongsToParty,
   createPartyForUser,
   createPartyInvitation,
+  changePartyMemberRole,
   InvitationUnavailableError,
   revokePartyInvitation,
+  removePartyMember,
 } from "@/server/services/account-party-service";
 import {
   requirePartyActionAccess,
@@ -22,6 +24,7 @@ const partyNameSchema = z.string().trim().min(2, "Введите названи�
 const idSchema = z.string().min(1).max(100);
 const tokenSchema = z.string().regex(/^[A-Za-z0-9_-]{40,50}$/);
 const invitationRoleSchema = z.enum(["ADMIN", "MEMBER"]);
+const memberRoleSchema = z.enum(["ADMIN", "MEMBER"]);
 
 export type SimpleActionResult = { ok: true; message: string; value?: string } | { ok: false; message: string };
 
@@ -84,4 +87,29 @@ export async function revokeInvitationAction(value: unknown): Promise<SimpleActi
   await recordPartyAuditEvent(access, { action: "REVOKE", entityType: "invitation", entityId: parsed.data, summary: "Отозвал приглашение в группу." });
   revalidatePath("/settings/access");
   return { ok: true, message: "Приглашение отозвано." };
+}
+
+export async function updatePartyMemberRoleAction(membershipValue: unknown, roleValue: unknown): Promise<SimpleActionResult> {
+  const access = await requirePartyActionAccess("OWNER");
+  const membershipId = idSchema.safeParse(membershipValue);
+  const role = memberRoleSchema.safeParse(roleValue);
+  if (!membershipId.success || !role.success) return { ok: false, message: "Проверьте участника и выбранную роль." };
+  const updated = await changePartyMemberRole(access.partyId, membershipId.data, role.data === "ADMIN" ? PartyRole.ADMIN : PartyRole.MEMBER);
+  if (!updated) return { ok: false, message: "Роль не изменена: участник не найден или является владельцем группы." };
+  await recordPartyAuditEvent(access, { action: "UPDATE_ROLE", entityType: "membership", entityId: membershipId.data, summary: `Изменил роль участника на ${role.data === "ADMIN" ? "администратора" : "участника"}.` });
+  revalidatePath("/settings/access");
+  revalidatePath("/");
+  return { ok: true, message: "Роль участника изменена." };
+}
+
+export async function removePartyMemberAction(value: unknown): Promise<SimpleActionResult> {
+  const access = await requirePartyActionAccess("OWNER");
+  const membershipId = idSchema.safeParse(value);
+  if (!membershipId.success) return { ok: false, message: "Участник не найден." };
+  const removed = await removePartyMember(access.partyId, membershipId.data);
+  if (!removed) return { ok: false, message: "Доступ не отозван: участник не найден или является владельцем группы." };
+  await recordPartyAuditEvent(access, { action: "REMOVE", entityType: "membership", entityId: membershipId.data, summary: "Отозвал доступ участника к группе." });
+  revalidatePath("/settings/access");
+  revalidatePath("/");
+  return { ok: true, message: "Доступ участника отозван. История группы сохранена." };
 }

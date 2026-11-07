@@ -83,6 +83,34 @@ export async function listPartyInvitations(partyId: string) {
   });
 }
 
+export async function listPartyMembers(partyId: string) {
+  return prisma.partyMembership.findMany({
+    where: { partyId },
+    select: {
+      id: true,
+      role: true,
+      createdAt: true,
+      user: { select: { displayName: true, username: true } },
+    },
+    orderBy: [{ role: "asc" }, { createdAt: "asc" }],
+  });
+}
+
+export async function changePartyMemberRole(partyId: string, membershipId: string, role: typeof PartyRole.ADMIN | typeof PartyRole.MEMBER) {
+  const result = await prisma.partyMembership.updateMany({
+    where: { id: membershipId, partyId, role: { in: [PartyRole.MANAGER, PartyRole.ADMIN, PartyRole.MEMBER] } },
+    data: { role },
+  });
+  return result.count === 1;
+}
+
+export async function removePartyMember(partyId: string, membershipId: string) {
+  const result = await prisma.partyMembership.deleteMany({
+    where: { id: membershipId, partyId, role: { in: [PartyRole.MANAGER, PartyRole.ADMIN, PartyRole.MEMBER] } },
+  });
+  return result.count === 1;
+}
+
 export async function hasPartyTelegramBot(partyId: string) {
   return Boolean(await prisma.partyTelegramBotConfig.findUnique({ where: { partyId }, select: { partyId: true } }));
 }

@@ -10,6 +10,8 @@ import {
   createInvitationAction,
   createPartyAction,
   revokeInvitationAction,
+  removePartyMemberAction,
+  updatePartyMemberRoleAction,
   selectPartyAction,
   type SimpleActionResult,
 } from "@/app/account-actions";
@@ -125,6 +127,44 @@ export function InvitationManager({ invitations }: { invitations: Array<{ id: st
         </li>;
       })}
     </ul> : <p className="text-sm text-muted-foreground">Активных приглашений пока нет.</p>}
+  </div>;
+}
+
+export function PartyMemberAccessManager({ members }: { members: Array<{ id: string; displayName: string; username: string | null; role: string; joinedAt: string }> }) {
+  const router = useRouter();
+  const [pendingId, setPendingId] = useState("");
+  const [draftRoles, setDraftRoles] = useState<Record<string, "ADMIN" | "MEMBER">>(() => Object.fromEntries(members.filter(member => member.role !== "OWNER").map(member => [member.id, member.role === "MEMBER" ? "MEMBER" : "ADMIN"])));
+  const [result, setResult] = useState<SimpleActionResult | null>(null);
+
+  async function changeRole(memberId: string) {
+    setPendingId(memberId);
+    const response = await updatePartyMemberRoleAction(memberId, draftRoles[memberId]);
+    setResult(response);
+    setPendingId("");
+    if (response.ok) router.refresh();
+  }
+
+  async function removeMember(member: (typeof members)[number]) {
+    if (!window.confirm(`Отозвать доступ ${member.displayName} к группе? История рейдов и финансовые записи сохранятся.`)) return;
+    setPendingId(member.id);
+    const response = await removePartyMemberAction(member.id);
+    setResult(response);
+    setPendingId("");
+    if (response.ok) router.refresh();
+  }
+
+  return <div className="max-w-3xl space-y-3">
+    {members.length === 0 ? <p className="text-sm text-muted-foreground">В группе пока нет участников.</p> : <ul className="divide-y divide-border border-y border-border">
+      {members.map(member => <li key={member.id} className="flex flex-wrap items-center gap-3 py-3">
+        <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{member.displayName}{member.role === "OWNER" && <span className="ml-2 text-xs font-normal text-muted-foreground">Создатель</span>}</p><p className="mt-1 text-xs text-muted-foreground">{member.username ? `@${member.username} · ` : ""}{member.role === "OWNER" ? "Владелец" : member.role === "MEMBER" ? "Участник" : "Администратор"}{member.role === "MANAGER" ? " · прежняя роль" : ""} · с {member.joinedAt}</p></div>
+        {member.role === "OWNER" ? <span className="text-xs text-muted-foreground">Полный доступ</span> : <>
+          <label className="sr-only" htmlFor={`member-role-${member.id}`}>Роль {member.displayName}</label><select id={`member-role-${member.id}`} value={draftRoles[member.id] ?? (member.role === "MEMBER" ? "MEMBER" : "ADMIN")} disabled={pendingId === member.id} onChange={event => setDraftRoles(current => ({ ...current, [member.id]: event.target.value as "ADMIN" | "MEMBER" }))}><option value="MEMBER">Участник · просмотр</option><option value="ADMIN">Администратор · управление</option></select>
+          {draftRoles[member.id] !== (member.role === "MEMBER" ? "MEMBER" : "ADMIN") && <Button size="sm" variant="outline" disabled={Boolean(pendingId)} onClick={() => changeRole(member.id)}>{pendingId === member.id ? "Сохраняем…" : "Сохранить"}</Button>}
+          <Button size="sm" variant="ghost" disabled={Boolean(pendingId)} onClick={() => removeMember(member)}>Отозвать доступ</Button>
+        </>}
+      </li>)}
+    </ul>}
+    <ActionMessage result={result} />
   </div>;
 }
 
