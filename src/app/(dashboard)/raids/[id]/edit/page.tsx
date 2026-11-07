@@ -68,8 +68,8 @@ async function EditRaidContent({ params }: EditRaidPageProps) {
         <CardHeader>
           <CardTitle>{raid.name}</CardTitle>
           <CardDescription>
-            Отметьте присутствующих и уточните добычу. После первой продажи редактирование будет
-            закрыто.
+            Здесь можно изменить состав рейда, добавить предмет добычи или удалить ошибочную запись.
+            После первой продажи редактирование будет закрыто, чтобы сохранить финансовую историю.
           </CardDescription>
         </CardHeader>
         <CardContent>

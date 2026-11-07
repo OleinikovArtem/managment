@@ -1,0 +1,374 @@
+.loot-workspace {
+  --loot-line: #2b3035;
+  --loot-muted: #a8afb6;
+  --loot-surface: #17191b;
+  max-width: 1280px;
+}
+
+.loot-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.loot-toolbar > input {
+  width: min(100%, 320px);
+}
+.loot-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  border: 1px solid var(--loot-line);
+  border-radius: 6px;
+  padding: 3px;
+}
+.loot-filters button {
+  min-height: 36px;
+}
+.loot-filters button span {
+  margin-left: 4px;
+  color: var(--loot-muted);
+  font-size: 11px;
+}
+.loot-combine-toggle {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  color: var(--loot-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+.loot-combine-toggle input {
+  width: 16px;
+  height: 16px;
+  accent-color: #e6be67;
+}
+.loot-refresh {
+  margin-left: auto;
+}
+.loot-count {
+  margin-block: 10px 14px;
+  color: var(--loot-muted);
+  font-size: 12px;
+}
+
+.loot-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 12px;
+}
+
+.loot-grid > li {
+  min-width: 0;
+}
+.loot-card {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  height: 100%;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--loot-line);
+  border-radius: 7px;
+  background: var(--loot-surface);
+  padding: 14px;
+}
+
+.loot-card.is-sold {
+  border-color: #41464a;
+  background: #191b1c;
+}
+.loot-card.is-sold::after {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: rgb(8 10 11 / 16%);
+  content: "";
+  pointer-events: none;
+}
+.loot-card > * {
+  position: relative;
+  z-index: 1;
+}
+.loot-card.is-sold .loot-card-heading > [role="img"] {
+  filter: grayscale(1);
+  opacity: 0.7;
+}
+.loot-card-heading {
+  display: flex;
+  min-width: 0;
+  min-height: 48px;
+  align-items: flex-start;
+  gap: 10px;
+}
+.loot-card-heading > [role="img"] {
+  width: 48px;
+  height: 48px;
+  flex-basis: 48px;
+  border: 1px solid #383d42;
+  background: #101213;
+}
+.loot-card-heading h2 {
+  display: -webkit-box;
+  min-width: 0;
+  min-height: 2.7em;
+  flex: 1;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.loot-card-meta {
+  display: flex;
+  min-height: 26px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  color: var(--loot-muted);
+  font-size: 11px;
+}
+.loot-sold-stamp {
+  flex: 0 0 auto;
+  border: 1px solid #60676d;
+  border-radius: 3px;
+  background: #282c2f;
+  padding: 1px 6px;
+  color: #d3d7da;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.loot-raid-link {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin-top: 5px;
+  color: var(--loot-muted);
+  font-size: 11px;
+}
+.loot-raid-link a {
+  overflow: hidden;
+  color: #e5e8eb;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.loot-raid-link a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.loot-quantities {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+  border-top: 1px solid #292d30;
+  padding-top: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.loot-quantities dt {
+  color: var(--loot-muted);
+  font-size: 10px;
+}
+.loot-quantities dd {
+  margin-top: 3px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.loot-quantities > div:last-child dd {
+  color: #e6be67;
+}
+.loot-card-foot {
+  display: flex;
+  min-height: 47px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  border-bottom: 1px solid #292d30;
+  padding-bottom: 8px;
+}
+.loot-status {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+  color: var(--loot-muted);
+  font-size: 10px;
+}
+.loot-status i {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
+  border-radius: 50%;
+  background: #747d85;
+}
+.loot-status.is-partial i {
+  background: #e6be67;
+}
+.loot-status.is-sold i {
+  background: #87b98d;
+}
+.loot-proceeds {
+  display: grid;
+  flex: 0 0 auto;
+  color: #e6be67;
+  font-size: 12px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.loot-proceeds > * {
+  pointer-events: none;
+}
+.loot-average-price {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.loot-average-price small {
+  color: var(--loot-muted);
+  font-size: 9px;
+  font-weight: 400;
+}
+.loot-proceeds small {
+  color: var(--loot-muted);
+  font-size: 9px;
+}
+.loot-card-action {
+  display: flex;
+  min-height: 48px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 8px;
+}
+.loot-card-action button {
+  min-height: 36px;
+  font-size: 11px;
+}
+.loot-sold-action {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #555c62;
+  border-radius: 5px;
+  background: #262a2d;
+  padding-inline: 10px;
+  color: #d0d4d7;
+  font-size: 11px;
+}
+.loot-added {
+  color: var(--loot-muted);
+  font-size: 9px;
+}
+.loot-sale-dialog-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--loot-line);
+  padding-bottom: 14px;
+}
+.loot-sale-dialog-item > [role="img"] {
+  width: 48px;
+  height: 48px;
+  flex-basis: 48px;
+  border: 1px solid #383d42;
+  background: #101213;
+}
+.loot-sale-dialog-item p {
+  display: grid;
+  gap: 3px;
+  font-size: 12px;
+}
+.loot-sale-dialog-item p span {
+  color: var(--loot-muted);
+}
+.loot-sale-dialog-item p strong {
+  font-size: 16px;
+}
+.sale-dialog-form {
+  display: grid;
+  gap: 14px;
+}
+.sale-dialog-form > div:first-child {
+  display: none;
+}
+.sale-dialog-form > div:nth-child(2) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+.sale-dialog-form label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+}
+.sale-dialog-form input {
+  min-height: 42px;
+  font-size: 16px;
+}
+.sale-dialog-form input.sale-quantity-input {
+  width: 112px;
+  max-width: 100%;
+}
+.sale-dialog-form > div:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 1050px) {
+  .loot-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .loot-toolbar {
+    align-items: stretch;
+  }
+  .loot-toolbar > input {
+    width: 100%;
+  }
+  .loot-filters {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .loot-filters button {
+    flex: 1;
+    padding-inline: 7px;
+    font-size: 11px;
+  }
+  .loot-refresh {
+    margin-left: auto;
+  }
+  .loot-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .loot-card {
+    padding: 12px;
+  }
+  .loot-card-action {
+    align-items: flex-start;
+  }
+  .editor-dialog:has(.sale-dialog-form) {
+    padding: 18px;
+  }
+}

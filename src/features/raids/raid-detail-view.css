@@ -102,7 +102,7 @@
 
 .raidDetail-summary {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   border-block: 1px solid var(--raid-detail-rule);
   padding-block: 14px;
 }
@@ -228,6 +228,18 @@
   align-items: start;
   gap: 10px;
   list-style: none;
+}
+
+.raidDetail-raidLootQuantity {
+  align-items: start;
+}
+.raidDetail-raidLootQuantity > div:last-child {
+  text-align: right;
+}
+.raidDetail-raidLootQuantity > div:last-child dd {
+  color: var(--raid-detail-muted);
+  font-size: 10px;
+  font-weight: 400;
 }
 
 .raidDetail-drop {
@@ -904,6 +916,7 @@
   }
 
   .raidDetail-sectionHeading {
+    flex-wrap: wrap;
     margin-bottom: 12px;
   }
 

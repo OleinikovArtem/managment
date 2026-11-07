@@ -9,15 +9,18 @@ import { Input } from "@/components/ui/input";
 import { DateInput } from "@/components/ui/date-input";
 import { Textarea } from "@/components/ui/textarea";
 import type { SaleActionResult } from "@/features/sales/sale-action-result";
-import { registerSaleAction } from "@/app/(dashboard)/sales/actions";
+import { registerGroupedSaleAction, registerSaleAction } from "@/app/(dashboard)/sales/actions";
+import { clampSaleQuantity } from "@/features/sales/sale-quantity";
 
 type SaleFormProps = {
-  lootDropId: string;
+  lootDropId?: string;
+  itemId?: string;
   remainingQuantity: number;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   onPendingChange?: (pending: boolean) => void;
   triggerDisabled?: boolean;
+  variant?: "inline" | "dialog";
 };
 
 function getLocalDateTimeValue(date: Date) {
@@ -27,11 +30,13 @@ function getLocalDateTimeValue(date: Date) {
 
 export function SaleForm({
   lootDropId,
+  itemId,
   remainingQuantity,
   open,
   onOpenChange,
   onPendingChange,
   triggerDisabled = false,
+  variant = "inline",
 }: SaleFormProps) {
   const router = useRouter();
   const idempotencyKey = useRef<{ fingerprint: string; key: string } | null>(null);
@@ -72,9 +77,13 @@ export function SaleForm({
       setMessage("Проверьте количество и дату получения Adena.");
       return;
     }
+    if (!itemId && !lootDropId) {
+      setMessage("Не удалось определить поступление для продажи.");
+      return;
+    }
 
     const request = {
-      lootDropId,
+      ...(itemId ? { itemId } : { lootDropId }),
       quantitySold,
       totalPrice,
       receivedAt: receivedDate.toISOString(),
@@ -87,7 +96,9 @@ export function SaleForm({
     const payload = { ...request, idempotencyKey: idempotencyKey.current.key };
 
     startTransition(async () => {
-      const result: SaleActionResult = await registerSaleAction(payload);
+      const result: SaleActionResult = itemId
+        ? await registerGroupedSaleAction(payload)
+        : await registerSaleAction(payload);
       if (!result.ok) {
         setMessage(result.message);
         toast.error(result.message);
@@ -137,27 +148,40 @@ export function SaleForm({
   }
 
   return (
-    <form className="mt-3 grid gap-2 rounded-xl border bg-muted/20 p-3" onSubmit={onSubmit}>
+    <form
+      className={
+        variant === "dialog"
+          ? "sale-dialog-form"
+          : "mt-3 grid gap-2 rounded-xl border bg-muted/20 p-3"
+      }
+      onSubmit={onSubmit}
+    >
       <div>
         <p className="flex items-center gap-2 text-sm font-medium">
           <Banknote aria-hidden="true" size={16} />
           Записать полученную оплату
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
-          Осталось: {remainingQuantity} шт. · доли рассчитаются по составу рейда.
+          Осталось: {remainingQuantity} шт. ·{" "}
+          {itemId
+            ? "Продажа спишется FIFO; доли рассчитаются по составу каждого рейда."
+            : "Доли рассчитаются по составу рейда."}
         </p>
       </div>
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="space-y-1.5 text-xs font-medium">
           Продано
           <Input
+            className="sale-quantity-input"
             type="number"
             min={1}
             max={remainingQuantity}
             step={1}
             required
             value={quantity}
-            onChange={(event) => setQuantity(event.target.value)}
+            onChange={(event) =>
+              setQuantity(clampSaleQuantity(event.target.value, remainingQuantity))
+            }
             aria-label="Проданное количество"
           />
         </label>
@@ -230,13 +254,17 @@ export function SaleForm({
             size="sm"
             variant="ghost"
             disabled={isPending}
-            title="Свернуть форму, сохранив введённые данные"
+            title={
+              variant === "dialog"
+                ? "Закрыть форму продажи"
+                : "Свернуть форму, сохранив введённые данные"
+            }
             onClick={() => {
               setShowForm(false);
               requestAnimationFrame(() => triggerRef.current?.focus());
             }}
           >
-            Свернуть
+            {variant === "dialog" ? "Отмена" : "Свернуть"}
           </Button>
         )}
       </div>

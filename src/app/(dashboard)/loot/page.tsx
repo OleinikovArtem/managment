@@ -30,7 +30,7 @@ async function LootContent() {
           Вся добыча группы, остатки и полученная оплата. Новые поступления сверху.
         </p>
       </header>
-      <LootList rows={rows} />
+      <LootList rows={rows} canManage={access.canManage} />
     </div>
   );
 }

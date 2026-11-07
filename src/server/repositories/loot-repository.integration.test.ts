@@ -11,11 +11,12 @@ afterAll(async () => {
 describe.skipIf(!testUrl?.startsWith("postgres"))("Loot list on disposable PostgreSQL", () => {
   it("isolates parties, orders by receipt creation and sums partial/multiple sales exactly", async () => {
     process.env.DATABASE_URL = testUrl;
-    const [{ prisma }, { listPartyLoot }, { createPartySaleRecord }] = await Promise.all([
-      import("@/lib/db/prisma"),
-      import("./loot-repository"),
-      import("./sale-repository"),
-    ]);
+    const [{ prisma }, { listPartyLoot }, { createPartySaleRecord, registerPartyGroupedSale }] =
+      await Promise.all([
+        import("@/lib/db/prisma"),
+        import("./loot-repository"),
+        import("./sale-repository"),
+      ]);
     disconnect = () => prisma.$disconnect();
     const partyId = `loot-${randomUUID()}`,
       otherId = `loot-other-${randomUUID()}`;
@@ -91,6 +92,35 @@ describe.skipIf(!testUrl?.startsWith("postgres"))("Loot list on disposable Postg
       [5, 2, 3, "partial", "9007199254741000"],
     ]);
     expect(rows.every((row) => row.raidId === raid.id && row.name === "Лут для теста")).toBe(true);
+    expect(rows[2].sales.reduce((sum, sale) => sum + BigInt(sale.totalPrice), 0n)).toBe(
+      BigInt(rows[2].proceeds),
+    );
+    expect(rows[2].sales.reduce((sum, sale) => sum + sale.quantitySold, 0)).toBe(rows[2].sold);
+    expect(rows[2].sales.reduce((sum, sale) => sum + BigInt(sale.totalPrice), 0n)).toBe(
+      BigInt(rows[2].proceeds),
+    );
+    expect(rows[2].sales.reduce((sum, sale) => sum + sale.quantitySold, 0)).toBe(rows[2].sold);
     expect(await listPartyLoot(`missing-${randomUUID()}`)).toEqual([]);
+
+    const groupedInput = {
+      itemId: item.id,
+      quantitySold: 5,
+      totalPrice: 1000n,
+      receivedAt: new Date("2026-11-06T10:00:00Z"),
+      idempotencyKey: randomUUID(),
+    };
+    const groupedSales = await registerPartyGroupedSale(partyId, groupedInput);
+    expect(
+      groupedSales.map(({ lootDropId, quantitySold, totalPrice }) => [
+        lootDropId,
+        quantitySold,
+        totalPrice,
+      ]),
+    ).toEqual([
+      [drops[0].id, 3, 600n],
+      [drops[2].id, 2, 400n],
+    ]);
+    const replayedSales = await registerPartyGroupedSale(partyId, groupedInput);
+    expect(replayedSales.map(({ id }) => id)).toEqual(groupedSales.map(({ id }) => id));
   }, 90_000);
 });

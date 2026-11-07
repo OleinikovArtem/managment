@@ -6,6 +6,7 @@ type LootRecord = {
   itemId: string;
   canonicalName: string;
   displayName: string | null;
+  category: string | null;
   raidId: string;
   raidName: string;
   occurredAt: Date;
@@ -13,14 +14,23 @@ type LootRecord = {
   quantity: number;
   sold: number;
   proceeds: string;
+  sales: { quantitySold: number; totalPrice: string; receivedAt: string }[];
 };
 
 export async function listPartyLoot(partyId: string) {
   const rows = await prisma.$queryRaw<LootRecord[]>`
-    SELECT l.id, l."itemId", i."canonicalName", i."displayName",
+    SELECT l.id, l."itemId", i."canonicalName", i."displayName", i.category,
       r.id AS "raidId", r.name AS "raidName", r."occurredAt", l."createdAt", l.quantity,
       COALESCE(SUM(s."quantitySold"), 0)::integer AS sold,
-      COALESCE(SUM(s."totalPrice"), 0)::text AS proceeds
+      COALESCE(SUM(s."totalPrice"), 0)::text AS proceeds,
+      COALESCE(
+        json_agg(json_build_object(
+          'quantitySold', s."quantitySold",
+          'totalPrice', s."totalPrice"::text,
+          'receivedAt', s."receivedAt"
+        ) ORDER BY s."receivedAt", s."createdAt") FILTER (WHERE s.id IS NOT NULL),
+        '[]'::json
+      ) AS sales
     FROM "LootDrop" l
     JOIN "Raid" r ON r.id = l."raidId" AND r."partyId" = l."partyId"
     JOIN "Item" i ON i.id = l."itemId"

@@ -110,17 +110,13 @@ export async function getPartyRaidById(partyId: string, raidId: string) {
         orderBy: { nicknameSnapshot: "asc" },
         include: {
           member: { select: { className: true, role: true, level: true } },
-          profile: { select: { subclassSlot: true } },
         },
       },
       lootDrops: {
         where: { partyId },
         include: {
           item: { select: { id: true, canonicalName: true, displayName: true, category: true } },
-          saleTransactions: {
-            include: { shares: { orderBy: { memberId: "asc" } } },
-            orderBy: [{ receivedAt: "desc" }, { createdAt: "desc" }],
-          },
+          saleTransactions: { select: { id: true } },
         },
         orderBy: { createdAt: "desc" },
       },

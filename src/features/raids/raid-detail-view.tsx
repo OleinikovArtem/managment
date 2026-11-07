@@ -1,12 +1,8 @@
 import Link from "next/link";
 import { ArrowLeft, ChevronDown, LockKeyhole, Pencil, Plus } from "lucide-react";
 import type { getRaid } from "@/server/services/raid-service";
-import { AdenaAmount } from "@/components/ui/adena-amount";
 import { GameIcon } from "@/components/ui/game-icon";
 import { LocalDateTimeDisplay } from "@/features/raids/local-date-time-display";
-import { RaidDetailLootFilter } from "@/features/raids/raid-detail-loot-filter";
-import { getRaidLootFilterCounts, getRaidLootSummary } from "@/features/raids/raid-detail-model";
-import { RaidSaleEditor, RaidSaleWorkspace } from "@/features/raids/raid-sale-workspace";
 import "./raid-detail-view.css";
 
 type Raid = Awaited<ReturnType<typeof getRaid>>;
@@ -22,22 +18,10 @@ export function RaidDetailView({
   canManage: boolean;
 }) {
   const presentParticipants = raid.participants.filter(({ status }) => status === "PRESENT");
-  const lootRows = raid.lootDrops.map((drop) => ({
-    ...drop,
-    ...getRaidLootSummary(drop.quantity, drop.saleTransactions),
-    totalReceived: drop.saleTransactions.reduce((sum, sale) => sum + sale.totalPrice, 0n),
-  }));
-  const lootFilterCounts = getRaidLootFilterCounts(
-    raid.lootDrops.map(({ quantity, saleTransactions }) => ({
-      quantity,
-      sales: saleTransactions,
-    })),
-  );
-  const totalReceived = lootRows.reduce((sum, drop) => sum + drop.totalReceived, 0n);
   // Presentation guard only: legacy records can have sales without lockedAt.
   const hasFinancialHistory =
     Boolean(raid.lockedAt) || raid.lootDrops.some((drop) => drop.saleTransactions.length > 0);
-  const canAddLoot = canManage && !hasFinancialHistory;
+  const canEditLoot = canManage && !hasFinancialHistory;
 
   return (
     <article className="raidDetail-workspace" data-raid-detail>
@@ -66,7 +50,7 @@ export function RaidDetailView({
         {hasFinancialHistory ? (
           <p className="raidDetail-lock">
             <LockKeyhole size={14} aria-hidden="true" />
-            {raid.lockedAt ? "История зафиксирована" : "Есть продажи · состав не редактируется"}
+            Рейд зафиксирован и не редактируется
           </p>
         ) : canManage ? (
           <Link className="raidDetail-edit" href={`/raids/${raid.id}/edit`}>
@@ -85,16 +69,6 @@ export function RaidDetailView({
           <span>Предметы</span>
           <strong>{raid.lootDrops.length}</strong>
         </div>
-        <div className="raidDetail-summaryItem">
-          <span>Позиции с продажами</span>
-          <strong>{lootFilterCounts.sold}</strong>
-        </div>
-        <div className="raidDetail-summaryItem raidDetail-summaryMoney">
-          <span>Получено за продажи</span>
-          <strong title={`${totalReceived.toString()} Adena`}>
-            <AdenaAmount amount={totalReceived} /> <small>Adena</small>
-          </strong>
-        </div>
       </section>
 
       <div className="raidDetail-columns">
@@ -104,174 +78,71 @@ export function RaidDetailView({
               <h2 id="raid-loot-heading">
                 Добыча рейда <span>{raid.lootDrops.length} предметов</span>
               </h2>
-              <p>Продажи и остатки показаны прямо в карточках предметов.</p>
+              <p>Предметы, количество и время поступления.</p>
             </div>
+            {canEditLoot && (
+              <Link className="raidDetail-edit" href={`/raids/${raid.id}/edit`}>
+                <Plus size={14} aria-hidden="true" />
+                Добавить или удалить предмет
+              </Link>
+            )}
           </div>
           {raid.lootDrops.length === 0 ? (
             <div className="raidDetail-empty">
               <h3>Добычи пока нет</h3>
               <p>Поступления этого рейда появятся здесь после добавления.</p>
-              {canAddLoot && <Link href={`/raids/${raid.id}/edit`}>Добавить добычу</Link>}
+              {canEditLoot && <Link href={`/raids/${raid.id}/edit`}>Добавить добычу</Link>}
             </div>
           ) : (
-            <RaidSaleWorkspace>
-              <RaidDetailLootFilter counts={lootFilterCounts}>
-                <ul className="raidDetail-dropList">
-                  {lootRows.map((drop) => {
-                    const itemName = drop.item.displayName || drop.item.canonicalName;
-                    const isComplete = drop.state === "complete";
+            <ul className="raidDetail-dropList">
+              {raid.lootDrops.map((drop) => {
+                const itemName = drop.item.displayName || drop.item.canonicalName;
 
-                    return (
-                      <li
-                        key={drop.id}
-                        className={`raidDetail-drop${isComplete ? " is-complete" : ""}`}
-                        data-sale-state={drop.state}
+                return (
+                  <li key={drop.id} className="raidDetail-drop">
+                    <div className="raidDetail-dropHeader">
+                      <GameIcon
+                        kind="item"
+                        name={drop.item.canonicalName}
+                        category={drop.item.category}
+                        size="lg"
+                      />
+                      <Link
+                        className="raidDetail-itemName"
+                        href={`/items/${drop.item.id}`}
+                        title={
+                          drop.item.displayName && drop.item.displayName !== drop.item.canonicalName
+                            ? `${itemName}\n${drop.item.canonicalName}`
+                            : itemName
+                        }
                       >
-                        <div className="raidDetail-dropHeader">
-                          <GameIcon
-                            kind="item"
-                            name={drop.item.canonicalName}
-                            category={drop.item.category}
-                            size="lg"
-                          />
-                          <Link
-                            className="raidDetail-itemName"
-                            href={`/items/${drop.item.id}`}
-                            title={
-                              drop.item.displayName &&
-                              drop.item.displayName !== drop.item.canonicalName
-                                ? `${itemName}\n${drop.item.canonicalName}`
-                                : itemName
-                            }
-                          >
-                            {itemName}
-                          </Link>
-                        </div>
-                        <div className="raidDetail-dropMeta">
-                          <span>{drop.item.category || "Предмет"}</span>
-                          {isComplete && <span className="raidDetail-soldStamp">Продано</span>}
-                        </div>
-
-                        <dl className="raidDetail-quantities">
-                          <div>
-                            <dt>Добыто</dt>
-                            <dd>{drop.quantity}</dd>
-                          </div>
-                          <div>
-                            <dt>Продано</dt>
-                            <dd>{drop.soldQuantity}</dd>
-                          </div>
-                          <div className={drop.remainingQuantity > 0 ? "is-remaining" : undefined}>
-                            <dt>Остаток</dt>
-                            <dd>{drop.remainingQuantity}</dd>
-                          </div>
-                        </dl>
-
-                        <div className={`raidDetail-saleState is-${drop.state}`}>
-                          <span>
-                            {drop.state === "complete"
-                              ? "Продано полностью"
-                              : drop.state === "partial"
-                                ? "Частично продан"
-                                : "Ещё не продан"}
-                          </span>
-                          {drop.totalReceived > 0n && <AdenaAmount amount={drop.totalReceived} />}
-                        </div>
-
-                        <div className="raidDetail-cardActions">
-                          {drop.remainingQuantity > 0 && canManage ? (
-                            <div className="raidDetail-saleEntry" data-sale-entry>
-                              <RaidSaleEditor
-                                lootDropId={drop.id}
-                                remainingQuantity={drop.remainingQuantity}
-                              />
-                            </div>
-                          ) : isComplete ? (
-                            <span className="raidDetail-soldAction">Продано</span>
-                          ) : null}
-
-                          {drop.saleTransactions.length > 0 && (
-                            <details className="raidDetail-history" data-sale-history>
-                              <summary>
-                                <span>
-                                  История{" "}
-                                  <span className="raidDetail-count">
-                                    · {drop.saleTransactions.length}
-                                  </span>
-                                </span>
-                                <span className="raidDetail-latestAmount">
-                                  Последняя{" "}
-                                  <AdenaAmount amount={drop.saleTransactions[0].totalPrice} />
-                                </span>
-                                <ChevronDown size={15} aria-hidden="true" />
-                              </summary>
-                              <ul className="raidDetail-saleList">
-                                {drop.saleTransactions.map((sale) => (
-                                  <li key={sale.id}>
-                                    <div className="raidDetail-saleHeading">
-                                      <div className="raidDetail-saleMetadata">
-                                        <span>{sale.quantitySold} шт.</span>
-                                        <LocalDateTimeDisplay
-                                          value={sale.receivedAt.toISOString()}
-                                        />
-                                      </div>
-                                      <span className="raidDetail-saleAmount">
-                                        <AdenaAmount amount={sale.totalPrice} />
-                                      </span>
-                                    </div>
-                                    <p className="raidDetail-exact">
-                                      {sale.totalPrice.toLocaleString("ru-RU")} Adena
-                                    </p>
-                                    {sale.comment && (
-                                      <p className="raidDetail-note">{sale.comment}</p>
-                                    )}
-                                    <details className="raidDetail-shares">
-                                      <summary>
-                                        Доли участников <ChevronDown size={14} aria-hidden="true" />
-                                      </summary>
-                                      <ul>
-                                        {sale.shares.map((share) => (
-                                          <li key={share.id}>
-                                            <span>{share.nicknameSnapshot}</span>
-                                            <span className="raidDetail-shareAmount">
-                                              <AdenaAmount amount={share.amount} />
-                                              <span>
-                                                {share.amount.toLocaleString("ru-RU")} Adena
-                                              </span>
-                                            </span>
-                                          </li>
-                                        ))}
-                                      </ul>
-                                    </details>
-                                  </li>
-                                ))}
-                              </ul>
-                            </details>
-                          )}
-                        </div>
-
-                        {drop.comment && (
-                          <details className="raidDetail-dropNote">
-                            <summary>
-                              Комментарий к предмету <ChevronDown size={14} aria-hidden="true" />
-                            </summary>
-                            <p className="raidDetail-note">{drop.comment}</p>
-                          </details>
-                        )}
-                      </li>
-                    );
-                  })}
-                  {canAddLoot && (
-                    <li className="raidDetail-addTile">
-                      <Link href={`/raids/${raid.id}/edit`}>
-                        <Plus size={30} strokeWidth={1} aria-hidden="true" />
-                        <span>Добавить предмет</span>
+                        {itemName}
                       </Link>
-                    </li>
-                  )}
-                </ul>
-              </RaidDetailLootFilter>
-            </RaidSaleWorkspace>
+                    </div>
+                    <dl className="raidDetail-quantities raidDetail-raidLootQuantity">
+                      <div>
+                        <dt>Добыто</dt>
+                        <dd>{drop.quantity} шт.</dd>
+                      </div>
+                      <div>
+                        <dt>Добавлено</dt>
+                        <dd>
+                          <LocalDateTimeDisplay value={drop.createdAt.toISOString()} />
+                        </dd>
+                      </div>
+                    </dl>
+                    {drop.comment && (
+                      <details className="raidDetail-dropNote">
+                        <summary>
+                          Комментарий к предмету <ChevronDown size={14} aria-hidden="true" />
+                        </summary>
+                        <p className="raidDetail-note">{drop.comment}</p>
+                      </details>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
           )}
         </section>
 
@@ -285,18 +156,13 @@ export function RaidDetailView({
               <ul className="raidDetail-rosterGrid">
                 {presentParticipants.map((participant) => {
                   const className = participant.classSnapshot;
-                  const profileName = participant.profile?.subclassSlot
-                    ? `Subclass ${participant.profile.subclassSlot}`
-                    : participant.profileSnapshot || "Main";
 
                   return (
                     <li key={participant.id} className="raidDetail-participant">
                       {className && <GameIcon kind="class" name={className} size="sm" />}
                       <span className="raidDetail-participantText">
                         <strong>{participant.nicknameSnapshot}</strong>
-                        <span>
-                          {className || "Класс не указан"} · {profileName}
-                        </span>
+                        <span>{className || "Класс не указан"}</span>
                       </span>
                     </li>
                   );
@@ -307,7 +173,7 @@ export function RaidDetailView({
                 В рейде нет участников со статусом «В рейде».
               </p>
             )}
-            <p className="raidDetail-snapshot">Классы и профили на момент рейда.</p>
+            <p className="raidDetail-snapshot">Классы на момент рейда.</p>
           </section>
           {raid.comment && (
             <section className="raidDetail-raidNote" aria-labelledby="raid-note-heading">

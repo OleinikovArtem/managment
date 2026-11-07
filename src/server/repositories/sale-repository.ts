@@ -32,6 +32,8 @@ type SaleRecordInput = {
   idempotencyKey: string;
 };
 
+type GroupedSaleInput = Omit<SaleRecordInput, "lootDropId"> & { itemId: string };
+
 export function isRetryableDatabaseError(error: unknown): boolean {
   const messages: string[] = [];
   const pending: unknown[] = [error];
@@ -269,6 +271,142 @@ export async function registerPartySale(partyId: string, input: SaleRecordInput)
     }
   }
 
+  throw new SaleTemporaryDatabaseError();
+}
+
+function resolveGroupedSaleRetry(
+  existing: Awaited<ReturnType<typeof findExistingSale>>[],
+  input: GroupedSaleInput,
+  itemDropIds: Set<string>,
+) {
+  if (
+    existing.length === 0 ||
+    existing.some(
+      (sale) =>
+        !sale ||
+        !itemDropIds.has(sale.lootDropId) ||
+        sale.receivedAt.getTime() !== input.receivedAt.getTime() ||
+        (sale.comment ?? undefined) !== input.comment,
+    ) ||
+    existing.reduce((sum, sale) => sum + (sale?.quantitySold ?? 0), 0) !== input.quantitySold ||
+    existing.reduce((sum, sale) => sum + (sale?.totalPrice ?? 0n), 0n) !== input.totalPrice
+  ) {
+    throw new SaleIdempotencyConflictError();
+  }
+  return existing.filter((sale): sale is NonNullable<typeof sale> => sale !== null);
+}
+
+export async function createPartyGroupedSaleRecords(
+  transaction: Transaction,
+  partyId: string,
+  input: GroupedSaleInput,
+) {
+  await lockParty(transaction, partyId);
+  const itemDrops = await transaction.lootDrop.findMany({
+    where: { partyId, itemId: input.itemId, raid: { partyId } },
+    include: { saleTransactions: { select: { quantitySold: true } } },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+  });
+  if (itemDrops.length === 0) throw new SaleOperationError("Предмет не найден в этой группе.");
+
+  const itemDropIds = new Set(itemDrops.map(({ id }) => id));
+  const idempotencyKeys = [
+    input.idempotencyKey,
+    ...itemDrops.map(({ id }) => `${input.idempotencyKey}:${id}`),
+  ];
+  const existing = await transaction.saleTransaction.findMany({
+    where: { partyId, idempotencyKey: { in: idempotencyKeys } },
+    include: { shares: { orderBy: { memberId: "asc" } } },
+  });
+  if (existing.length > 0) {
+    return resolveGroupedSaleRetry(existing, input, itemDropIds);
+  }
+
+  const quantities = itemDrops.map((drop) => ({
+    drop,
+    remaining:
+      drop.quantity - drop.saleTransactions.reduce((sum, sale) => sum + sale.quantitySold, 0),
+  }));
+  const available = quantities.reduce((sum, row) => sum + row.remaining, 0);
+  if (input.quantitySold > available) {
+    throw new SaleOperationError("Количество продажи превышает общий доступный остаток предмета.");
+  }
+
+  let quantityLeft = input.quantitySold;
+  const allocations = quantities.flatMap(({ drop, remaining }) => {
+    if (quantityLeft === 0 || remaining === 0) return [];
+    const quantitySold = Math.min(remaining, quantityLeft);
+    quantityLeft -= quantitySold;
+    return [{ drop, quantitySold }];
+  });
+
+  const prices = allocations.map(
+    ({ quantitySold }) => (input.totalPrice * BigInt(quantitySold)) / BigInt(input.quantitySold),
+  );
+  let remainder = input.totalPrice - prices.reduce((sum, amount) => sum + amount, 0n);
+  for (let index = 0; remainder > 0n; index += 1, remainder -= 1n) {
+    prices[index] += 1n;
+  }
+  if (prices.some((amount) => amount <= 0n)) {
+    throw new SaleOperationError(
+      "Для продажи через несколько поступлений укажите сумму не меньше 1 Adena на каждое поступление.",
+    );
+  }
+
+  const results = [];
+  for (const [index, allocation] of allocations.entries()) {
+    results.push(
+      await createPartySaleRecord(transaction, partyId, {
+        lootDropId: allocation.drop.id,
+        quantitySold: allocation.quantitySold,
+        totalPrice: prices[index],
+        receivedAt: input.receivedAt,
+        comment: input.comment,
+        idempotencyKey:
+          index === 0 ? input.idempotencyKey : `${input.idempotencyKey}:${allocation.drop.id}`,
+      }),
+    );
+  }
+  return results;
+}
+
+export async function registerPartyGroupedSale(partyId: string, input: GroupedSaleInput) {
+  for (let attempt = 0; attempt < MAX_TRANSACTION_ATTEMPTS; attempt += 1) {
+    try {
+      return await prisma.$transaction((transaction) =>
+        createPartyGroupedSaleRecords(transaction, partyId, input),
+      );
+    } catch (error) {
+      if (isRetryableDatabaseError(error)) {
+        if (attempt < RETRY_DELAYS_MS.length) {
+          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS_MS[attempt]));
+          continue;
+        }
+        throw new SaleTemporaryDatabaseError();
+      }
+
+      if (isUniqueConstraintError(error)) {
+        const drops = await prisma.lootDrop.findMany({
+          where: { partyId, itemId: input.itemId, raid: { partyId } },
+          select: { id: true },
+        });
+        const itemDropIds = new Set(drops.map(({ id }) => id));
+        const existing = await prisma.saleTransaction.findMany({
+          where: {
+            partyId,
+            idempotencyKey: {
+              in: [input.idempotencyKey, ...drops.map(({ id }) => `${input.idempotencyKey}:${id}`)],
+            },
+          },
+          include: { shares: { orderBy: { memberId: "asc" } } },
+        });
+        if (existing.length > 0) {
+          return resolveGroupedSaleRetry(existing, input, itemDropIds);
+        }
+      }
+      throw error;
+    }
+  }
   throw new SaleTemporaryDatabaseError();
 }
 

@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   saleFindUnique: vi.fn(),
   saleFindUniqueOrThrow: vi.fn(),
   saleFindMany: vi.fn(),
+  lootDropFindMany: vi.fn(),
   saleCreate: vi.fn(),
   lootDropFindFirst: vi.fn(),
   saleShareCreateMany: vi.fn(),
@@ -21,11 +22,12 @@ const transaction = {
   raid: { updateMany: mocks.raidUpdateMany },
   saleTransaction: {
     findUnique: mocks.saleFindUnique,
+    findMany: mocks.saleFindMany,
     findUniqueOrThrow: mocks.saleFindUniqueOrThrow,
     create: mocks.saleCreate,
     aggregate: vi.fn(),
   },
-  lootDrop: { findFirst: mocks.lootDropFindFirst },
+  lootDrop: { findFirst: mocks.lootDropFindFirst, findMany: mocks.lootDropFindMany },
   saleShare: { createMany: mocks.saleShareCreateMany },
   ledgerTransaction: {
     create: mocks.ledgerTransactionCreate,
@@ -51,6 +53,7 @@ import {
   getPartyFinancialBalances,
   listPartyLedgerTransactions,
   registerPartySale,
+  registerPartyGroupedSale,
   listPartySales,
 } from "@/server/repositories/sale-repository";
 import {
@@ -96,6 +99,11 @@ describe("sale repository", () => {
     vi.clearAllMocks();
     mocks.$transaction.mockImplementation((callback) => callback(transaction));
     mocks.saleFindUnique.mockResolvedValue(null);
+    mocks.saleFindMany.mockResolvedValue([]);
+    mocks.lootDropFindMany.mockResolvedValue([
+      { id: "drop-1", quantity: 4, saleTransactions: [{ quantitySold: 3 }] },
+      { id: "drop-2", quantity: 2, saleTransactions: [] },
+    ]);
     mocks.lootDropFindFirst.mockResolvedValue(lootDrop);
     mocks.saleCreate.mockResolvedValue({ id: "sale-id" });
     mocks.saleShareCreateMany.mockResolvedValue({ count: 2 });
@@ -198,6 +206,50 @@ describe("sale repository", () => {
     });
 
     await expect(registerPartySale("party-1", input)).rejects.toBeInstanceOf(SaleOperationError);
+    expect(mocks.saleCreate).not.toHaveBeenCalled();
+    expect(mocks.saleShareCreateMany).not.toHaveBeenCalled();
+  });
+
+  it("splits a grouped sale FIFO across drops and preserves the exact entered total", async () => {
+    mocks.lootDropFindFirst.mockImplementation(async ({ where }) => ({
+      ...lootDrop,
+      id: where.id,
+    }));
+    const input = {
+      itemId: "item-1",
+      quantitySold: 3,
+      totalPrice: 1000n,
+      receivedAt: new Date("2026-11-02T10:00:00.000Z"),
+      idempotencyKey: "group-sale-key",
+    };
+
+    await registerPartyGroupedSale("party-1", input);
+
+    expect(
+      mocks.saleCreate.mock.calls.map(([call]) => [
+        call.data.lootDropId,
+        call.data.quantitySold,
+        call.data.totalPrice,
+      ]),
+    ).toEqual([
+      ["drop-1", 1, 334n],
+      ["drop-2", 2, 666n],
+    ]);
+    expect(
+      mocks.saleCreate.mock.calls.map(([call]) => call.data.totalPrice).reduce((a, b) => a + b, 0n),
+    ).toBe(input.totalPrice);
+  });
+
+  it("rejects a grouped sale above total stock before writing financial records", async () => {
+    await expect(
+      registerPartyGroupedSale("party-1", {
+        itemId: "item-1",
+        quantitySold: 4,
+        totalPrice: 400n,
+        receivedAt: new Date("2026-11-02T10:00:00.000Z"),
+        idempotencyKey: "group-sale-overstock-key",
+      }),
+    ).rejects.toThrow("превышает общий доступный остаток");
     expect(mocks.saleCreate).not.toHaveBeenCalled();
     expect(mocks.saleShareCreateMany).not.toHaveBeenCalled();
   });

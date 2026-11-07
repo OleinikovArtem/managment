@@ -22,4 +22,9 @@ export const saleInputSchema = z.object({
   idempotencyKey: z.string().uuid(),
 });
 
+export const groupedSaleInputSchema = saleInputSchema
+  .omit({ lootDropId: true })
+  .extend({ itemId: z.string().min(1, "Выберите предмет.") });
+
 export type SaleInput = z.infer<typeof saleInputSchema>;
+export type GroupedSaleInput = z.infer<typeof groupedSaleInputSchema>;
