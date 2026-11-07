@@ -5,12 +5,22 @@ import { MemberManager } from "@/features/members/member-manager";
 import { listPartyMembers } from "@/server/repositories/party-member-repository";
 import { requirePartyPageAccess } from "@/server/auth/party-access";
 import { listPartyMemberProfiles } from "@/server/repositories/member-profile-repository";
+import { GridRowsSkeleton } from "@/components/ui/page-skeleton";
 
 export default function MembersPage() {
   return (
-    <Suspense fallback={<div className="h-96 animate-pulse rounded-2xl bg-muted/50" />}>
-      <MembersContent />
-    </Suspense>
+    <div className="space-y-7">
+      <header className="page-header">
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Участники</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Ведите постоянный состав и сохраняйте историю, когда персонаж перестаёт участвовать.
+        </p>
+      </header>
+      <SectionNavigation section="group" active="/members" />
+      <Suspense fallback={<GridRowsSkeleton label="Загружаются участники" rows={8} />}>
+        <MembersContent />
+      </Suspense>
+    </div>
   );
 }
 
@@ -44,16 +54,5 @@ async function MembersContent() {
     createdAt: member.createdAt.toLocaleDateString("ru-RU"),
   }));
 
-  return (
-    <div className="space-y-7">
-      <header className="page-header ">
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Участники</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Ведите постоянный состав и сохраняйте историю, когда персонаж перестаёт участвовать.
-        </p>
-      </header>
-      <SectionNavigation section="group" active="/members" />
-      <MemberManager members={members} canManage={workspace.canManage} />
-    </div>
-  );
+  return <MemberManager members={members} canManage={workspace.canManage} />;
 }

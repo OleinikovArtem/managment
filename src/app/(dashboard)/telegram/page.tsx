@@ -4,18 +4,21 @@ import { requirePartyPageAccess } from "@/server/auth/party-access";
 import { prisma } from "@/lib/db/prisma";
 import { listTelegramImports } from "@/server/telegram/query-service";
 import { TelegramImportHistory } from "@/features/telegram/import-history";
+import { GridRowsSkeleton } from "@/components/ui/page-skeleton";
 
 export default function TelegramPage() {
   return (
-    <Suspense
-      fallback={
-        <p role="status" className="text-sm text-muted-foreground">
-          Загружаем сообщения Telegram…
+    <div className="space-y-6">
+      <header className="page-header">
+        <h1>Продажи из Telegram</h1>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+          История автоматического учёта, распределение по рейдам и сообщения, требующие разбора.
         </p>
-      }
-    >
-      <TelegramContent />
-    </Suspense>
+      </header>
+      <Suspense fallback={<GridRowsSkeleton label="Загружается история Telegram" rows={6} />}>
+        <TelegramContent />
+      </Suspense>
+    </div>
   );
 }
 
@@ -42,19 +45,11 @@ async function TelegramContent() {
       : [],
   ]);
   return (
-    <div className="space-y-6">
-      <header className="page-header">
-        <h1>Продажи из Telegram</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-          История автоматического учёта, распределение по рейдам и сообщения, требующие разбора.
-        </p>
-      </header>
-      <TelegramImportHistory
-        records={records}
-        items={items}
-        aliases={aliases}
-        canManage={access.canManage}
-      />
-    </div>
+    <TelegramImportHistory
+      records={records}
+      items={items}
+      aliases={aliases}
+      canManage={access.canManage}
+    />
   );
 }

@@ -19,9 +19,10 @@ Party Bank Manager — русскоязычное приложение для у
 | Каталог, поиск, редактирование                                  | `src/features/items/`                                                                                                                                                                           |
 | Весь лут, фильтры, остатки и модальная ручная продажа           | `src/features/loot/`, `src/server/repositories/loot-repository.ts`, `src/app/(dashboard)/loot/`                                                                                                 |
 | Создание и редактирование рейда                                 | `src/features/raids/raid-form.tsx`, `loot-picker.tsx`, `instance-picker.tsx`, `profile-picker.tsx`                                                                                              |
+| Список рейдов, локальные периоды и фильтры                       | `src/features/raids/raid-list.tsx`, `raid-list-model.ts`, `/raids`                                                                                                                             |
 | Инстансы, стадии, настройки рекомендаций                        | `src/features/instances/`, `instance-repository.ts`, `raids/catalog-actions.ts`; [INSTANCE_CATALOG.md](./INSTANCE_CATALOG.md)                                                                   |
 | Detail рейда, только просмотр добычи/времени и состав PRESENT   | `raid-detail-view.tsx`, `raid-detail-view.css` в `src/features/raids/`; продажи вручную — `src/features/loot/`, автоматически — Telegram flow                                                   |
-| Передачи и получатели                                           | `src/features/sales/payment-form.tsx`, `payout-list.tsx`                                                                                                                                        |
+| Передачи и получатели                                           | `src/features/sales/payment-form.tsx`, `payout-list.tsx`, `src/components/ui/side-panel.tsx`                                                                                                    |
 | Продажа и валидация финансов                                    | `src/features/sales/sale-form.tsx`, `sale-schema.ts`, `payment-schema.ts`                                                                                                                       |
 | Журнал                                                          | `src/features/ledger/history-list.tsx`                                                                                                                                                          |
 | Настройки и выборочный сброс группы                             | `src/features/settings/reset-plan.ts`, `reset-data-card.tsx`, `src/server/repositories/party-repository.ts`                                                                                     |
@@ -44,6 +45,8 @@ Party Bank Manager — русскоязычное приложение для у
   его не редактируют и не добавляют в Git.
 - Динамические части страниц используют `Suspense` и `await io()`. Перед изменением
   Next.js API читать документацию установленной версии в `node_modules/next/dist/docs/`.
+- Общая оболочка и постоянные заголовки рейдов/финансов отображаются отдельно от
+  запросов к БД; ожидаемые данные занимают структурированные скелетоны.
 - `npm run dev` использует локальный `.env`. Приватный `.env.production.local`
   подключает `npm run build` / `npm start` к живой production-БД; Prisma CLI
   автоматически этот файл не читает. Подробности — в [DEPLOYMENT.md](./DEPLOYMENT.md).

@@ -6,12 +6,19 @@ import { requirePartyPageAccess } from "@/server/auth/party-access";
 import { getPartySettings } from "@/server/services/party-service";
 import { getInstanceSetup } from "@/server/repositories/instance-repository";
 import { StageDefaultForm } from "@/features/settings/stage-default-form";
+import { SettingsSkeleton } from "@/components/ui/page-skeleton";
 
 export default function SettingsPage() {
   return (
-    <Suspense fallback={<div className="h-72 animate-pulse rounded-2xl bg-muted/50" />}>
-      <SettingsContent />
-    </Suspense>
+    <div className="settings-page max-w-5xl space-y-8">
+      <header className="page-header">
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight">Настройки</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Основные параметры группы.</p>
+      </header>
+      <Suspense fallback={<SettingsSkeleton />}>
+        <SettingsContent />
+      </Suspense>
+    </div>
   );
 }
 
@@ -22,11 +29,7 @@ async function SettingsContent() {
   const catalog = await getInstanceSetup(workspace.partyId);
 
   return (
-    <div className="settings-page max-w-5xl space-y-8">
-      <header className="page-header ">
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">Настройки</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Основные параметры группы.</p>
-      </header>
+    <div className="space-y-8">
       <SettingsForm partyName={party.name} canManage={workspace.canManage} />
       <StageDefaultForm
         stages={catalog.stages.available}

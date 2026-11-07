@@ -4,18 +4,22 @@ import { redirect } from "next/navigation";
 import { InvitationManager, PartyMemberAccessManager } from "@/features/auth/party-forms";
 import { requirePartyPageAccess } from "@/server/auth/party-access";
 import { listPartyInvitations, listPartyMembers } from "@/server/services/account-party-service";
+import { SettingsSkeleton } from "@/components/ui/page-skeleton";
 
 export default function PartyAccessPage() {
   return (
-    <Suspense
-      fallback={
-        <p role="status" className="text-sm text-muted-foreground">
-          Загружаем доступ…
+    <div className="space-y-6">
+      <header className="page-header">
+        <h1>Доступ к группе</h1>
+        <p className="mt-2">
+          Управляйте доступом участников и создавайте одноразовые ссылки с ролью администратора или
+          участника.
         </p>
-      }
-    >
-      <PartyAccessContent />
-    </Suspense>
+      </header>
+      <Suspense fallback={<SettingsSkeleton />}>
+        <PartyAccessContent />
+      </Suspense>
+    </div>
   );
 }
 
@@ -28,13 +32,6 @@ async function PartyAccessContent() {
 
   return (
     <div className="space-y-6">
-      <header className="page-header">
-        <h1>Доступ к группе</h1>
-        <p className="mt-2">
-          Управляйте доступом участников и создавайте одноразовые ссылки с ролью администратора или
-          участника.
-        </p>
-      </header>
       {access.isOwner && (
         <section>
           <h2 className="mb-4 text-base font-semibold">Участники группы</h2>

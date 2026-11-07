@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { io } from "next/cache";
 import Link from "next/link";
+import { DashboardSkeleton } from "@/components/ui/page-skeleton";
 import { ArrowUpRight } from "lucide-react";
 import { requirePartyPageAccess } from "@/server/auth/party-access";
 import { getPartyBalances, getSales } from "@/server/services/sale-service";
@@ -11,9 +12,35 @@ import { DashboardAnalytics, type DashboardSale } from "@/features/dashboard/das
 
 export default function DashboardPage() {
   return (
-    <Suspense fallback={<div className="h-[32rem] animate-pulse rounded-2xl bg-muted/50" />}>
-      <DashboardContent />
-    </Suspense>
+    <div className="space-y-5">
+      <header className="page-header flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+        <div>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight">Обзор</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Состояние группы, продажи и ближайшие действия.
+          </p>
+        </div>
+        <Suspense fallback={<div className="h-10 w-28 animate-pulse rounded-md bg-muted" />}>
+          <NewRaidAction />
+        </Suspense>
+      </header>
+      <Suspense fallback={<DashboardSkeleton />}>
+        <DashboardContent />
+      </Suspense>
+    </div>
+  );
+}
+
+async function NewRaidAction() {
+  const workspace = await requirePartyPageAccess();
+  if (!workspace.canManage) return null;
+  return (
+    <Link
+      href="/raids/new"
+      className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/80"
+    >
+      Новый рейд <ArrowUpRight aria-hidden="true" size={15} />
+    </Link>
   );
 }
 
@@ -42,25 +69,8 @@ async function DashboardContent() {
     })),
   }));
   return (
-    <div className="space-y-5">
-      <header className="page-header flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
-        <div>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">Обзор</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Состояние группы, продажи и ближайшие действия.
-          </p>
-        </div>
-        {workspace.canManage && (
-          <Link
-            href="/raids/new"
-            className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/80"
-          >
-            Новый рейд <ArrowUpRight aria-hidden="true" size={15} />
-          </Link>
-        )}
-      </header>
-      <DashboardAnalytics
-        recentRaids={raids.slice(0, 5).map((raid) => ({
+    <DashboardAnalytics
+      recentRaids={raids.slice(0, 5).map((raid) => ({
           id: raid.id,
           name: raid.name,
           occurredAt: raid.occurredAt.toISOString(),
@@ -77,7 +87,6 @@ async function DashboardContent() {
           .toString()}
         activeMembers={memberCounts.activeMembers}
         totalMembers={memberCounts.totalMembers}
-      />
-    </div>
+    />
   );
 }

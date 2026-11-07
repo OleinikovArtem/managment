@@ -4,26 +4,9 @@ import { redirect } from "next/navigation";
 import { TelegramBotSettings } from "@/features/auth/telegram-bot-settings";
 import { requirePartyPageAccess } from "@/server/auth/party-access";
 import { getTelegramSettings } from "@/server/telegram/query-service";
+import { SettingsSkeleton } from "@/components/ui/page-skeleton";
 
 export default function TelegramSettingsPage() {
-  return (
-    <Suspense
-      fallback={
-        <p role="status" className="text-sm text-muted-foreground">
-          Загружаем настройки…
-        </p>
-      }
-    >
-      <TelegramSettingsContent />
-    </Suspense>
-  );
-}
-
-async function TelegramSettingsContent() {
-  await io();
-  const access = await requirePartyPageAccess();
-  if (!access.isOwner) redirect("/settings");
-  const settings = await getTelegramSettings(access.partyId);
   return (
     <div className="space-y-6">
       <header className="page-header">
@@ -33,7 +16,17 @@ async function TelegramSettingsContent() {
           исходных рейдов.
         </p>
       </header>
-      <TelegramBotSettings settings={settings} />
+      <Suspense fallback={<SettingsSkeleton />}>
+        <TelegramSettingsContent />
+      </Suspense>
     </div>
   );
+}
+
+async function TelegramSettingsContent() {
+  await io();
+  const access = await requirePartyPageAccess();
+  if (!access.isOwner) redirect("/settings");
+  const settings = await getTelegramSettings(access.partyId);
+  return <TelegramBotSettings settings={settings} />;
 }

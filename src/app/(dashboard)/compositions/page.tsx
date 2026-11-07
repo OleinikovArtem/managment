@@ -6,12 +6,23 @@ import { listPartyCompositions } from "@/server/repositories/composition-reposit
 import { listPartyMembers } from "@/server/repositories/party-member-repository";
 import { listPartyMemberProfiles } from "@/server/repositories/member-profile-repository";
 import { requirePartyPageAccess } from "@/server/auth/party-access";
+import { GridRowsSkeleton } from "@/components/ui/page-skeleton";
 
 export default function CompositionsPage() {
   return (
-    <Suspense fallback={<div className="h-96 animate-pulse rounded-2xl bg-muted/50" />}>
-      <CompositionsContent />
-    </Suspense>
+    <div className="space-y-7">
+      <header className="page-header">
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Составы</h1>
+        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+          Готовые сетки для melee, mage, арчерских и рейдовых групп. В каждом слоте видно, кто идёт
+          и какой 3-й профой.
+        </p>
+      </header>
+      <SectionNavigation section="group" active="/compositions" />
+      <Suspense fallback={<GridRowsSkeleton label="Загружаются шаблоны составов" rows={4} />}>
+        <CompositionsContent />
+      </Suspense>
+    </div>
   );
 }
 
@@ -77,17 +88,5 @@ async function CompositionsContent() {
         : null,
     })),
   }));
-  return (
-    <div className="space-y-7">
-      <header className="page-header ">
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Составы</h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          Готовые сетки для melee, mage, арчерских и рейдовых групп. В каждом слоте видно, кто идёт
-          и какой 3-й профой.
-        </p>
-      </header>
-      <SectionNavigation section="group" active="/compositions" />
-      <CompositionManager compositions={rows} members={members} canManage={workspace.canManage} />
-    </div>
-  );
+  return <CompositionManager compositions={rows} members={members} canManage={workspace.canManage} />;
 }

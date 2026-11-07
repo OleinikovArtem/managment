@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ItemSearchControls } from "@/features/items/item-search-controls";
 import { ItemManager, type ItemListRow } from "@/features/items/item-manager";
 import { itemSearchSchema } from "@/features/items/item-schema";
+import { GridRowsSkeleton } from "@/components/ui/page-skeleton";
 import { ITEM_PAGE_SIZE, getItemCategories, searchItems } from "@/server/services/item-service";
 import { requirePartyPageAccess } from "@/server/auth/party-access";
 
@@ -13,9 +14,17 @@ type ItemsPageProps = {
 
 export default function ItemsPage({ searchParams }: ItemsPageProps) {
   return (
-    <Suspense fallback={<div className="h-96 animate-pulse rounded-2xl bg-muted/50" />}>
-      <ItemsContent searchParams={searchParams} />
-    </Suspense>
+    <div className="space-y-7">
+      <header className="page-header">
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Предметы</h1>
+        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+          Общий справочник и собственные предметы группы. Общие записи доступны только для чтения.
+        </p>
+      </header>
+      <Suspense fallback={<GridRowsSkeleton label="Загружается каталог предметов" rows={8} />}>
+        <ItemsContent searchParams={searchParams} />
+      </Suspense>
+    </div>
   );
 }
 
@@ -54,14 +63,7 @@ async function ItemsContent({ searchParams }: ItemsPageProps) {
   }));
 
   return (
-    <div className="space-y-7">
-      <header className="page-header ">
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Предметы</h1>
-        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-          Общий справочник и собственные предметы группы. Общие записи доступны только для чтения.
-        </p>
-      </header>
-
+    <div>
       <ItemSearchControls query={query} category={category ?? ""} categories={categories} />
 
       <ItemManager

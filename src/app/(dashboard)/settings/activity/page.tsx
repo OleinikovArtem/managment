@@ -2,25 +2,9 @@ import { Suspense } from "react";
 import { io } from "next/cache";
 import { requirePartyPageAccess } from "@/server/auth/party-access";
 import { listPartyAuditEvents } from "@/server/services/party-audit-service";
+import { RowsOnlySkeleton } from "@/components/ui/page-skeleton";
 
 export default function PartyActivityPage() {
-  return (
-    <Suspense
-      fallback={
-        <p role="status" className="text-sm text-muted-foreground">
-          Загружаем историю действий…
-        </p>
-      }
-    >
-      <PartyActivityContent />
-    </Suspense>
-  );
-}
-
-async function PartyActivityContent() {
-  await io();
-  const access = await requirePartyPageAccess();
-  const events = await listPartyAuditEvents(access.partyId);
   return (
     <section className="max-w-4xl space-y-6">
       <header className="page-header">
@@ -29,6 +13,19 @@ async function PartyActivityContent() {
           Кто и когда менял данные этой группы. Здесь хранятся последние 100 действий.
         </p>
       </header>
+      <Suspense fallback={<RowsOnlySkeleton label="Загружается история действий" />}>
+        <PartyActivityContent />
+      </Suspense>
+    </section>
+  );
+}
+
+async function PartyActivityContent() {
+  await io();
+  const access = await requirePartyPageAccess();
+  const events = await listPartyAuditEvents(access.partyId);
+  return (
+    <>
       {events.length ? (
         <ol className="divide-y divide-border border-y border-border">
           {events.map((event) => (
@@ -45,6 +42,6 @@ async function PartyActivityContent() {
       ) : (
         <p className="text-sm text-muted-foreground">Действий пока нет.</p>
       )}
-    </section>
+    </>
   );
 }

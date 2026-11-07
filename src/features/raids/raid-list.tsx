@@ -2,101 +2,242 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Input } from "@/components/ui/input";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { LocalDateTimeDisplay } from "@/features/raids/local-date-time-display";
+import { RaidListSkeleton } from "@/components/ui/page-skeleton";
+import {
+  getRaidPeriod,
+  groupRaids,
+  paginateRaidGroups,
+  type RaidListRow,
+} from "@/features/raids/raid-list-model";
 
-type RaidRow = {
-  id: string;
-  name: string;
-  instanceName: string | null;
-  occurredAt: string;
-  present: number;
-  drops: number;
-};
+const pageSize = 25;
+const subscribeTimezone = () => () => {};
+const dateOptions = [
+  { value: "all", label: "Все даты" },
+  { value: "today", label: "Сегодня" },
+  { value: "yesterday", label: "Вчера" },
+  { value: "week", label: "2–7 дней назад" },
+  { value: "month", label: "8–30 дней назад" },
+  { value: "older", label: "Раньше" },
+  { value: "upcoming", label: "Предстоящие" },
+] as const;
 
-export function RaidList({ raids }: { raids: RaidRow[] }) {
+function readPage(value: string | null) {
+  const page = Number(value);
+  return Number.isSafeInteger(page) && page > 0 ? page : 1;
+}
+
+export function RaidList({ raids }: { raids: RaidListRow[] }) {
   const params = useSearchParams();
-  const query = params.get("q") ?? "";
-  const rows = raids.filter((raid) =>
-    `${raid.name} ${raid.instanceName ?? ""}`
-      .toLocaleLowerCase()
-      .includes(query.toLocaleLowerCase()),
+  const timezone = useSyncExternalStore(
+    subscribeTimezone,
+    () => Intl.DateTimeFormat().resolvedOptions().timeZone,
+    () => "server",
   );
-  const pageCount = Math.max(1, Math.ceil(rows.length / 25));
-  const page = Math.min(pageCount, Math.max(1, Number(params.get("page")) || 1));
-  function change(key: string, value: string) {
-    const next = new URLSearchParams(params.toString());
-    if (value) next.set(key, value);
-    else next.delete(key);
-    if (key !== "page") next.delete("page");
+  const [query, setQuery] = useState(() => params.get("q") ?? "");
+  const [instance, setInstance] = useState(() => params.get("instance") ?? "all");
+  const [period, setPeriod] = useState(() => params.get("period") ?? "all");
+  const [page, setPage] = useState(() => readPage(params.get("page")));
+  const instances = useMemo(
+    () =>
+      [...new Set(raids.map((raid) => raid.instanceName?.trim() || "Без инстанса"))].toSorted(
+        (left, right) => left.localeCompare(right, "ru-RU"),
+      ),
+    [raids],
+  );
+
+  useEffect(() => {
+    function syncFromHistory() {
+      const current = new URLSearchParams(window.location.search);
+      setQuery(current.get("q") ?? "");
+      setInstance(current.get("instance") ?? "all");
+      setPeriod(current.get("period") ?? "all");
+      setPage(readPage(current.get("page")));
+    }
+    window.addEventListener("popstate", syncFromHistory);
+    return () => window.removeEventListener("popstate", syncFromHistory);
+  }, []);
+
+  function writeParams(changes: Record<string, string>) {
+    const next = new URLSearchParams(window.location.search);
+    for (const [key, value] of Object.entries(changes)) {
+      if (value && value !== "all") next.set(key, value);
+      else next.delete(key);
+    }
     window.history.replaceState(
       null,
       "",
       `${window.location.pathname}${next.size ? `?${next}` : ""}`,
     );
   }
+
+  function updateFilter(key: "q" | "instance" | "period", value: string) {
+    setPage(1);
+    if (key === "q") setQuery(value);
+    else if (key === "instance") setInstance(value);
+    else setPeriod(value);
+    writeParams({ [key]: value, page: "" });
+  }
+
+  const filtered = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase("ru-RU");
+    return raids.filter((raid) => {
+      const instanceName = raid.instanceName?.trim() || "Без инстанса";
+      const matchesQuery = `${raid.name} ${instanceName}`
+        .toLocaleLowerCase("ru-RU")
+        .includes(normalizedQuery);
+      return (
+        matchesQuery &&
+        (instance === "all" || instanceName === instance) &&
+        (period === "all" || getRaidPeriod(raid.occurredAt) === period)
+      );
+    });
+  }, [raids, query, instance, period]);
+  const groups = useMemo(
+    () => groupRaids(filtered, new Date(), timezone === "server" ? undefined : timezone),
+    [filtered, timezone],
+  );
+  const pages = useMemo(() => paginateRaidGroups(groups, pageSize), [groups]);
+  const pageCount = Math.max(1, pages.length);
+  const currentPage = Math.min(page, pageCount);
+  const visibleGroups = pages[currentPage - 1] ?? [];
+
+  function changePage(nextPage: number) {
+    setPage(nextPage);
+    writeParams({ page: String(nextPage) });
+  }
+
+  if (timezone === "server") return <RaidListSkeleton />;
+
   return (
-    <section>
-      <div className="toolbar">
+    <section className="raid-list-workspace" aria-label="Список рейдов">
+      <div className="toolbar raid-list-toolbar">
         <Input
           value={query}
-          onChange={(e) => change("q", e.target.value)}
+          onChange={(event) => updateFilter("q", event.target.value)}
           placeholder="Название рейда или инстанса"
           aria-label="Поиск рейдов"
         />
-        <p role="status" className="text-xs text-muted-foreground">
-          Найдено: {rows.length}
+        <label className="raid-filter-control">
+          <span>Инстанс</span>
+          <select
+            aria-label="Фильтр по инстансу"
+            value={instance}
+            onChange={(event) => updateFilter("instance", event.target.value)}
+          >
+            <option value="all">Все инстансы</option>
+            {instances.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="raid-filter-control">
+          <span>Период</span>
+          <select
+            aria-label="Фильтр по периоду"
+            value={period}
+            onChange={(event) => updateFilter("period", event.target.value)}
+          >
+            {dateOptions.map(({ value, label }) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p role="status" className="raid-list-count">
+          {filtered.length} {filtered.length === 1 ? "рейд" : "рейдов"}
         </p>
       </div>
-      {rows.length === 0 ? (
-        <p className="empty-state">
-          {raids.length
-            ? "Рейды не найдены. Измените поиск."
-            : "Запишите первый рейд: его состав, дату и добычу."}
-        </p>
+
+      {visibleGroups.length === 0 ? (
+        <div className="empty-state raid-list-empty">
+          <p>
+            {raids.length
+              ? "Рейдов по этим условиям нет. Измените поиск или сбросьте фильтры."
+              : "Запишите первый рейд: его состав, дату и добычу."}
+          </p>
+          {raids.length > 0 && (
+            <Button
+              type="button"
+              variant="ghost"
+              className="mt-3"
+              onClick={() => {
+                setQuery("");
+                setInstance("all");
+                setPeriod("all");
+                setPage(1);
+                window.history.replaceState(null, "", window.location.pathname);
+              }}
+            >
+              Сбросить фильтры
+            </Button>
+          )}
+        </div>
       ) : (
-        <ul className="data-list">
-          {rows.slice((page - 1) * 25, page * 25).map((raid) => (
-            <li key={raid.id}>
-              <Link href={`/raids/${raid.id}`} className="list-row min-h-11">
-                <div>
-                  <h2 className="text-sm font-medium">{raid.name}</h2>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {raid.instanceName && !raid.name.includes(raid.instanceName)
-                      ? `${raid.instanceName} · `
-                      : ""}
-                    {raid.present} участников · поступлений: {raid.drops}
-                  </p>
-                </div>
-                <span className="shrink-0 text-xs text-muted-foreground">
-                  <LocalDateTimeDisplay value={raid.occurredAt} />
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-      {pageCount > 1 && (
-        <nav className="mt-5 flex items-center justify-between" aria-label="Страницы рейдов">
-          <Button
-            variant="ghost"
-            disabled={page <= 1}
-            onClick={() => change("page", String(page - 1))}
-          >
-            Назад
-          </Button>
-          <span className="text-xs text-muted-foreground">
-            {page} / {pageCount}
-          </span>
-          <Button
-            variant="ghost"
-            disabled={page >= pageCount}
-            onClick={() => change("page", String(page + 1))}
-          >
-            Вперёд
-          </Button>
-        </nav>
+        <>
+          <div className="raid-date-groups">
+            {visibleGroups.map((group) => (
+              <section key={group.key} aria-labelledby={`raid-group-${group.key}`}>
+                <h2 id={`raid-group-${group.key}`} className="raid-date-heading">
+                  {group.label}
+                  <span>{group.raids.length}</span>
+                </h2>
+                <ul className="data-list">
+                  {group.raids.map((raid) => (
+                    <li key={raid.id}>
+                      <Link href={`/raids/${raid.id}`} className="list-row min-h-11">
+                        <div className="min-w-0">
+                          <h3 className="truncate text-sm font-medium">{raid.name}</h3>
+                          <p className="mt-1 truncate text-xs text-muted-foreground">
+                            {raid.instanceName && !raid.name.includes(raid.instanceName)
+                              ? `${raid.instanceName} · `
+                              : ""}
+                            {raid.present} участников · поступлений: {raid.drops}
+                          </p>
+                        </div>
+                        <LocalDateTimeDisplay
+                          className="shrink-0 text-xs text-muted-foreground"
+                          value={raid.occurredAt}
+                        />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
+          {pageCount > 1 && (
+            <nav
+              className="mt-5 flex items-center justify-between gap-3"
+              aria-label="Страницы рейдов"
+            >
+              <Button
+                variant="ghost"
+                disabled={currentPage <= 1}
+                onClick={() => changePage(currentPage - 1)}
+              >
+                Назад
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                {currentPage} / {pageCount}
+              </span>
+              <Button
+                variant="ghost"
+                disabled={currentPage >= pageCount}
+                onClick={() => changePage(currentPage + 1)}
+              >
+                Вперёд
+              </Button>
+            </nav>
+          )}
+        </>
       )}
     </section>
   );

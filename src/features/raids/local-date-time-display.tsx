@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react";
 
 const subscribe = () => () => {};
 
-export function LocalDateTimeDisplay({ value }: { value: string }) {
+export function LocalDateTimeDisplay({ value, className }: { value: string; className?: string }) {
   const formatted = useSyncExternalStore(
     subscribe,
     () => {
@@ -14,5 +14,9 @@ export function LocalDateTimeDisplay({ value }: { value: string }) {
     () => "Локальное время",
   );
 
-  return <time dateTime={value}>{formatted}</time>;
+  return (
+    <time className={className} dateTime={value}>
+      {formatted}
+    </time>
+  );
 }

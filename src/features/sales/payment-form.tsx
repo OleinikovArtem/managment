@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, LoaderCircle, MessageSquarePlus } from "lucide-react";
@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DateInput } from "@/components/ui/date-input";
 import { Textarea } from "@/components/ui/textarea";
+import { SidePanel } from "@/components/ui/side-panel";
 import type { PaymentActionResult } from "@/features/sales/payment-action-result";
 import { registerPaymentAction } from "@/app/(dashboard)/sales/payment-actions";
-import { formatAdena, parseAdenaInput } from "@/lib/adena";
+import { parseAdenaInput } from "@/lib/adena";
 import { AdenaAmount } from "@/components/ui/adena-amount";
 
 type PaymentFormProps = {
@@ -19,10 +20,8 @@ type PaymentFormProps = {
   remaining: string;
   partyCash: string;
   totalOutstanding: string;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-  onPendingChange?: (pending: boolean) => void;
-  triggerDisabled?: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 };
 
 function getLocalDateTimeValue(date: Date) {
@@ -38,27 +37,10 @@ export function PaymentForm({
   totalOutstanding,
   open,
   onOpenChange,
-  onPendingChange,
-  triggerDisabled = false,
 }: PaymentFormProps) {
   const router = useRouter();
   const idempotencyKey = useRef<{ fingerprint: string; key: string } | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [localOpen, setLocalOpen] = useState(false);
-  const showForm = open ?? localOpen;
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  function setShowForm(next: boolean) {
-    setLocalOpen(next);
-    onOpenChange?.(next);
-  }
-  useEffect(() => {
-    onPendingChange?.(isPending);
-  }, [isPending, onPendingChange]);
-  const [amount, setAmount] = useState("");
-  const [paidAt, setPaidAt] = useState(() => getLocalDateTimeValue(new Date()));
-  const [comment, setComment] = useState("");
-  const [showComment, setShowComment] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
   const currentPayable = BigInt(remaining);
   const recommendedAmount = (() => {
     const outstandingTotal = BigInt(totalOutstanding);
@@ -67,13 +49,11 @@ export function PaymentForm({
       ((BigInt(partyCash) > 0n ? BigInt(partyCash) : 0n) * BigInt(remaining)) / outstandingTotal;
     return proportional > BigInt(remaining) ? BigInt(remaining) : proportional;
   })();
-  function openForm() {
-    if (!amount && recommendedAmount > 0n) {
-      setAmount((Number(recommendedAmount) / 1_000_000).toFixed(2).replace(/\.00$/, ""));
-    }
-    setShowForm(true);
-  }
-
+  const [amount, setAmount] = useState(() => floorToMillionsInput(recommendedAmount));
+  const [paidAt, setPaidAt] = useState(() => getLocalDateTimeValue(new Date()));
+  const [comment, setComment] = useState("");
+  const [showComment, setShowComment] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage(null);
@@ -113,7 +93,7 @@ export function PaymentForm({
       setAmount("");
       setComment("");
       setShowComment(false);
-      setShowForm(false);
+      onOpenChange(false);
       setPaidAt(getLocalDateTimeValue(new Date()));
       router.refresh();
     });
@@ -121,39 +101,29 @@ export function PaymentForm({
 
   if (currentPayable <= 0n) return null;
 
-  if (!showForm) {
-    return (
-      <div className="mt-2 flex items-center justify-between gap-3 rounded-lg border border-dashed bg-muted/10 px-3 py-2">
-        <p className="text-xs text-muted-foreground">
-          Начислено сейчас: <AdenaAmount amount={currentPayable} />
-        </p>
-        <Button
-          ref={triggerRef}
-          type="button"
-          size="sm"
-          variant="secondary"
-          disabled={triggerDisabled}
-          onClick={openForm}
-        >
-          <Check aria-hidden="true" size={15} />
-          Передать
-        </Button>
-      </div>
-    );
-  }
-
   return (
-    <form
-      className="mt-3 grid gap-2 rounded-xl border border-border/70 bg-muted/10 p-3"
-      onSubmit={onSubmit}
+    <SidePanel
+      open={open}
+      onOpenChange={(next) => {
+        if (!isPending) onOpenChange(next);
+      }}
+      title="Передача Adena"
+      description={`Получатель: ${nickname}`}
     >
-      <p className="text-xs text-muted-foreground">
-        Передача для {nickname}. Можно выдать больше начисленного — разница уйдёт в долг. Сумма
-        вводится в миллионах.
-      </p>
-      <div className="grid gap-2 sm:grid-cols-[minmax(0,1.15fr)_minmax(220px,0.85fr)]">
-        <label className="space-y-1.5 text-xs font-medium">
-          Передать Adena
+      <form className="grid gap-5" onSubmit={onSubmit}>
+        <section
+          className="flex items-baseline justify-between gap-3 rounded-xl border border-border bg-card/80 px-4 py-3 text-sm text-muted-foreground"
+          aria-label="Остаток участника"
+        >
+          <span>Текущий остаток к выплате</span>
+          <AdenaAmount amount={currentPayable} className="text-lg font-semibold text-foreground" />
+        </section>
+        <p className="text-sm text-muted-foreground">
+          Сумма по умолчанию рассчитана от доступного банка и округлена вниз. Её можно изменить;
+          сумма выше остатка банка создаст долг.
+        </p>
+        <label className="grid gap-1.5 text-sm font-medium">
+          Сумма передачи, в миллионах
           <Input
             inputMode="text"
             minLength={1}
@@ -161,19 +131,20 @@ export function PaymentForm({
             value={amount}
             onChange={(event) => setAmount(event.target.value)}
             aria-label={`Сумма передачи Adena для ${nickname}`}
-            placeholder={
-              recommendedAmount > 0n
-                ? formatAdena(recommendedAmount).replace(/м$/, "")
-                : "Например, 22.5"
-            }
+            placeholder={recommendedAmount > 0n ? "Введите сумму" : "В банке пока нет Adena"}
+            autoFocus
           />
           {recommendedAmount > 0n && (
-            <p className="text-[11px] font-normal text-muted-foreground">
-              Рекомендуется: <AdenaAmount amount={recommendedAmount} /> · например, 22.5 = 22.5м.
-            </p>
+            <span className="text-xs font-normal text-muted-foreground">
+              Текущий банк группы: <AdenaAmount amount={partyCash} />. Расчётная доля при текущем
+              балансе: <AdenaAmount amount={recommendedAmount} />.
+            </span>
           )}
+          <span className="text-xs font-normal text-muted-foreground">
+            Можно ввести, например, 22.5 или 22.5м.
+          </span>
         </label>
-        <label className="space-y-1.5 text-xs font-medium">
+        <label className="grid gap-1.5 text-sm font-medium">
           Дата передачи
           <DateInput
             required
@@ -183,58 +154,65 @@ export function PaymentForm({
             aria-label={`Дата передачи Adena для ${nickname}`}
           />
         </label>
-      </div>
-      <div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="xs"
-          className="-ml-2 h-7 text-xs text-muted-foreground"
-          onClick={() => setShowComment((visible) => !visible)}
-          aria-expanded={showComment}
-        >
-          <MessageSquarePlus aria-hidden="true" />
-          {showComment ? "Скрыть комментарий" : "Добавить комментарий"}
-        </Button>
-        {showComment && (
-          <Textarea
-            className="mt-2"
-            maxLength={500}
-            rows={2}
-            value={comment}
-            onChange={(event) => setComment(event.target.value)}
-            aria-label={`Комментарий к передаче Adena для ${nickname}`}
-            placeholder="Например, перевод или наличные"
-          />
-        )}
-      </div>
-      {message && (
-        <p role="alert" className="text-sm text-destructive">
-          {message}
-        </p>
-      )}
-      <div className="flex flex-wrap items-center gap-2">
-        <Button type="submit" size="sm" disabled={isPending || !paidAt}>
-          {isPending ? (
-            <LoaderCircle aria-hidden="true" className="animate-spin" />
-          ) : (
-            <Check aria-hidden="true" />
+        <div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            className="-ml-2 h-7 text-xs text-muted-foreground"
+            onClick={() => setShowComment((visible) => !visible)}
+            aria-expanded={showComment}
+          >
+            <MessageSquarePlus aria-hidden="true" />
+            {showComment ? "Скрыть комментарий" : "Добавить комментарий"}
+          </Button>
+          {showComment && (
+            <Textarea
+              className="mt-2"
+              maxLength={500}
+              rows={3}
+              value={comment}
+              onChange={(event) => setComment(event.target.value)}
+              aria-label={`Комментарий к передаче Adena для ${nickname}`}
+              placeholder="Например, перевод или наличные"
+            />
           )}
-          {isPending ? "Сохраняем передачу..." : "Записать передачу"}
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          disabled={isPending}
-          onClick={() => {
-            setShowForm(false);
-            requestAnimationFrame(() => triggerRef.current?.focus());
-          }}
-        >
-          Свернуть
-        </Button>
-      </div>
-    </form>
+        </div>
+        {message && (
+          <p role="alert" className="text-sm text-destructive">
+            {message}
+          </p>
+        )}
+        <div className="mt-1 flex flex-wrap items-center gap-2.5">
+          <Button type="submit" size="lg" disabled={isPending || !paidAt}>
+            {isPending ? (
+              <LoaderCircle aria-hidden="true" className="animate-spin" />
+            ) : (
+              <Check aria-hidden="true" />
+            )}
+            {isPending ? "Записываем..." : "Записать передачу"}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={isPending}
+            onClick={() => onOpenChange(false)}
+          >
+            Отмена
+          </Button>
+        </div>
+      </form>
+    </SidePanel>
   );
+}
+
+function floorToMillionsInput(amount: bigint) {
+  if (amount <= 0n) return "";
+  const wholeMillions = amount / 1_000_000n;
+  if (wholeMillions > 0n) return `${wholeMillions}`;
+
+  const whole = amount / 1_000_000n;
+  const remainder = amount % 1_000_000n;
+  const fraction = remainder.toString().padStart(6, "0").replace(/0+$/, "");
+  return `${whole}.${fraction}`;
 }

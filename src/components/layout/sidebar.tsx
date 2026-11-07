@@ -29,15 +29,25 @@ const secondaryLinks = [
   { href: "/settings", label: "Настройки", icon: Settings2, routes: ["/settings"] },
 ];
 
-export function Sidebar({ displayName, partyName }: { displayName: string; partyName: string }) {
+type SidebarProps = { displayName: string; partyName: string; loading?: boolean };
+
+export function Sidebar({ displayName, partyName }: SidebarProps) {
   return (
-    <Suspense fallback={<div className="h-24 lg:h-screen lg:w-52" />}>
+    <Suspense fallback={<SidebarLoading />}>
       <Navigation displayName={displayName} partyName={partyName} />
     </Suspense>
   );
 }
 
-function Navigation({ displayName, partyName }: { displayName: string; partyName: string }) {
+export function SidebarLoading() {
+  return (
+    <Suspense fallback={<div className="h-24 lg:h-screen lg:w-52" aria-hidden="true" />}>
+      <Navigation displayName="" partyName="" loading />
+    </Suspense>
+  );
+}
+
+function Navigation({ displayName, partyName, loading = false }: SidebarProps) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   function links(items: typeof mainLinks, mobile = false) {
@@ -81,25 +91,7 @@ function Navigation({ displayName, partyName }: { displayName: string; partyName
         <nav aria-label="Справочник и настройки" className="mt-8 space-y-1">
           {links(secondaryLinks)}
         </nav>
-        <div className="mt-auto border-t border-border pt-4">
-          <p className="truncate text-xs font-medium">{partyName}</p>
-          <p className="mt-1 truncate text-xs text-muted-foreground">{displayName}</p>
-          <div className="mt-2 flex items-center gap-2">
-            <Link
-              href="/profile"
-              className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-            >
-              Мой профиль
-            </Link>
-            <Link
-              href="/parties"
-              className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-            >
-              Сменить группу
-            </Link>
-            <SignOutButton />
-          </div>
-        </div>
+        <SidebarAccount displayName={displayName} partyName={partyName} loading={loading} />
       </aside>
       <header className="mobile-shell">
         <div className="flex items-center justify-between px-4 py-2">
@@ -131,19 +123,54 @@ function Navigation({ displayName, partyName }: { displayName: string; partyName
             Операции
           </Link>
           <div className="pt-4">{links(secondaryLinks)}</div>
-          <div className="mt-4 border-t border-border pt-3">
-            <p className="truncate px-3 text-xs font-medium">{partyName}</p>
-            <p className="mt-1 truncate px-3 text-xs text-muted-foreground">{displayName}</p>
-            <Link href="/profile" onClick={() => setMenuOpen(false)} className="sidebar-link">
-              Мой профиль
-            </Link>
-            <Link href="/parties" onClick={() => setMenuOpen(false)} className="sidebar-link">
-              Сменить группу
-            </Link>
-            <SignOutButton />
-          </div>
+          <SidebarAccount
+            displayName={displayName}
+            partyName={partyName}
+            loading={loading}
+            mobile
+            onNavigate={() => setMenuOpen(false)}
+          />
         </nav>
       </EditorDialog>
     </>
+  );
+}
+
+function SidebarAccount({
+  displayName,
+  partyName,
+  loading,
+  mobile = false,
+  onNavigate,
+}: SidebarProps & { mobile?: boolean; onNavigate?: () => void }) {
+  const accountClass = mobile ? "sidebar-link" : "text-xs text-muted-foreground";
+  if (loading) {
+    return (
+      <div
+        className={`${mobile ? "mt-4 min-h-[88px] border-t pt-3" : "mt-auto min-h-[76px] border-t pt-4"} border-border`}
+      >
+        <span className="sr-only">Загрузка профиля и группы</span>
+        <div className={`h-3 w-28 animate-pulse rounded bg-muted ${mobile ? "mx-3" : ""}`} />
+        <div className={`mt-2 h-3 w-20 animate-pulse rounded bg-muted ${mobile ? "mx-3" : ""}`} />
+      </div>
+    );
+  }
+  return (
+    <div className={`${mobile ? "mt-4 border-t pt-3" : "mt-auto border-t pt-4"} border-border`}>
+      <p className={`truncate font-medium ${mobile ? "px-3 text-xs" : "text-xs"}`}>{partyName}</p>
+      <p className={`mt-1 truncate text-muted-foreground ${mobile ? "px-3 text-xs" : "text-xs"}`}>
+        {displayName}
+      </p>
+      <div className={`${mobile ? "mt-2 space-y-1" : "mt-2 flex items-center gap-2"}`}>
+        <Link href="/profile" onClick={onNavigate} className={accountClass}>
+          Мой профиль
+        </Link>
+        {mobile && <span className="sr-only"> · </span>}
+        <Link href="/parties" onClick={onNavigate} className={accountClass}>
+          Сменить группу
+        </Link>
+        <SignOutButton />
+      </div>
+    </div>
   );
 }
