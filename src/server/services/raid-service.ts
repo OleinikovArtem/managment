@@ -16,6 +16,8 @@ import {
   updatePartyRaidRecord,
 } from "@/server/repositories/raid-repository";
 import { RaidOperationError } from "@/features/raids/raid-errors";
+import { getInstanceSetup } from "@/server/repositories/instance-repository";
+import { prisma } from "@/lib/db/prisma";
 
 export class RaidNotFoundError extends RaidOperationError {
   constructor() {
@@ -69,12 +71,14 @@ export async function listRaids(partyId: string) {
 }
 
 export async function getRaidSetup(partyId: string) {
-  const [members, items, compositions] = await Promise.all([
+  const [members, items, compositions, catalog, lastRaid] = await Promise.all([
     listActivePartyMembers(partyId),
     listPartyRaidItems(partyId),
     listPartyCompositions(partyId),
+    getInstanceSetup(partyId),
+    prisma.raid.findFirst({ where: { partyId }, orderBy: [{ occurredAt: "desc" }, { id: "desc" }], select: { participants: { select: { memberId: true, profileId: true, status: true } } } }),
   ]);
-  return { members, items, compositions };
+  return { members, items, compositions, catalog, lastAttendance: lastRaid?.participants ?? [] };
 }
 
 export async function getRaid(partyId: string, raidId: string) {

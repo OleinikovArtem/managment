@@ -5,6 +5,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { raidIdSchema, raidInputSchema } from "@/features/raids/raid-schema";
 import type { RaidActionResult } from "@/features/raids/raid-action-result";
 import { RaidOperationError } from "@/features/raids/raid-errors";
+import { StageConflictError } from "@/features/instances/catalog-schema";
 import { requirePartyActionAccess } from "@/server/auth/party-access";
 import { recordPartyAuditEvent } from "@/server/services/party-audit-service";
 import {
@@ -37,6 +38,7 @@ export async function createRaidAction(payload: unknown): Promise<RaidActionResu
     revalidatePath("/loot");
     return { ok: true, message: "Рейд сохранён.", raidId };
   } catch (error) {
+    if (error instanceof StageConflictError) return { ok: false, message: error.message, stageConflict: true };
     if (error instanceof RaidOperationError) {
       return { ok: false, message: error.message };
     }

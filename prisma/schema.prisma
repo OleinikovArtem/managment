@@ -115,6 +115,13 @@ model Party {
   name               String
   createdAt          DateTime                @default(now())
   updatedAt          DateTime                @updatedAt
+  selectedStageId    String?
+  stageSelectionRevision Int @default(0)
+  selectedStage      ServerStage? @relation(fields: [selectedStageId], references: [id], onDelete: Restrict)
+  customItems        Item[]
+  customInstances    Instance[]
+  customLootPresets  PartyInstanceLootPreset[]
+  quickLootItems     PartyQuickLootItem[]
   memberships        PartyMembership[]
   invitations        PartyInvitation[]
   telegramBotConfig  PartyTelegramBotConfig?
@@ -131,6 +138,7 @@ model Party {
   ledgerEntries      LedgerEntry[]
   telegramImports    TelegramSaleImport[]
   telegramAliases    TelegramItemAlias[]
+  @@index([selectedStageId])
 }
 
 model PartyTelegramBotConfig {
@@ -340,6 +348,9 @@ model PartyCompositionMember {
 model Item {
   telegramAliases TelegramItemAlias[]
   id             String   @id @default(cuid())
+  partyId        String?
+  isActive       Boolean @default(true)
+  party          Party? @relation(fields: [partyId], references: [id], onDelete: Restrict)
   canonicalName  String
   normalizedName String
   displayName    String?
@@ -355,7 +366,12 @@ model Item {
 
   lootDrops LootDrop[]
 
-  @@unique([normalizedName])
+  stageRecommendations InstanceStageLootRecommendation[]
+  customPresetItems PartyInstanceLootPresetItem[]
+  quickLootItems PartyQuickLootItem[]
+  @@unique([partyId, normalizedName])
+  @@unique([partyId, id])
+  @@index([partyId, isActive, normalizedName])
   @@index([category])
 }
 
@@ -364,6 +380,15 @@ model Raid {
   partyId        String
   name           String
   instanceName   String?
+  instanceId     String?
+  stageId        String?
+  stageCodeSnapshot String?
+  stageNameSnapshot String?
+  stageRevisionSnapshot Int?
+  creationKey    String?
+  creationPayloadHash String?
+  instance       Instance? @relation(fields: [instanceId], references: [id], onDelete: Restrict)
+  stage          ServerStage? @relation(fields: [stageId], references: [id], onDelete: Restrict)
   occurredAt     DateTime
   screenshotPath String?
   comment        String?
@@ -380,6 +405,133 @@ model Raid {
 
   @@unique([partyId, id])
   @@index([partyId, occurredAt])
+  @@unique([partyId, creationKey])
+  @@index([partyId, instanceId])
+  @@index([partyId, stageId, occurredAt])
+}
+
+enum InstanceSource {
+  H5
+  SERVER_VARIANT
+  CUSTOM
+}
+
+model Instance {
+  id String @id @default(cuid())
+  code String @unique
+  name String
+  displayName String
+  normalizedName String
+  aliases String[]
+  category String
+  source InstanceSource
+  partyId String?
+  imagePath String?
+  isActive Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  party Party? @relation(fields: [partyId], references: [id], onDelete: Restrict)
+  raids Raid[]
+  recommendations InstanceStageLootRecommendation[]
+  customPresets PartyInstanceLootPreset[]
+  @@unique([partyId, id])
+  @@unique([partyId, normalizedName])
+  @@index([partyId, isActive])
+}
+
+model ServerStage {
+  id String @id @default(cuid())
+  code String @unique
+  name String
+  sequence Int @unique
+  isSelectable Boolean @default(false)
+  publishedAt DateTime?
+  revision Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  parties Party[]
+  raids Raid[]
+  configurations ServerStageConfig[]
+  recommendations InstanceStageLootRecommendation[]
+  auditEvents ServerStageAuditEvent[]
+}
+
+model ServerStageConfig {
+  id String @id
+  explicitCurrentStageId String?
+  revision Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  explicitCurrentStage ServerStage? @relation(fields: [explicitCurrentStageId], references: [id], onDelete: Restrict)
+}
+
+model InstanceStageLootRecommendation {
+  id String @id @default(cuid())
+  instanceId String
+  stageId String
+  itemId String
+  sortOrder Int
+  sourceMetadata Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  instance Instance @relation(fields: [instanceId], references: [id], onDelete: Restrict)
+  stage ServerStage @relation(fields: [stageId], references: [id], onDelete: Restrict)
+  item Item @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  @@unique([instanceId, stageId, itemId])
+  @@index([stageId, instanceId, sortOrder])
+  @@index([itemId])
+}
+
+model PartyInstanceLootPreset {
+  id String @id @default(cuid())
+  partyId String
+  instanceId String
+  sourceLabel String?
+  revision Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  party Party @relation(fields: [partyId], references: [id], onDelete: Restrict)
+  instance Instance @relation(fields: [partyId, instanceId], references: [partyId, id], onDelete: Restrict)
+  items PartyInstanceLootPresetItem[]
+  @@unique([partyId, instanceId])
+  @@unique([partyId, id])
+}
+
+model PartyInstanceLootPresetItem {
+  id String @id @default(cuid())
+  partyId String
+  presetId String
+  itemId String
+  sortOrder Int
+  preset PartyInstanceLootPreset @relation(fields: [partyId, presetId], references: [partyId, id], onDelete: Cascade)
+  item Item @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  @@unique([presetId, itemId])
+  @@index([partyId, presetId, sortOrder])
+}
+
+model PartyQuickLootItem {
+  partyId String
+  itemId String
+  sortOrder Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  party Party @relation(fields: [partyId], references: [id], onDelete: Restrict)
+  item Item @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  @@id([partyId, itemId])
+}
+
+model ServerStageAuditEvent {
+  id String @id @default(cuid())
+  stageId String?
+  action String
+  actor String
+  sourceLabel String?
+  idempotencyKey String @unique
+  beforeState Json?
+  afterState Json?
+  createdAt DateTime @default(now())
+  stage ServerStage? @relation(fields: [stageId], references: [id], onDelete: Restrict)
+  @@index([stageId, createdAt])
 }
 
 model RaidParticipant {

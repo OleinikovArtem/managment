@@ -1,0 +1,63 @@
+{
+  "stage": { "code": "STAGE_1", "name": "Stage 1", "sequence": 1 },
+  "sources": {
+    "labyrinth": {
+      "instanceCode": "LAB_78",
+      "sourceLabel": "BOHPTS Labyrinth of the Abyss (78), Stage 1",
+      "tableNote": "SA 11-12 — 5% (one)",
+      "sourceFile": "prompts/дроп.md",
+      "items": [
+        { "name": "Elysian", "category": "Weapon", "quantity": "1", "groupChance": "7.6923% (№1 — 7.5%)" },
+        { "name": "Doom Crusher", "category": "Weapon", "quantity": "1", "groupChance": "7.6923% (№1 — 7.5%)" },
+        { "name": "Tallum Glaive", "category": "Weapon", "quantity": "1", "groupChance": "7.6923% (№1 — 7.5%)" },
+        { "name": "Dark Legion's Edge", "category": "Weapon", "quantity": "1", "groupChance": "7.6923% (№1 — 7.5%)" },
+        { "name": "Dragon Slayer", "category": "Weapon", "quantity": "1", "groupChance": "7.6923% (№1 — 7.5%)" },
+        { "name": "Soul Separator", "category": "Weapon", "quantity": "1", "groupChance": "7.6923% (№1 — 7.5%)" },
+        { "name": "Soul Bow", "category": "Weapon", "quantity": "1", "groupChance": "7.6923% (№1 — 7.5%)" },
+        { "name": "Dragon Grinder", "category": "Weapon", "quantity": "1", "groupChance": "7.6923% (№1 — 7.5%)" },
+        { "name": "Flaming Dragon Skull", "category": "Weapon", "quantity": "1", "groupChance": "7.6923% (№1 — 7.5%)" },
+        { "name": "Sword of Miracles", "category": "Weapon", "quantity": "1", "groupChance": "7.6923% (№1 — 7.5%)" },
+        { "name": "Branch of the Mother Tree", "category": "Weapon", "quantity": "1", "groupChance": "7.6923% (№1 — 7.5%)" },
+        { "name": "Keshanberk*Damascus", "category": "Weapon", "quantity": "1", "groupChance": "7.6923% (№1 — 7.5%)" },
+        { "name": "Damascus*Damascus", "category": "Weapon", "quantity": "1", "groupChance": "7.6923% (№1 — 7.5%)" },
+        { "name": "Blessed Scroll: Enchant Armor (B-grade)", "category": "Enchant Scroll", "quantity": "1", "groupChance": "75% (№2 — 100%)" },
+        { "name": "Blessed Scroll: Enchant Weapon (B-grade)", "category": "Enchant Scroll", "quantity": "1", "groupChance": "25% (№2 — 100%)" },
+        { "name": "Scroll: Enchant Armor (A-grade)", "category": "Enchant Scroll", "quantity": "1-2", "groupChance": "75% (№3 — 100%)" },
+        { "name": "Scroll: Enchant Weapon (A-grade)", "category": "Enchant Scroll", "quantity": "1", "groupChance": "25% (№3 — 100%)" },
+        { "name": "Blessed Scroll: Enchant Armor (A-grade)", "category": "Enchant Scroll", "quantity": "1", "groupChance": "75% (№4 — 50%)" },
+        { "name": "Blessed Scroll: Enchant Weapon (A-grade)", "category": "Enchant Scroll", "quantity": "1", "groupChance": "25% (№4 — 50%)" },
+        { "name": "Lucky Enchant Stone: Armor (B-grade)", "category": "Enchant Scroll", "quantity": "1", "groupChance": "75% (№5 — 50%)" },
+        { "name": "Lucky Enchant Stone: Weapon (B-grade)", "category": "Enchant Scroll", "quantity": "1", "groupChance": "25% (№5 — 50%)" },
+        { "name": "Lucky Enchant Stone: Armor (A-grade)", "category": "Enchant Scroll", "quantity": "1", "groupChance": "75% (№6 — 25%)" },
+        { "name": "Lucky Enchant Stone: Weapon (A-grade)", "category": "Enchant Scroll", "quantity": "1", "groupChance": "25% (№6 — 25%)" },
+        { "name": "Life Stone", "category": "Materials", "quantity": "2-3", "groupChance": "100%" },
+        { "name": "Mid-grade Life Stone", "category": "Materials", "quantity": "1-3", "groupChance": "100%" },
+        { "name": "High-grade Life Stone", "category": "Materials", "quantity": "1-2", "groupChance": "100%" },
+        { "name": "Top-grade Life Stone", "category": "Materials", "quantity": "1", "groupChance": "100%" },
+        { "name": "Giant's Codex", "category": "Enchant Scroll", "quantity": "1", "groupChance": "75% (№7 — 30%)" },
+        { "name": "Giant's Codex - Mastery", "category": "Enchant Scroll", "quantity": "1", "groupChance": "25% (№7 — 30%)" },
+        { "name": "CRP Scroll (500)", "category": "Materials", "quantity": "1", "groupChance": "100%" }
+      ]
+    },
+    "fortress": {
+      "instanceCode": "FORTRESS_DUNGEON",
+      "sourceLabel": "BOHPTS Fortress/Castle Dungeon table, Stage 1",
+      "tableNote": "SA 10-12 — 5% (one)",
+      "sourceFile": "prompts/Снимок экрана 2026-11-06 222048.png",
+      "items": [
+        { "name": "Scroll: Enchant Armor (A-grade)", "category": "Enchant Scroll", "quantity": "1-2", "groupChance": "75% (№1 — 50%)" },
+        { "name": "Scroll: Enchant Weapon (A-grade)", "category": "Enchant Scroll", "quantity": "1", "groupChance": "25% (№1 — 50%)" },
+        { "name": "Blessed Scroll: Enchant Armor (A-grade)", "category": "Enchant Scroll", "quantity": "1", "groupChance": "75% (№2 — 25%)" },
+        { "name": "Blessed Scroll: Enchant Weapon (A-grade)", "category": "Enchant Scroll", "quantity": "1", "groupChance": "25% (№2 — 25%)" },
+        { "name": "Lucky Enchant Stone: Armor (B-grade)", "category": "Enchant Scroll", "quantity": "1", "groupChance": "75% (№3 — 25%)" },
+        { "name": "Lucky Enchant Stone: Weapon (B-grade)", "category": "Enchant Scroll", "quantity": "1", "groupChance": "25% (№3 — 25%)" },
+        { "name": "Lucky Enchant Stone: Armor (A-grade)", "category": "Enchant Scroll", "quantity": "1", "groupChance": "75% (№4 — 12.5%)" },
+        { "name": "Lucky Enchant Stone: Weapon (A-grade)", "category": "Enchant Scroll", "quantity": "1", "groupChance": "25% (№4 — 12.5%)" },
+        { "name": "Life Stone", "category": "Materials", "quantity": "1-3", "groupChance": "100%" },
+        { "name": "Mid-grade Life Stone", "category": "Materials", "quantity": "1-2", "groupChance": "100%" },
+        { "name": "High-grade Life Stone", "category": "Materials", "quantity": "1", "groupChance": "100%" },
+        { "name": "Top-grade Life Stone", "category": "Materials", "quantity": "1", "groupChance": "75%" }
+      ]
+    }
+  }
+}

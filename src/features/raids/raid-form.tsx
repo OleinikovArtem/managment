@@ -1,310 +1,166 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { CheckCheck, MoreHorizontal, Plus, Save, Trash2 } from "lucide-react";
+import { Plus, ChevronDown, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DateInput } from "@/components/ui/date-input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  createRaidAction,
-  updateRaidAction,
-} from "@/app/(dashboard)/raids/actions";
-import type { RaidActionResult } from "@/features/raids/raid-action-result";
-import {
-  localDateTimeToUtc,
-  toLocalDateTimeInput,
-} from "@/features/raids/local-date-time";
-import {
-  raidFormSchema,
-  type RaidFormValues,
-} from "@/features/raids/raid-schema";
-import { ItemCombobox } from "@/features/raids/item-combobox";
+import { EditorDialog } from "@/components/ui/editor-dialog";
 import { GameIcon } from "@/components/ui/game-icon";
+import { createRaidAction, updateRaidAction } from "@/app/(dashboard)/raids/actions";
+import { createInstanceAction, loadRaidCatalogAction, loadRaidSetupAction, manageInstanceAction, saveLootPresetAction, searchRaidItemsAction } from "@/app/(dashboard)/raids/catalog-actions";
+import type { CatalogItemOption, InstanceOption, StageContext, StageOption } from "@/features/instances/catalog-schema";
+import { raidFormSchema, type RaidFormValues } from "./raid-schema";
+import { localDateTimeToUtc, toLocalDateTimeInput } from "./local-date-time";
+import { InstancePicker } from "./instance-picker";
+import { RaidProfilePicker } from "./profile-picker";
+import { LootPicker } from "./loot-picker";
+import "./raid-form.css";
 
-export type RaidMemberOption = {
-  id: string;
-  nickname: string;
-  status: "PRESENT" | "ABSENT";
-  className?: string | null;
-  role?: string | null;
-  level?: number | null;
-  profiles?: { id: string; name: string; className: string; role: string | null; level: number | null; subclassSlot?: number | null }[];
-};
-
+export type RaidMemberOption = { id: string; nickname: string; status: "PRESENT" | "ABSENT"; className?: string | null; role?: string | null; level?: number | null; profiles?: { id: string; name: string; className: string; role: string | null; level: number | null; subclassSlot?: number | null }[] };
+export type RaidItemOption = CatalogItemOption;
 export type RaidCompositionOption = { id: string; name: string; focus: string | null; slots: { memberId: string; profileId: string | null }[] };
+type Props = { members: RaidMemberOption[]; items: RaidItemOption[]; compositions?: RaidCompositionOption[]; initialValues?: Omit<RaidFormValues,"occurredAt"> & { occurredAt: string }; raidId?: string; submitLabel: string; instances: InstanceOption[]; stages: StageOption[]; defaultStage: StageContext; historicalStageName?: string | null; lastAttendance?: { memberId: string; profileId: string | null; status: "PRESENT" | "ABSENT" }[] };
 
-export type RaidItemOption = {
-  id: string;
-  canonicalName: string;
-  displayName: string | null;
-};
-
-type RaidInitialValues = Omit<RaidFormValues, "occurredAt"> & {
-  occurredAt: string;
-};
-
-type RaidFormProps = {
-  members: RaidMemberOption[];
-  items: RaidItemOption[];
-  compositions?: RaidCompositionOption[];
-  initialValues?: RaidInitialValues;
-  raidId?: string;
-  submitLabel: string;
-};
-
-export function RaidForm({
-  members,
-  items,
-  compositions = [],
-  initialValues,
-  raidId,
-  submitLabel,
-}: RaidFormProps) {
+export function RaidForm({ members, items, compositions = [], initialValues, raidId, submitLabel, instances: originalInstances, stages: originalStages, defaultStage, historicalStageName, lastAttendance = [] }: Props) {
   const router = useRouter();
-  const [message, setMessage] = useState<string | null>(null);
-  const [expandedLoot, setExpandedLoot] = useState<Record<string, boolean>>({});
   const [isPending, startTransition] = useTransition();
-  const form = useForm<RaidFormValues>({
-    resolver: zodResolver(raidFormSchema),
-    defaultValues: initialValues
-      ? {
-          ...initialValues,
-          occurredAt: toLocalDateTimeInput(initialValues.occurredAt),
-        }
-      : {
-          name: "",
-          compositionId: undefined,
-          instanceName: "",
-          occurredAt: toLocalDateTimeInput(new Date()),
-          comment: "",
-          participants: members.map(({ id, status }) => ({
-            memberId: id,
-            status,
-            profileId: undefined,
-          })),
-          lootDrops: [],
-        },
-  });
-  const participants = useFieldArray({ control: form.control, name: "participants" });
-  const lootDrops = useFieldArray({ control: form.control, name: "lootDrops" });
-  const participantValues = useWatch({ control: form.control, name: "participants" }) ?? [];
-  const lootDropValues = useWatch({ control: form.control, name: "lootDrops" }) ?? [];
-  const occurredAt = useWatch({ control: form.control, name: "occurredAt" });
+  const [message, setMessage] = useState("");
+  const [stageConflict, setStageConflict] = useState(false);
+  const [instances, setInstances] = useState(originalInstances);
+  const [stages, setStages] = useState(originalStages);
+  const [stageOpen, setStageOpen] = useState(false);
+  const stageRoot = useRef<HTMLDivElement>(null);
+  const [viewStage, setViewStage] = useState<StageContext>(raidId ? { stageId: initialValues?.stageId ?? null, revision: initialValues?.stageRevision ?? null } : defaultStage);
+  const [recommendations, setRecommendations] = useState<CatalogItemOption[]>([]);
+  const [quick, setQuick] = useState<CatalogItemOption[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [loadedCatalogKey, setLoadedCatalogKey] = useState<string | null>(null);
+  const [catalogError, setCatalogError] = useState("");
+  const [reload, setReload] = useState(0);
+  const [dialog, setDialog] = useState<"create"|"manage"|"preset"|null>(null);
+  const [instanceName, setInstanceName] = useState("");
+  const [presetKind, setPresetKind] = useState<"custom"|"quick">("custom");
+  const [presetIds, setPresetIds] = useState<string[]>([]);
+  const [presetItems, setPresetItems] = useState(items);
+  const [presetQuery, setPresetQuery] = useState("");
+  const [dialogMessage, setDialogMessage] = useState("");
+  const [catalogPending, setCatalogPending] = useState(false);
+  const form = useForm<RaidFormValues>({ resolver: zodResolver(raidFormSchema), defaultValues: initialValues ? { ...initialValues, occurredAt: toLocalDateTimeInput(initialValues.occurredAt) } : { name: "", instanceName: "", instanceId: null, stageId: defaultStage.stageId, stageRevision: defaultStage.revision, occurredAt: toLocalDateTimeInput(new Date()), comment: "", participants: members.map(member => ({ memberId: member.id, status: member.status })), lootDrops: [] } });
+  const instanceId = useWatch({ control: form.control, name: "instanceId" }) ?? null;
+  const participants = useWatch({ control: form.control, name: "participants" }) ?? [];
+  const loot = useWatch({ control: form.control, name: "lootDrops" }) ?? [];
   const compositionId = useWatch({ control: form.control, name: "compositionId" });
-  const presentCount = participantValues.filter(({ status }) => status === "PRESENT").length;
-  const allPresent = members.length > 0 && presentCount === members.length;
+  const occurredAt = useWatch({ control: form.control, name: "occurredAt" });
+  const instance = instances.find(row => row.id === instanceId);
+  const catalogKey = `${instanceId ?? ""}/${viewStage.stageId ?? ""}/${viewStage.revision ?? ""}/${reload}`;
+  const stageName = stages.find(row => row.id === viewStage.stageId)?.name ?? (raidId ? historicalStageName : null) ?? (viewStage.stageId ? "Стадия недоступна" : "Без стадии");
+  const presentCount = participants.filter(row => row.status === "PRESENT").length;
+  const creationKey = useRef<string | null>(null);
 
-  function applyComposition(compositionId: string) {
-    if (form.formState.dirtyFields.participants && !window.confirm("Заменить ручной выбор участников и профилей выбранным составом?")) return;
-    const composition = compositions.find((item) => item.id === compositionId);
-    form.setValue("compositionId", compositionId || undefined, { shouldDirty: true });
-    if (!composition) return;
-    members.forEach((member, index) => {
-      const slot = composition.slots.find((item) => item.memberId === member.id);
-      form.setValue(`participants.${index}.status`, slot ? "PRESENT" : "ABSENT", { shouldDirty: true, shouldValidate: true });
-      form.setValue(`participants.${index}.profileId`, slot?.profileId ?? undefined, { shouldDirty: true, shouldValidate: true });
-    });
+  useEffect(() => {
+    function close(event: PointerEvent | KeyboardEvent) { if (event instanceof KeyboardEvent && event.key === "Escape") { setStageOpen(false); if (stageRoot.current?.contains(document.activeElement)) stageRoot.current.querySelector("button")?.focus(); } else if (event instanceof PointerEvent && !stageRoot.current?.contains(event.target as Node)) setStageOpen(false); }
+    document.addEventListener("pointerdown",close); document.addEventListener("keydown",close);
+    return () => { document.removeEventListener("pointerdown",close); document.removeEventListener("keydown",close); };
+  }, []);
+  useEffect(() => {
+    let active = true;
+    // Only recommendation state changes. Never reset, replace or re-key the form.
+    const timer = setTimeout(() => {
+      setCatalogLoading(true); setCatalogError("");
+      loadRaidCatalogAction(instanceId, viewStage).then(result => {
+        if (!active) return;
+        if (!result.ok) { setCatalogError(result.message); return; }
+        setRecommendations(result.data.items); setQuick(result.data.quick);
+        setLoadedCatalogKey(catalogKey);
+        // A new revision requires explicit acknowledgement through Refresh, not silent adoption.
+        if (result.data.context.revision !== viewStage.revision && !raidId) { setStageConflict(true); setCatalogError("Набор изменился. Обновите рекомендации перед сохранением."); }
+      }).catch(() => { if (active) setCatalogError("Не удалось загрузить рекомендации. Повторите запрос."); }).finally(() => { if (active) setCatalogLoading(false); });
+    },0);
+    return () => { active=false; clearTimeout(timer); };
+  }, [instanceId, viewStage, reload, raidId, catalogKey]);
+  useEffect(() => {
+    if (dialog !== "preset") return;
+    let active = true;
+    const timer = setTimeout(() => { searchRaidItemsAction(presetQuery).then(rows => { if (active) setPresetItems(rows); }).catch(() => { if (active) setDialogMessage("Не удалось загрузить каталог."); }); },180);
+    return () => { active=false; clearTimeout(timer); };
+  }, [dialog,presetQuery]);
+
+  async function refreshRecommendations() {
+    setCatalogLoading(true);
+    try {
+      const setup = await loadRaidSetupAction(); setStages(setup.stages.available); setInstances(setup.instances);
+      const current = setup.stages.available.find(row => row.id === viewStage.stageId);
+      if (viewStage.stageId && !current) { setCatalogError("Стадия недоступна. Выберите другую; введённые данные сохранены."); setStageConflict(true); return; }
+      const next = { stageId: current?.id ?? null, revision: current?.revision ?? null };
+      if (!raidId) { form.setValue("stageId",next.stageId); form.setValue("stageRevision",next.revision); }
+      setViewStage(next); setStageConflict(false); setReload(count => count+1);
+    } catch { setCatalogError("Не удалось обновить рекомендации. Попробуйте ещё раз."); }
+    finally { setCatalogLoading(false); }
   }
-
-  function setAllParticipantStatuses(status: "PRESENT" | "ABSENT") {
-    members.forEach((_, index) => {
-      form.setValue(`participants.${index}.status`, status, {
-        shouldDirty: true,
-        shouldValidate: true,
-      });
-    });
+  function chooseStage(id: string) {
+    const chosen = stages.find(row => row.id === id); if (!chosen) return;
+    const context = { stageId: chosen.id, revision: chosen.revision };
+    setViewStage(context); setStageOpen(false); setStageConflict(false);
+    stageRoot.current?.querySelector("button")?.focus();
+    if (!raidId) { form.setValue("stageId",context.stageId,{shouldDirty:true}); form.setValue("stageRevision",context.revision,{shouldDirty:true}); }
   }
-
-  const onSubmit = form.handleSubmit((values) => {
-    setMessage(null);
-    const occurredAt = localDateTimeToUtc(values.occurredAt);
-    if (!occurredAt) {
-      setMessage("Это локальное время недопустимо или неоднозначно из-за перевода часов.");
-      return;
-    }
-
+  function chooseRoster(slots: { memberId: string; profileId: string | null; status?: "PRESENT"|"ABSENT" }[]) {
+    if (raidId) return false;
+    if (form.formState.dirtyFields.participants && !window.confirm("Заменить ручной выбор участников и профилей?")) return false;
+    members.forEach((member,index) => { const slot=slots.find(row => row.memberId===member.id); const profile=slot?.profileId && member.profiles?.some(row => row.id===slot.profileId) ? slot.profileId : undefined; form.setValue(`participants.${index}.status`,slot?.status ?? (slot ? "PRESENT" : "ABSENT"),{shouldDirty:true,shouldValidate:true}); form.setValue(`participants.${index}.profileId`,profile,{shouldDirty:true}); });
+    if (slots.some(slot=>slot.profileId&&members.some(member=>member.id===slot.memberId&&!member.profiles?.some(profile=>profile.id===slot.profileId)))) toast.info("Недоступные профили заменены на Main.");
+    return true;
+  }
+  async function mutateDialog(work: () => Promise<void>) { setCatalogPending(true); setDialogMessage(""); try { await work(); } catch { setDialogMessage("Не удалось сохранить. Попробуйте ещё раз."); } finally { setCatalogPending(false); } }
+  function submit(event: FormEvent<HTMLFormElement>) {
+    if (event.target !== event.currentTarget) return;
+    void form.handleSubmit(values => {
+    const utc=localDateTimeToUtc(values.occurredAt); if (!utc) { setMessage("Время недопустимо или неоднозначно из-за перевода часов."); return; }
+    if (!creationKey.current) creationKey.current=crypto.randomUUID();
+    setMessage("");
     startTransition(async () => {
-      const payload = { ...values, occurredAt };
-      const result: RaidActionResult = raidId
-        ? await updateRaidAction(raidId, payload)
-        : await createRaidAction(payload);
-      if (!result.ok) {
-        setMessage(result.message);
-        toast.error(result.message);
-        return;
-      }
-
-      toast.success(result.message);
-      router.push(`/raids/${result.raidId}`);
-      router.refresh();
+      try {
+        const payload={...values,occurredAt:utc,creationKey:raidId?undefined:creationKey.current!};
+        const result=raidId?await updateRaidAction(raidId,payload):await createRaidAction(payload);
+        if (!result.ok) { setMessage(result.message); if(result.stageConflict) { setStageConflict(true); setCatalogError(result.message); const setup=await loadRaidSetupAction();setStages(setup.stages.available); } toast.error(result.message); return; }
+        toast.success(result.message);router.push(`/raids/${result.raidId}`);router.refresh();
+      } catch { setMessage("Не удалось получить ответ. Повторите сохранение: ключ запроса защитит от дубликата."); }
     });
-  });
-
-  return (
-    <form className="space-y-6" onSubmit={onSubmit} noValidate>
-      <section className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <label htmlFor="raid-name" className="text-sm font-medium">
-            Название рейда <span className="text-destructive">*</span>
-          </label>
-          <Input
-            id="raid-name"
-            maxLength={120}
-            aria-invalid={Boolean(form.formState.errors.name)}
-            {...form.register("name")}
-          />
-          {form.formState.errors.name && (
-            <p className="text-xs text-destructive">{form.formState.errors.name.message}</p>
-          )}
-        </div>
-        {compositions.length > 0 && <div className="space-y-2 sm:col-span-2"><label htmlFor="raid-composition" className="text-sm font-medium">Профиль состава <span className="text-xs font-normal text-muted-foreground">(необязательно)</span></label><select id="raid-composition" value={compositionId ?? ""} onChange={(event) => applyComposition(event.target.value)} disabled={isPending} className="h-9 w-full rounded-lg border border-input bg-background/35 px-3 text-sm"><option value="">Без профиля — выбрать вручную</option>{compositions.map((composition) => <option key={composition.id} value={composition.id}>{composition.name}{composition.focus ? ` · ${composition.focus}` : ""}</option>)}</select><p className="text-xs text-muted-foreground">Профиль отметит участников присутствующими и оставит остальные места в снимке рейда.</p></div>}
-        <div className="space-y-2">
-          <label htmlFor="raid-instance" className="text-sm font-medium">
-            Инстанс <span className="text-xs text-muted-foreground">(необязательно)</span>
-          </label>
-          <Input id="raid-instance" maxLength={120} {...form.register("instanceName")} />
-        </div>
-        <div className="space-y-2">
-          <label htmlFor="raid-occurred-at" className="text-sm font-medium">
-            Дата и локальное время <span className="text-destructive">*</span>
-          </label>
-          <DateInput id="raid-occurred-at" value={occurredAt} withTime aria-invalid={Boolean(form.formState.errors.occurredAt)} onChange={(value) => form.setValue("occurredAt", value, { shouldDirty: true, shouldValidate: true })} />
-          <p className="text-xs text-muted-foreground">
-            Время в часовом поясе этого устройства.
-          </p>
-          {form.formState.errors.occurredAt && (
-            <p className="text-xs text-destructive">
-              {form.formState.errors.occurredAt.message}
-            </p>
-          )}
-        </div>
+    })(event);
+  }
+  return <>
+    <form className="raid-create-form" onSubmit={submit} noValidate>
+      <section className="raid-context-section" aria-label="Инстанс, дата и стадия"><div className="raid-context-row"><div className="raid-instance-field"><span className="raid-field-label">Инстанс</span><div className="flex items-center gap-1"><div className="min-w-0 flex-1"><InstancePicker rows={instances} value={instanceId} onChange={id => { form.setValue("instanceId",id,{shouldDirty:true}); form.setValue("instanceName",id?"":initialValues?.instanceName??"",{shouldDirty:true}); }} disabled={isPending} /></div><button type="button" className="raid-icon-button" aria-label="Свой инстанс" disabled={isPending} onClick={() => {setDialog("create");setInstanceName("");setDialogMessage("");}}><Plus size={18} aria-hidden="true" /></button></div></div><div className="raid-date-field"><label htmlFor="raid-time" className="raid-field-label">Дата и время</label><DateInput id="raid-time" withTime value={occurredAt} disabled={isPending} onChange={value => form.setValue("occurredAt",value,{shouldDirty:true,shouldValidate:true})} /></div><div className="raid-stage-field" ref={stageRoot}><span className="raid-field-label">{raidId ? "Рекомендации" : "Стадия"}</span><button type="button" className="raid-stage-button" aria-expanded={stageOpen} aria-controls="raid-stage-options" disabled={isPending || !stages.length} onClick={() => setStageOpen(open=>!open)}>{stageName}<ChevronDown size={14} aria-hidden="true" /></button>{stageOpen && <div className="raid-stage-popover" id="raid-stage-options"><p>Стадия {raidId?"для просмотра":"этого рейда"}</p>{stages.map(row => <button type="button" key={row.id} data-stage-id={row.id} aria-pressed={row.id===viewStage.stageId} onClick={()=>chooseStage(row.id)}>{row.name}{row.id===viewStage.stageId?" ✓":""}</button>)}<small>Не меняет настройки пати</small></div>}</div></div>
+        <div className="flex flex-wrap items-center gap-x-4"><details className="raid-optional-name"><summary>Своё название <span>необязательно</span></summary><label className="sr-only" htmlFor="raid-name">Название рейда</label><Input id="raid-name" maxLength={120} placeholder="Например, вечерний заход" disabled={isPending} {...form.register("name")} /></details><Button type="button" variant="ghost" size="sm" onClick={()=>{setDialog("manage");setDialogMessage("");}} disabled={isPending}><Settings2 size={14} aria-hidden="true" />Мои инстансы</Button></div>
+        {raidId && <p className="mt-2 text-xs text-muted-foreground">Стадия рейда: {historicalStageName || "не указана"}. Текущий выбор рекомендаций её не изменяет.</p>}
+        {form.formState.errors.occurredAt && <p role="alert" className="text-sm text-destructive">{form.formState.errors.occurredAt.message}</p>}
       </section>
-
-      <section className="space-y-3">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="font-medium">Состав группы на момент рейда</h2>
-            <p className="text-sm text-muted-foreground">
-              Отметьте присутствующих. Снимок сохраняет всех участников, а статус можно изменить до сохранения.
-            </p>
-          </div>
-          {members.length > 0 && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setAllParticipantStatuses(allPresent ? "ABSENT" : "PRESENT")}
-              disabled={isPending}
-              aria-label={allPresent ? "Снять отметку со всех участников" : "Отметить всех участников присутствующими"}
-            >
-              <CheckCheck aria-hidden="true" />
-              {allPresent ? "Снять всех" : "Отметить всех"}
-            </Button>
-          )}
-        </div>
-        {members.length === 0 ? (
-          <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-            Для создания рейда сначала добавьте участника в разделе «Участники».
-          </div>
-        ) : (
-          <>
-            <p className="text-xs font-medium text-muted-foreground" aria-live="polite">
-              Присутствуют: <span className="text-foreground">{presentCount} из {members.length}</span>
-            </p>
-            <ul className="grid gap-2 sm:grid-cols-2">
-            {members.map((member, index) => {
-              const isPresent = participantValues[index]?.status === "PRESENT";
-              return (
-                <li key={participants.fields[index]?.id ?? member.id}>
-                  <div className={`attendance-row ${isPresent ? "bg-muted/40" : ""}`}>
-                  <label className="flex min-w-0 cursor-pointer items-center gap-3">
-                    <input
-                      type="checkbox"
-                      aria-label={`${isPresent ? "Убрать присутствие" : "Отметить присутствие"}: ${member.nickname}`}
-                      checked={isPresent}
-                      disabled={isPending}
-                      onChange={(event) =>
-                        form.setValue(
-                          `participants.${index}.status`,
-                          event.target.checked ? "PRESENT" : "ABSENT",
-                          { shouldDirty: true, shouldValidate: true },
-                        )
-                      }
-                    />
-                    <span className="min-w-0 flex-1"><span className="block break-words text-sm">{member.nickname}</span>{(member.className || member.role) && <span className="mt-1 block text-xs text-muted-foreground">{[member.className, member.role].filter(Boolean).join(" · ")}</span>}</span>
-                  </label>
-                    {isPresent && (member.profiles?.length ?? 0) > 0 && <select aria-label={`Профиль ${member.nickname}`} className="min-w-0 w-full" value={participantValues[index]?.profileId ?? ""} disabled={isPending} onChange={(event) => form.setValue(`participants.${index}.profileId`, event.target.value || undefined, { shouldDirty: true, shouldValidate: true })}><option value="">Main{member.className ? ` · ${member.className}` : ""}</option>{member.profiles?.map((profile) => <option key={profile.id} value={profile.id}>{profile.subclassSlot ? `Subclass ${profile.subclassSlot}` : profile.name} · {profile.className}</option>)}</select>}
-                  </div>
-                </li>
-              );
-            })}
-            </ul>
-          </>
-        )}
-        {(form.formState.errors.participants?.message ??
-          form.formState.errors.participants?.root?.message) && (
-          <p className="text-xs text-destructive">
-            {form.formState.errors.participants.message ??
-              form.formState.errors.participants.root?.message}
-          </p>
-        )}
+      <section className="raid-roster-section"><div className="raid-section-heading"><div className="flex items-center gap-2"><h2>Участники</h2><span className="raid-count">{presentCount} из {members.length}</span></div><div className="flex gap-1">{[true,false].map(present=><Button type="button" variant="ghost" size="sm" disabled={isPending} key={String(present)} onClick={()=>members.forEach((_,index)=>form.setValue(`participants.${index}.status`,present?"PRESENT":"ABSENT",{shouldDirty:true,shouldValidate:true}))}>{present?"Все":"Снять"}</Button>)}</div></div>
+        {!raidId && <div className="raid-composition-line"><label htmlFor="raid-composition">Шаблон состава</label><select id="raid-composition" value={compositionId??""} disabled={isPending} onChange={event=>{const composition=compositions.find(row=>row.id===event.target.value);if(composition&&!chooseRoster(composition.slots))return;form.setValue("compositionId",event.target.value||undefined,{shouldDirty:true});}}><option value="">Выбрать вручную</option>{compositions.map(row=><option key={row.id} value={row.id}>{row.name}</option>)}</select>{lastAttendance.length>0&&<Button type="button" variant="ghost" size="sm" disabled={isPending} onClick={()=>chooseRoster(lastAttendance)}>Как в прошлом рейде</Button>}</div>}
+        {!members.length && <p className="empty-state">Сначала добавьте участников группы.</p>}
+        <div className="raid-member-grid">{members.map((member,index)=>{const row=participants[index];const present=row?.status==="PRESENT";const profile=member.profiles?.find(profile=>profile.id===row?.profileId);const className=profile?.className??member.className;return <div key={member.id} className={`raid-member ${present?"is-present":""}`}><label><input type="checkbox" checked={present} disabled={isPending} onChange={event=>form.setValue(`participants.${index}.status`,event.target.checked?"PRESENT":"ABSENT",{shouldDirty:true,shouldValidate:true})}/>{className&&<GameIcon kind="class" name={className} size="sm"/>}<span>{member.nickname}</span><small>{present?"В рейде":"Отсутствует"}</small></label><RaidProfilePicker member={member} value={row?.profileId} disabled={isPending} onChange={id=>form.setValue(`participants.${index}.profileId`,id,{shouldDirty:true})}/></div>;})}</div>
+        {form.formState.errors.participants&&<p role="alert" className="mt-2 text-sm text-destructive">{form.formState.errors.participants.message??form.formState.errors.participants.root?.message}</p>}
       </section>
-
-      <section className="space-y-3 border-t border-border pt-5">
-        <div>
-          <div className="flex items-center gap-2"><h2 className="font-medium">Лут</h2><span className="text-xs text-muted-foreground">{lootDrops.fields.length} предметов</span></div>
-          <p className="text-sm text-muted-foreground">Выберите предмет — он сразу появится в компактной строке.</p>
-        </div>
-        {items.length === 0 ? (
-          <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">Каталог пока пуст. Сначала добавьте предмет в разделе «Предметы».</div>
-        ) : (
-          <>
-            <ItemCombobox id="loot-add-item" items={items} value="" onChange={(itemId) => lootDrops.append({ itemId, quantity: 1, comment: "" })} disabled={isPending} />
-            {lootDrops.fields.length === 0 ? <p className="py-3 text-xs text-muted-foreground">Пока ничего не добавлено.</p> : <ul className="divide-y divide-border/70">
-              {lootDrops.fields.map((field, index) => {
-                const item = items.find((option) => option.id === lootDropValues[index]?.itemId);
-                const historical = Boolean(form.getValues(`lootDrops.${index}.id`));
-                return <li key={field.id} className="py-2.5 first:pt-3 last:pb-0">
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <div className="min-w-0 flex-1">{item ? <div className="flex items-center gap-2"><GameIcon kind="item" name={item.displayName || item.canonicalName} size="sm" /><p className="truncate text-sm font-medium">{item.displayName || item.canonicalName}</p></div> : <p className="truncate text-sm font-medium">Предмет не выбран</p>}{historical && <p className="text-[11px] text-muted-foreground">Историческая запись</p>}</div>
-                    <Input aria-label={`Количество для выпадения ${index + 1}`} id={`loot-quantity-${index}`} type="number" min={1} max={1_000_000} step={1} className="w-20 text-right tabular-nums" {...form.register(`lootDrops.${index}.quantity`, { valueAsNumber: true })} />
-                    <Button type="button" variant="ghost" size="icon-sm" aria-label={`Дополнительные поля выпадения ${index + 1}`} aria-expanded={Boolean(expandedLoot[field.id])} onClick={() => setExpandedLoot((state) => ({ ...state, [field.id]: !state[field.id] }))} disabled={isPending}><MoreHorizontal aria-hidden="true" /></Button>
-                    {!historical && <Button type="button" variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-destructive" aria-label={`Удалить выпадение ${index + 1}`} onClick={() => lootDrops.remove(index)} disabled={isPending}><Trash2 aria-hidden="true" /></Button>}
-                  </div>
-                  {form.formState.errors.lootDrops?.[index]?.quantity && <p className="mt-1 text-right text-xs text-destructive">{form.formState.errors.lootDrops[index]?.quantity?.message}</p>}
-                  {expandedLoot[field.id] && <div className="mt-2 sm:pr-20"><label htmlFor={`loot-comment-${index}`} className="sr-only">Комментарий к выпадению</label><Input id={`loot-comment-${index}`} maxLength={500} placeholder="Комментарий к выпадению (необязательно)" {...form.register(`lootDrops.${index}.comment`)} /></div>}
-                </li>;
-              })}
-            </ul>}
-          </>
-        )}
+      <section><div className="raid-section-heading"><div className="flex items-center gap-2"><h2>Дроп</h2><span className="raid-count">{loot.length} позиций</span></div><p className="text-xs text-muted-foreground">Добавляйте только то, что выпало</p></div>
+        {catalogError&&<p role="alert" className="mb-3 text-sm text-destructive">{catalogError} <button type="button" className="underline" disabled={catalogLoading} onClick={refreshRecommendations}>Обновить рекомендации</button></p>}
+        <LootPicker value={loot} onChange={rows=>form.setValue("lootDrops",rows,{shouldDirty:true,shouldValidate:true})} initialItems={items} recommended={recommendations} quick={quick} disabled={isPending} loading={catalogLoading} custom={Boolean(instance?.partyId)} onPreset={kind=>{setPresetKind(kind);setPresetIds((kind==="quick"?quick:recommendations).map(row=>row.id));setDialog("preset");setDialogMessage("");}}/>
+        {form.formState.errors.lootDrops&&<p role="alert" className="mt-2 text-sm text-destructive">Проверьте количества: целое от 1 до 1 000 000; комментарий до 500 символов.</p>}
+        <details className="raid-comment-disclosure"><summary>Комментарий к рейду <span>необязательно</span></summary><label className="sr-only" htmlFor="raid-comment">Комментарий к рейду</label><Textarea id="raid-comment" maxLength={1000} rows={2} disabled={isPending} {...form.register("comment")}/></details>
       </section>
-
-      <details className="disclosure">
-        <summary className="text-sm">Заметка к рейду</summary>
-      <div className="space-y-2 pt-3">
-        <label htmlFor="raid-comment" className="sr-only">
-          Комментарий <span className="text-xs text-muted-foreground">(необязательно)</span>
-        </label>
-        <Textarea id="raid-comment" rows={3} maxLength={1000} {...form.register("comment")} />
-      </div>
-      </details>
-
-      {message && <p role="alert" className="text-sm text-destructive">{message}</p>}
-      <div className="flex flex-wrap gap-2">
-        <Button type="submit" disabled={isPending || members.length === 0}>
-          {initialValues ? <Save aria-hidden="true" /> : <Plus aria-hidden="true" />}
-          {isPending ? "Сохранение..." : submitLabel}
-        </Button>
-        <Button type="button" variant="ghost" onClick={() => { if (form.formState.isDirty && !window.confirm("Выйти без сохранения изменений рейда?")) return; router.push(raidId ? `/raids/${raidId}` : "/raids"); }} disabled={isPending}>
-          Отмена
-        </Button>
-      </div>
+      {message&&<p role="alert" className="text-sm text-destructive">{message}</p>}
+      <footer className="raid-save-bar"><div><strong>{instance?.displayName||initialValues?.instanceName||"Рейд"} · {raidId?historicalStageName||"Без стадии":stageName}</strong><span>{presentCount} участников · {loot.length} позиций добычи</span></div><div className="flex gap-2"><Button type="button" variant="ghost" disabled={isPending} onClick={()=>{if(form.formState.isDirty&&!window.confirm("Выйти без сохранения?"))return;router.push(raidId?`/raids/${raidId}`:"/raids");}}>Отмена</Button><Button type="submit" disabled={isPending||!presentCount||(!raidId&&(catalogLoading||loadedCatalogKey!==catalogKey||stageConflict||Boolean(catalogError)))}>{isPending?"Сохранение…":submitLabel}</Button></div></footer>
     </form>
-  );
+    <EditorDialog open={dialog!==null} onClose={()=>{if(!catalogPending)setDialog(null);}} title={dialog==="create"?"Свой инстанс":dialog==="preset"?"Набор быстрых предметов":"Мои инстансы"}>
+      {dialog==="create"&&<form onSubmit={event=>{event.preventDefault();void mutateDialog(async()=>{const result=await createInstanceAction(instanceName);if(!result.ok){setDialogMessage(result.message);return;}setInstances(rows=>[...rows,result.instance]);form.setValue("instanceId",result.instance.id,{shouldDirty:true});setDialog(null);});}}><label htmlFor="custom-instance-name" className="mb-2 block text-sm">Название</label><Input id="custom-instance-name" autoFocus maxLength={120} value={instanceName} onChange={event=>setInstanceName(event.target.value)}/><Button type="submit" className="mt-4" disabled={catalogPending||!instanceName.trim()}>Добавить инстанс</Button></form>}
+      {dialog==="manage"&&<div className="space-y-3">{instances.filter(row=>row.partyId).length===0&&<p className="text-sm text-muted-foreground">Своих инстансов пока нет.</p>}{instances.filter(row=>row.partyId).map(row=><div key={row.id} className="flex flex-wrap items-center gap-2 border-b border-border pb-3"><span className="min-w-0 flex-1 text-sm">{row.displayName}{!row.isActive?" · архив":""}</span><Button type="button" size="sm" variant="ghost" disabled={catalogPending} onClick={()=>{const name=window.prompt("Название инстанса",row.displayName);if(!name?.trim())return;void mutateDialog(async()=>{const result=await manageInstanceAction(row.id,{name});if(!result.ok){setDialogMessage(result.message);return;}setInstances((await loadRaidSetupAction()).instances);});}}>Переименовать</Button><Button type="button" size="sm" variant="outline" disabled={catalogPending} onClick={()=>void mutateDialog(async()=>{const result=await manageInstanceAction(row.id,{isActive:!row.isActive});if(!result.ok){setDialogMessage(result.message);return;}setInstances((await loadRaidSetupAction()).instances);})}>{row.isActive?"В архив":"Восстановить"}</Button></div>)}</div>}
+      {dialog==="preset"&&<><p className="mb-3 text-xs text-muted-foreground">Выбранный порядок сохранится для вашей группы. История рейдов не меняется.</p><Input aria-label="Найти предмет для набора" placeholder="Найти предмет…" value={presetQuery} onChange={event=>setPresetQuery(event.target.value)} maxLength={200}/><div className="my-3 max-h-56 overflow-auto">{presetItems.map(item=><label key={item.id} className="flex min-h-11 items-center gap-3 text-sm"><input type="checkbox" checked={presetIds.includes(item.id)} onChange={event=>setPresetIds(ids=>event.target.checked?[...ids,item.id]:ids.filter(id=>id!==item.id))}/>{item.displayName||item.canonicalName}</label>)}</div><p className="text-xs text-muted-foreground">Выбрано: {presetIds.length}</p><div className="mt-4 flex gap-2"><Button disabled={catalogPending} onClick={()=>void mutateDialog(async()=>{const result=await saveLootPresetAction(presetKind==="quick"?null:instanceId,presetIds);if(!result.ok){setDialogMessage(result.message);return;}setReload(count=>count+1);setDialog(null);})}>Сохранить набор</Button><Button variant="ghost" disabled={catalogPending} onClick={()=>setPresetIds([])}>Очистить набор</Button></div></>}
+      {dialogMessage&&<p role="alert" className="mt-3 text-sm text-destructive">{dialogMessage}</p>}
+    </EditorDialog>
+  </>;
 }

@@ -5,6 +5,7 @@ import { itemIdSchema, itemInputSchema } from "@/features/items/item-schema";
 import type { ItemActionResult } from "@/features/items/item-action-result";
 import { requirePartyActionAccess } from "@/server/auth/party-access";
 import { recordPartyAuditEvent } from "@/server/services/party-audit-service";
+import { setCustomItemActive } from "@/server/repositories/item-repository";
 import {
   createItem,
   DuplicateItemError,
@@ -26,7 +27,7 @@ export async function createItemAction(payload: unknown): Promise<ItemActionResu
   const { partyId } = access;
   try {
     const item = await createItem(partyId, parsed.data);
-    await recordPartyAuditEvent(access, { action: "CREATE", entityType: "item", entityId: item.id, summary: `Добавил предмет «${parsed.data.displayName || parsed.data.canonicalName}» в общий каталог.` });
+    await recordPartyAuditEvent(access, { action: "CREATE", entityType: "item", entityId: item.id, summary: `Добавил свой предмет «${parsed.data.displayName || parsed.data.canonicalName}».` });
     revalidatePath("/items");
     revalidatePath("/dashboard");
     return {
@@ -64,7 +65,7 @@ export async function updateItemAction(
   const { partyId } = access;
   try {
     await updateItem(partyId, itemId.data, parsed.data);
-    await recordPartyAuditEvent(access, { action: "UPDATE", entityType: "item", entityId: itemId.data, summary: `Изменил предмет «${parsed.data.displayName || parsed.data.canonicalName}» в общем каталоге.` });
+    await recordPartyAuditEvent(access, { action: "UPDATE", entityType: "item", entityId: itemId.data, summary: `Изменил свой предмет «${parsed.data.displayName || parsed.data.canonicalName}».` });
   } catch (error) {
     if (error instanceof DuplicateItemError) {
       return {
@@ -82,4 +83,13 @@ export async function updateItemAction(
   revalidatePath("/items");
   revalidatePath(`/items/${itemId.data}`);
   return { ok: true, message: "Предмет обновлён." };
+}
+
+export async function archiveItemAction(idValue: unknown, isActive: boolean) {
+  const access = await requirePartyActionAccess("ADMIN");
+  const id = itemIdSchema.parse(idValue);
+  if (typeof isActive !== "boolean" || !await setCustomItemActive(access.partyId, id, isActive)) return { ok: false, message: "Свой предмет не найден." };
+  await recordPartyAuditEvent(access, { action: "UPDATE", entityType: "item", entityId: id, summary: isActive ? "Восстановил свой предмет." : "Переместил свой предмет в архив." });
+  revalidatePath("/items");
+  return { ok: true, message: "Сохранено." };
 }

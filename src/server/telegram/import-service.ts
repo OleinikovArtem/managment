@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { z } from "zod";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
+import { visibleCatalog } from "@/server/repositories/catalog-scope";
 import { createPartySaleRecord, isRetryableDatabaseError } from "@/server/repositories/sale-repository";
 import { SaleOperationError } from "@/features/sales/sale-errors";
 import { allocateTelegramRow, normalizeTelegramName, parseTelegramSale, TelegramReviewError, type TelegramAllocation, type LootCandidate } from "./sale-parser";
@@ -72,11 +73,11 @@ async function importSale(source: SourceMessage, webhookId?: string, retryId?: s
       for (const row of rows) {
         const normalizedName = normalizeTelegramName(row.name);
         const [items, alias] = await Promise.all([
-          tx.item.findMany({ where: { OR: [{ normalizedName }, { displayName: { equals: row.name.trim(), mode: "insensitive" } }] }, select: { id: true } }),
+          tx.item.findMany({ where: { AND: [visibleCatalog(source.partyId), { OR: [{ normalizedName }, { displayName: { equals: row.name.trim(), mode: "insensitive" } }] }] }, select: { id: true } }),
           tx.telegramItemAlias.findUnique({ where: { partyId_normalizedName: { partyId: source.partyId, normalizedName } }, select: { itemId: true } }),
         ]);
-        const ids = new Set(items.map(item => item.id));
-        if (alias) ids.add(alias.itemId);
+        const aliasItem = alias ? await tx.item.findFirst({ where: { id: alias.itemId, ...visibleCatalog(source.partyId) }, select: { id: true } }) : null;
+        const ids = new Set(aliasItem ? [aliasItem.id] : items.map(item => item.id));
         if (ids.size !== 1) throw new TelegramReviewError(`${ids.size ? "Неоднозначное название" : "Предмет не найден"}: ${row.name}. Добавьте соответствие названия.`);
         const itemId = [...ids][0];
         if (!candidates.has(itemId)) {

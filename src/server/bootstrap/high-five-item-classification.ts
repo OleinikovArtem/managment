@@ -146,13 +146,8 @@ export function classifyHighFiveItem(
         : canonicalName.startsWith("Elegia ")
           ? "S84"
           : weaponGrades[canonicalName];
-    const itemType = weaponTypes[canonicalName];
-
-    if (!grade || !itemType) {
-      throw new Error(`Unknown High Five weapon classification: ${item.canonicalName}`);
-    }
-
-    return { category: "Weapon", grade, itemType, itemSubtype: null, isRare };
+    const itemType = weaponTypes[canonicalName] ?? "Weapon";
+    return { category: "Weapon", grade: grade ?? null, itemType, itemSubtype: null, isRare };
   }
 
   if (item.category === "Materials" && /Life Stone/i.test(canonicalName)) {
@@ -193,22 +188,36 @@ export function classifyHighFiveItem(
   }
 
   if (item.category === "Enchant Scroll") {
-    const grade = /\(([AS])-grade\)/i.exec(canonicalName)?.[1] ?? null;
+    const grade = /\(([ABS])-grade\)/i.exec(canonicalName)?.[1] ?? null;
     const itemType = canonicalName.includes("Giant's Codex")
       ? "Giant's Codex"
-      : /Enchant Weapon/i.test(canonicalName)
+      : /Enchant (?:Stone: )?Weapon/i.test(canonicalName)
         ? "Weapon Enchant"
-        : "Armor Enchant";
+        : /Enchant (?:Stone: )?Armor/i.test(canonicalName)
+          ? "Armor Enchant"
+          : "Enchant Item";
     const itemSubtype = canonicalName.includes("Mastery")
       ? "Mastery"
       : canonicalName.startsWith("Blessed ")
         ? "Blessed"
-        : null;
+        : canonicalName.startsWith("Lucky ")
+          ? "Lucky"
+          : null;
     return {
       category: "Enchant Scroll",
       grade,
       itemType,
       itemSubtype,
+      isRare,
+    };
+  }
+
+  if (item.category === "Materials") {
+    return {
+      category: "Materials",
+      grade: null,
+      itemType: /CRP Scroll/i.test(canonicalName) ? "Clan Reputation Scroll" : "Material",
+      itemSubtype: null,
       isRare,
     };
   }

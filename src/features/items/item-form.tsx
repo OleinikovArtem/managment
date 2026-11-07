@@ -100,7 +100,7 @@ export function ItemForm({
   });
 
   return (
-    <form className="space-y-4" onSubmit={onSubmit} noValidate>
+    <form className="space-y-4" onSubmit={event => { event.stopPropagation(); void onSubmit(event); }} noValidate>
       <div className="space-y-2">
         <label htmlFor="canonical-name" className="text-sm font-medium">
           Оригинальное название <span className="text-destructive">*</span>

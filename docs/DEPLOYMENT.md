@@ -38,7 +38,9 @@ Next.js читает `.env.local` и при разработке. Окружен
 ## Git и деплой
 
 Push в `master` запускает production-сборку Vercel. `scripts/build.cjs` при
-`VERCEL_ENV=production` применяет миграции и SQL guards, генерирует Prisma Client
+`VERCEL_ENV=production` применяет миграции, financial/catalog SQL guards и
+административный seed отсутствующих базовых предметов и metadata инстансов,
+генерирует Prisma Client
 и собирает Next.js. `lint`, `typecheck` и `test` не добавлены отдельными шагами
 этого скрипта; запускайте их до push. Успешная сборка не заменяет проверку входа
 и работы с данными на опубликованном адресе.

@@ -40,6 +40,7 @@ describe("shared item catalog", () => {
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
+          OR: [{ partyId: null }, { partyId: "party-a" }],
           normalizedName: { contains: "ancient sword" },
           category: "Weapon",
         },
@@ -54,6 +55,7 @@ describe("shared item catalog", () => {
 
     expect(count).toHaveBeenCalledWith({
       where: {
+        OR: [{ partyId: null }, { partyId: "party-a" }],
         normalizedName: { contains: "ancient sword" },
         category: "Weapon",
       },
@@ -85,7 +87,7 @@ describe("shared item catalog", () => {
         }),
       }),
     );
-    expect(create.mock.calls[0][0].data).not.toHaveProperty("partyId");
+    expect(create.mock.calls[0][0].data.partyId).toBe("party-a");
   });
 
   it("defaults omitted Rare status to false", async () => {
@@ -108,7 +110,7 @@ describe("shared item catalog", () => {
     await expect(listPartyItemCategories("party-a")).resolves.toEqual(["Weapon"]);
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { category: { not: null } },
+        where: { category: { not: null }, OR: [{ partyId: null }, { partyId: "party-a" }] },
       }),
     );
   });
@@ -117,7 +119,7 @@ describe("shared item catalog", () => {
     await getPartyItemById("party-a", "item-b");
 
     expect(findFirst).toHaveBeenCalledWith({
-      where: { id: "item-b" },
+      where: { id: "item-b", OR: [{ partyId: null }, { partyId: "party-a" }] },
     });
   });
 });

@@ -4,6 +4,8 @@ import { SettingsForm } from "@/features/settings/settings-form";
 import { ResetDataCard } from "@/features/settings/reset-data-card";
 import { requirePartyPageAccess } from "@/server/auth/party-access";
 import { getPartySettings } from "@/server/services/party-service";
+import { getInstanceSetup } from "@/server/repositories/instance-repository";
+import { StageDefaultForm } from "@/features/settings/stage-default-form";
 
 export default function SettingsPage() {
   return (
@@ -17,6 +19,7 @@ async function SettingsContent() {
   await io();
   const workspace = await requirePartyPageAccess();
   const party = await getPartySettings(workspace.partyId);
+  const catalog = await getInstanceSetup(workspace.partyId);
 
   return (
     <div className="settings-page max-w-5xl space-y-8">
@@ -28,6 +31,7 @@ async function SettingsContent() {
         </p>
       </header>
       <SettingsForm partyName={party.name} canManage={workspace.canManage} />
+      <StageDefaultForm stages={catalog.stages.available} selected={catalog.stages.selection} revision={catalog.stages.selectionRevision} canManage={workspace.canManage} effectiveName={catalog.stages.available.find(stage=>stage.id===catalog.stages.globalStageId)?.name??"нет доступной стадии"}/>
       {workspace.canManage && <a className="text-sm underline underline-offset-4" href="/settings/access">Управление доступом к группе</a>}
       {workspace.isOwner && <a className="ml-5 text-sm underline underline-offset-4" href="/settings/telegram">Настроить Telegram-бота</a>}
       <a className="ml-5 text-sm underline underline-offset-4" href="/settings/activity">История действий</a>

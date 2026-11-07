@@ -1,7 +1,40 @@
 import { Package, Shield } from "lucide-react";
 import { LOCAL_CLASS_ICONS } from "@/features/members/class-icon-map";
 
-const ITEM_ICON_BASE = "https://l2db.info/uploads/images/icons";
+const ITEM_ICON_BASE = "/game-icons/items";
+const LOCAL_ITEM_KEYS = new Set(["weapon_vesper_cutter_i00", "armor_t94_u_i01", "etc_scroll_of_enchant_weapon_i05", "etc_scroll_of_enchant_armor_i05", "etc_mineral_rare_i03", "etc_codex_of_giant_i00"]);
+const userTableIcons: Record<string, string> = {
+  "elysian": "elysian.png",
+  "doom crusher": "doom-crusher.png",
+  "tallum glaive": "tallum-glaive.png",
+  "dark legion's edge": "dark-legion-s-edge.png",
+  "dragon slayer": "dragon-slayer.png",
+  "soul separator": "soul-separator.png",
+  "soul bow": "soul-bow.png",
+  "dragon grinder": "dragon-grinder.png",
+  "flaming dragon skull": "flaming-dragon-skull.png",
+  "sword of miracles": "sword-of-miracles.png",
+  "branch of the mother tree": "branch-of-the-mother-tree.png",
+  "keshanberk*damascus": "keshanberk-damascus.png",
+  "damascus*damascus": "keshanberk-damascus.png",
+  "blessed scroll: enchant armor (b-grade)": "blessed-scroll-enchant-armor-b-grade.png",
+  "blessed scroll: enchant weapon (b-grade)": "blessed-scroll-enchant-weapon-b-grade.png",
+  "scroll: enchant armor (a-grade)": "scroll-enchant-armor-a-grade.jpg",
+  "scroll: enchant weapon (a-grade)": "scroll-enchant-weapon-a-grade.jpg",
+  "blessed scroll: enchant armor (a-grade)": "blessed-scroll-enchant-armor-a-grade.png",
+  "blessed scroll: enchant weapon (a-grade)": "blessed-scroll-enchant-weapon-a-grade.png",
+  "lucky enchant stone: armor (b-grade)": "lucky-enchant-stone-armor-b-grade.webp",
+  "lucky enchant stone: weapon (b-grade)": "lucky-enchant-stone-weapon-b-grade.webp",
+  "lucky enchant stone: armor (a-grade)": "lucky-enchant-stone-armor-a-grade.jpg",
+  "lucky enchant stone: weapon (a-grade)": "lucky-enchant-stone-weapon-a-grade.jpg",
+  "life stone": "life-stone.jpg",
+  "mid-grade life stone": "mid-grade-life-stone.jpg",
+  "high-grade life stone": "high-grade-life-stone.png",
+  "top-grade life stone": "top-grade-life-stone.png",
+  "giant's codex": "giant-s-codex.png",
+  "giant's codex - mastery": "giant-s-codex-mastery.png",
+  "crp scroll (500)": "crp-scroll-500.webp",
+};
 
 const armorSets: { match: RegExp; code: string; variant?: string }[] = [
   { match: /^imperial crusader\b/i, code: "t88" },
@@ -97,8 +130,10 @@ function itemIconKey(name: string, category?: string | null) {
 }
 
 export function itemIconUrl(name: string, category?: string | null) {
+  const tableIcon = userTableIcons[name.trim().toLocaleLowerCase()];
+  if (tableIcon) return `${ITEM_ICON_BASE}/${tableIcon}`;
   const key = itemIconKey(name, category);
-  return key ? `${ITEM_ICON_BASE}/${key}.png` : null;
+  return key && LOCAL_ITEM_KEYS.has(key) ? `${ITEM_ICON_BASE}/${key}.png` : null;
 }
 
 export function classIconUrl(className: string) {

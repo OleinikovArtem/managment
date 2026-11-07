@@ -6,6 +6,8 @@ const { createPartyRaidRecord, updatePartyRaidRecord } = vi.hoisted(() => ({
 }));
 
 vi.mock("server-only", () => ({}));
+vi.mock("@/server/repositories/instance-repository", () => ({ getInstanceSetup: vi.fn() }));
+vi.mock("@/lib/db/prisma", () => ({ prisma: {} }));
 vi.mock("@/server/repositories/raid-repository", () => ({
   createPartyRaidRecord,
   updatePartyRaidRecord,

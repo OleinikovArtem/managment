@@ -22,18 +22,19 @@ async function NewRaidContent() {
   const setup = await getRaidSetup(workspace.partyId);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-5">
+    <div className="mx-auto max-w-6xl space-y-5">
       <Link href="/raids" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft aria-hidden="true" size={16} />
         К рейдам
       </Link>
-      <header className="page-header ">
-
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Новый рейд</h1>
-      </header>
+      <h1 className="sr-only">Создание рейда</h1>
       <RaidForm
         members={setup.members.map((member) => ({ ...member, status: "PRESENT" as const }))}
         items={setup.items}
+        instances={setup.catalog.instances}
+        stages={setup.catalog.stages.available}
+        defaultStage={setup.catalog.stages.context}
+        lastAttendance={setup.lastAttendance}
         compositions={setup.compositions.map((composition) => ({ id: composition.id, name: composition.name, focus: composition.focus, slots: composition.members.map(({ memberId, profileId }) => ({ memberId, profileId })) }))}
         submitLabel="Создать рейд"
       />

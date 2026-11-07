@@ -8,9 +8,10 @@ import { ActionMenu } from "@/components/ui/action-menu";
 import { GameIcon } from "@/components/ui/game-icon";
 import { ItemForm } from "@/features/items/item-form";
 import type { ItemInput } from "@/features/items/item-schema";
-import { createItemAction, updateItemAction } from "@/app/(dashboard)/items/actions";
+import { archiveItemAction, createItemAction, updateItemAction } from "@/app/(dashboard)/items/actions";
+import { toast } from "sonner";
 
-export type ItemListRow = ItemInput & { id: string; createdAt: string };
+export type ItemListRow = ItemInput & { id: string; createdAt: string; partyId?: string | null; isActive?: boolean };
 
 export function ItemManager({ items, summary, canManage }: { items: ItemListRow[]; summary: string; canManage: boolean }) {
   const router = useRouter();
@@ -25,7 +26,8 @@ export function ItemManager({ items, summary, canManage }: { items: ItemListRow[
       {editingId === item.id ? <div className="editor-surface"><h2 className="section-heading mb-4">Изменить предмет</h2><ItemForm initialValues={{ canonicalName: item.canonicalName, displayName: item.displayName ?? "", category: item.category ?? "", grade: item.grade ?? "", itemType: item.itemType ?? "", itemSubtype: item.itemSubtype ?? "", isRare: item.isRare, gameVersion: item.gameVersion ?? "", comment: item.comment ?? "" }} submitLabel="Сохранить" action={values => updateItemAction(item.id, values)} onSuccess={updated} onCancel={() => setEditingId(null)} /></div> : <div className="flex items-center gap-3">
         <GameIcon kind="item" name={item.displayName || item.canonicalName} category={item.category} />
         <div className="min-w-0 flex-1"><Link href={`/items/${item.id}`} className="text-sm font-medium hover:underline underline-offset-4 break-words">{item.displayName || item.canonicalName}</Link>{item.displayName && item.displayName !== item.canonicalName && <p className="mt-1 text-xs text-muted-foreground">{item.canonicalName}</p>}<p className="mt-1 text-xs text-muted-foreground">{[item.category, item.grade, item.itemType, item.itemSubtype, item.isRare ? "Rare" : null].filter(Boolean).join(" · ") || "Классификация не указана"}</p></div>
-        {canManage && <ActionMenu label={`Действия: ${item.displayName || item.canonicalName}`} items={[{ label: "Изменить предмет", onClick: () => { setEditingId(item.id); setCreating(false); } }]} />}
+        <span className="text-xs text-muted-foreground">{item.partyId ? "Свой" : "Общий"}{item.isActive === false ? " · архив" : ""}</span>
+        {canManage && item.partyId && <ActionMenu label={`Действия: ${item.displayName || item.canonicalName}`} items={[{ label: "Изменить предмет", onClick: () => { setEditingId(item.id); setCreating(false); } }, { label: item.isActive === false ? "Восстановить" : "В архив", onClick: () => { void archiveItemAction(item.id, item.isActive === false).then(result => { if (result.ok) router.refresh(); else toast.error(result.message); }).catch(() => toast.error("Не удалось изменить предмет.")); } }]} />}
       </div>}
     </li>)}</ul>}
   </section>;

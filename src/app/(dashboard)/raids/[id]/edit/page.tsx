@@ -61,18 +61,28 @@ async function EditRaidContent({ params }: EditRaidPageProps) {
               id: participant.memberId,
               nickname: participant.nicknameSnapshot,
               status: participant.status,
-              className: participant.classSnapshot,
-              role: participant.roleSnapshot,
-              level: participant.levelSnapshot,
-              profiles: setup.members.find((member) => member.id === participant.memberId)?.profiles ?? [],
+              className: participant.member.className,
+              role: participant.member.role,
+              level: participant.member.level,
+              profiles: [
+                ...(setup.members.find((member) => member.id === participant.memberId)?.profiles ?? []),
+                ...(participant.profileId && !setup.members.find(member=>member.id===participant.memberId)?.profiles.some(profile=>profile.id===participant.profileId) ? [{ id: participant.profileId, name: participant.profileSnapshot ?? "Исторический профиль", className: participant.classSnapshot ?? "Исторический класс", role: participant.roleSnapshot, level: participant.levelSnapshot }] : []),
+              ],
             }))}
-            items={setup.items}
+            items={[...new Map([...setup.items, ...raid.lootDrops.map(drop => drop.item)].map(item => [item.id, item])).values()]}
+            instances={setup.catalog.instances}
+            stages={setup.catalog.stages.available}
+            defaultStage={setup.catalog.stages.context}
+            historicalStageName={raid.stageNameSnapshot}
             compositions={setup.compositions.map((composition) => ({ id: composition.id, name: composition.name, focus: composition.focus, slots: composition.members.map(({ memberId, profileId }) => ({ memberId, profileId })) }))}
             raidId={raid.id}
             initialValues={{
               name: raid.name,
-              compositionId: raid.compositionId ?? "",
+              compositionId: raid.compositionId ?? undefined,
               instanceName: raid.instanceName ?? "",
+              instanceId: raid.instanceId,
+              stageId: raid.stageId,
+              stageRevision: raid.stageRevisionSnapshot,
               occurredAt: raid.occurredAt.toISOString(),
               comment: raid.comment ?? "",
               participants: raid.participants.map(({ memberId, status, profileId }) => ({

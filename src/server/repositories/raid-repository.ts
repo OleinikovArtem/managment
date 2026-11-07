@@ -4,6 +4,10 @@ import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import type { RaidInput } from "@/features/raids/raid-schema";
 import { RaidOperationError } from "@/features/raids/raid-errors";
+import { createHash } from "node:crypto";
+import { lockParty, lockStages } from "./catalog-locks";
+import { assertDraftStage } from "./instance-repository";
+import { selectableCatalog, visibleCatalog } from "./catalog-scope";
 
 type Transaction = Prisma.TransactionClient;
 
@@ -14,7 +18,7 @@ async function assertPartyReferences(
 ) {
   const activeMembers = await transaction.partyMember.findMany({
     where: { partyId, isActive: true },
-    select: { id: true, nickname: true, distributionWeight: true },
+    select: { id: true, nickname: true, distributionWeight: true, className: true, role: true, level: true },
   });
   const submittedMemberIds = input.participants.map(({ memberId }) => memberId);
   const activeMemberIds = activeMembers.map(({ id }) => id);
@@ -28,7 +32,7 @@ async function assertPartyReferences(
   const itemIds = [...new Set(input.lootDrops.map(({ itemId }) => itemId))];
   const items = itemIds.length
     ? await transaction.item.findMany({
-        where: { id: { in: itemIds } },
+        where: { id: { in: itemIds }, ...selectableCatalog(partyId) },
         select: { id: true },
       })
     : [];
@@ -71,11 +75,12 @@ export function listPartyCompositions(partyId: string) {
   });
 }
 
-export async function listPartyRaidItems(_partyId: string) {
-  void _partyId;
+export async function listPartyRaidItems(partyId: string) {
   return prisma.item.findMany({
     orderBy: [{ normalizedName: "asc" }, { canonicalName: "asc" }],
-    select: { id: true, canonicalName: true, displayName: true },
+    where: selectableCatalog(partyId),
+    take: 40,
+    select: { id: true, canonicalName: true, displayName: true, category: true, partyId: true, isActive: true },
   });
 }
 
@@ -83,7 +88,7 @@ export async function getPartyRaidById(partyId: string, raidId: string) {
   return prisma.raid.findFirst({
     where: { id: raidId, partyId },
     include: {
-      participants: { orderBy: { nicknameSnapshot: "asc" } },
+      participants: { orderBy: { nicknameSnapshot: "asc" }, include: { member: { select: { className: true, role: true, level: true } } } },
       lootDrops: {
         where: { partyId },
         include: {
@@ -112,12 +117,30 @@ export async function getLootDropAuditContext(partyId: string, lootDropId: strin
 
 export async function createPartyRaidRecord(partyId: string, input: RaidInput) {
   return prisma.$transaction(async (transaction) => {
+    await lockStages(transaction); await lockParty(transaction, partyId);
+    if (!input.creationKey) throw new RaidOperationError("Обновите форму создания рейда.");
+    const hash = createHash("sha256").update(JSON.stringify({ ...input, participants: [...input.participants].sort((a,b) => a.memberId.localeCompare(b.memberId)) })).digest("hex");
+    const existing = await transaction.raid.findUnique({ where: { partyId_creationKey: { partyId, creationKey: input.creationKey } } });
+    if (existing) {
+      if (existing.creationPayloadHash !== hash) throw new RaidOperationError("Этот запрос уже создал рейд с другими данными.");
+      return existing.id;
+    }
+    const stage = await assertDraftStage(transaction, { stageId: input.stageId ?? null, revision: input.stageRevision ?? null });
+    const instance = input.instanceId ? await transaction.instance.findFirst({ where: { id: input.instanceId, ...selectableCatalog(partyId) } }) : null;
+    if (input.instanceId && !instance) throw new RaidOperationError("Инстанс недоступен. Выберите другой, черновик сохранён.");
     const activeMembers = await assertPartyReferences(transaction, partyId, input);
     const raid = await transaction.raid.create({
       data: {
         partyId,
-        name: input.name,
-        instanceName: input.instanceName || null,
+        name: input.name || instance?.displayName || input.instanceName || "Рейд",
+        instanceId: instance?.id ?? null,
+        instanceName: instance?.displayName ?? (input.instanceName || null),
+        stageId: stage?.id ?? null,
+        stageCodeSnapshot: stage?.code ?? null,
+        stageNameSnapshot: stage?.name ?? null,
+        stageRevisionSnapshot: stage?.revision ?? null,
+        creationKey: input.creationKey,
+        creationPayloadHash: hash,
         occurredAt: new Date(input.occurredAt),
         comment: input.comment || null,
         compositionId: input.compositionId || null,
@@ -142,10 +165,10 @@ export async function createPartyRaidRecord(partyId: string, input: RaidInput) {
           nicknameSnapshot: member.nickname,
           status: attendance.status,
           distributionWeight: 1,
-          classSnapshot: profile?.className ?? null,
-          roleSnapshot: profile?.role ?? null,
+          classSnapshot: profile ? profile.className : member.className,
+          roleSnapshot: profile ? profile.role : member.role,
           profileSnapshot: profile?.name ?? null,
-          levelSnapshot: profile?.level ?? null,
+          levelSnapshot: profile ? profile.level : member.level,
         },
       });
     }
@@ -163,7 +186,7 @@ export async function createPartyRaidRecord(partyId: string, input: RaidInput) {
     }
 
     return raid.id;
-  });
+  }, { timeout: 25_000, maxWait: 10_000 });
 }
 
 export async function updatePartyRaidRecord(
@@ -172,16 +195,23 @@ export async function updatePartyRaidRecord(
   input: RaidInput,
 ) {
   return prisma.$transaction(async (transaction) => {
+    await lockParty(transaction, partyId);
+    await transaction.$queryRaw`SELECT id FROM "Raid" WHERE id=${raidId} AND "partyId"=${partyId} FOR UPDATE`;
     const raid = await transaction.raid.findFirst({
       where: { id: raidId, partyId },
       include: {
-        participants: { select: { memberId: true } },
-        lootDrops: { select: { id: true } },
+        participants: { select: { memberId: true, profileId: true } },
+        lootDrops: { select: { id: true, itemId: true } },
+        _count: { select: { saleTransactions: true } },
       },
     });
     if (!raid) {
       return null;
     }
+    if (raid.lockedAt || raid._count.saleTransactions) throw new RaidOperationError("В рейде уже началась продажа. Состав и добыча заблокированы.");
+    if ((input.stageId ?? null) !== raid.stageId) throw new RaidOperationError("Историческую стадию рейда менять нельзя.");
+    const instance = input.instanceId ? await transaction.instance.findFirst({ where: { id: input.instanceId, ...visibleCatalog(partyId), ...(input.instanceId === raid.instanceId ? {} : { isActive: true }) } }) : null;
+    if (input.instanceId && !instance) throw new RaidOperationError("Инстанс недоступен.");
 
     const existingMemberIds = raid.participants.map(({ memberId }) => memberId);
     const submittedMemberIds = input.participants.map(({ memberId }) => memberId);
@@ -199,6 +229,8 @@ export async function updatePartyRaidRecord(
       }
     }
     await assertPartyItemsExist(transaction, partyId, input);
+    const freshItemIds = [...new Set(input.lootDrops.filter(row => !row.id || raid.lootDrops.find(previous=>previous.id===row.id)?.itemId !== row.itemId).map(row=>row.itemId))];
+    if (freshItemIds.length && await transaction.item.count({ where: { id: { in: freshItemIds }, ...selectableCatalog(partyId) } }) !== freshItemIds.length) throw new RaidOperationError("Новый предмет недоступен или находится в архиве.");
     if (input.compositionId) {
       const composition = await transaction.partyComposition.findFirst({
         where: { partyId, id: input.compositionId },
@@ -212,8 +244,9 @@ export async function updatePartyRaidRecord(
     await transaction.raid.updateMany({
       where: { id: raidId, partyId },
       data: {
-        name: input.name,
-        instanceName: input.instanceName || null,
+        name: input.name || instance?.displayName || input.instanceName || "Рейд",
+        instanceId: instance?.id ?? null,
+        instanceName: input.instanceId === raid.instanceId ? raid.instanceName : instance?.displayName ?? (input.instanceName || null),
         occurredAt: new Date(input.occurredAt),
         comment: input.comment || null,
         compositionId: input.compositionId || null,
@@ -221,13 +254,14 @@ export async function updatePartyRaidRecord(
     });
 
     for (const attendance of input.participants) {
-      const member = attendance.profileId
-        ? await transaction.partyMember.findFirst({ where: { partyId, id: attendance.memberId }, include: { profiles: { where: { isActive: true } } } })
-        : null;
+      const previous = raid.participants.find(row => row.memberId === attendance.memberId);
+      const changedProfile = (previous?.profileId ?? null) !== (attendance.profileId ?? null);
+      const member = changedProfile
+        ? await transaction.partyMember.findFirst({ where: { partyId, id: attendance.memberId }, include: { profiles: { where: { isActive: true } } } }) : null;
       const profile = attendance.profileId ? member?.profiles.find(({ id }) => id === attendance.profileId) : null;
-      if (attendance.profileId && !profile) throw new RaidOperationError("Профиль участника не найден. Обновите страницу и повторите попытку.");
-      const attendanceData = attendance.profileId
-        ? { status: attendance.status, profileId: attendance.profileId, classSnapshot: profile?.className ?? null, roleSnapshot: profile?.role ?? null, profileSnapshot: profile?.name ?? null, levelSnapshot: profile?.level ?? null }
+      if (changedProfile && (!member || (attendance.profileId && !profile))) throw new RaidOperationError("Профиль участника не найден. Обновите страницу и повторите попытку.");
+      const attendanceData = changedProfile
+        ? { status: attendance.status, profileId: attendance.profileId || null, classSnapshot: profile ? profile.className : member?.className, roleSnapshot: profile ? profile.role : member?.role, profileSnapshot: profile?.name ?? null, levelSnapshot: profile ? profile.level : member?.level }
         : { status: attendance.status };
       const result = await transaction.raidParticipant.updateMany({
         where: { partyId, raidId, memberId: attendance.memberId },
@@ -260,7 +294,7 @@ export async function updatePartyRaidRecord(
     }
 
     return raidId;
-  });
+  }, { timeout: 25_000, maxWait: 10_000 });
 }
 
 async function assertPartyItemsExist(
@@ -271,7 +305,7 @@ async function assertPartyItemsExist(
   const itemIds = [...new Set(input.lootDrops.map(({ itemId }) => itemId))];
   const items = itemIds.length
     ? await transaction.item.findMany({
-        where: { id: { in: itemIds } },
+        where: { id: { in: itemIds }, ...visibleCatalog(partyId) },
         select: { id: true },
       })
     : [];

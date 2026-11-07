@@ -2,9 +2,11 @@ import "server-only";
 
 import { prisma } from "@/lib/db/prisma";
 import type { ItemInput } from "@/features/items/item-schema";
+import { selectableCatalog, visibleCatalog } from "./catalog-scope";
+import { lockParty } from "./catalog-locks";
 
 export async function listPartyItems(
-  _partyId: string,
+  partyId: string,
   normalizedQuery: string,
   category: string | undefined,
   skip: number,
@@ -12,6 +14,7 @@ export async function listPartyItems(
 ) {
   return prisma.item.findMany({
     where: {
+      ...visibleCatalog(partyId),
       ...(normalizedQuery ? { normalizedName: { contains: normalizedQuery } } : {}),
       ...(category ? { category } : {}),
     },
@@ -22,22 +25,22 @@ export async function listPartyItems(
 }
 
 export async function countPartyItems(
-  _partyId: string,
+  partyId: string,
   normalizedQuery: string,
   category: string | undefined,
 ) {
   return prisma.item.count({
     where: {
+      ...visibleCatalog(partyId),
       ...(normalizedQuery ? { normalizedName: { contains: normalizedQuery } } : {}),
       ...(category ? { category } : {}),
     },
   });
 }
 
-export async function listPartyItemCategories(_partyId: string) {
-  void _partyId;
+export async function listPartyItemCategories(partyId: string) {
   const rows = await prisma.item.findMany({
-    where: { category: { not: null } },
+    where: { ...visibleCatalog(partyId), category: { not: null } },
     select: { category: true },
     distinct: ["category"],
     orderBy: { category: "asc" },
@@ -45,19 +48,20 @@ export async function listPartyItemCategories(_partyId: string) {
   return rows.flatMap((row) => (row.category ? [row.category] : []));
 }
 
-export async function getPartyItemById(_partyId: string, itemId: string) {
+export async function getPartyItemById(partyId: string, itemId: string) {
   return prisma.item.findFirst({
-    where: { id: itemId },
+    where: { id: itemId, ...visibleCatalog(partyId) },
   });
 }
 
 export async function createPartyItemRecord(
-  _partyId: string,
+  partyId: string,
   input: ItemInput,
   normalizedName: string,
 ) {
   return prisma.item.create({
     data: {
+      partyId,
       canonicalName: input.canonicalName,
       normalizedName,
       displayName: input.displayName || null,
@@ -73,13 +77,13 @@ export async function createPartyItemRecord(
 }
 
 export async function updatePartyItemRecord(
-  _partyId: string,
+  partyId: string,
   itemId: string,
   input: ItemInput,
   normalizedName: string,
 ) {
   const result = await prisma.item.updateMany({
-    where: { id: itemId },
+    where: { id: itemId, partyId },
     data: {
       canonicalName: input.canonicalName,
       normalizedName,
@@ -98,5 +102,17 @@ export async function updatePartyItemRecord(
     return null;
   }
 
-  return getPartyItemById(_partyId, itemId);
+  return getPartyItemById(partyId, itemId);
+}
+
+export async function setCustomItemActive(partyId: string, id: string, isActive: boolean) {
+  return prisma.$transaction(async tx => {
+    await lockParty(tx, partyId);
+    const changed = await tx.item.updateMany({ where: { id, partyId }, data: { isActive } });
+    return changed.count === 1;
+  });
+}
+
+export function searchSelectableItems(partyId: string, query: string) {
+  return prisma.item.findMany({ where: { AND: [selectableCatalog(partyId), ...(query ? [{ OR: [{ normalizedName: { contains: query } }, { displayName: { contains: query, mode: "insensitive" as const } }] }] : [])] }, take: 40, orderBy: [{ normalizedName: "asc" }, { id: "asc" }], select: { id: true, canonicalName: true, displayName: true, category: true, partyId: true, isActive: true } });
 }

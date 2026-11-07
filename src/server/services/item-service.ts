@@ -16,7 +16,7 @@ import {
 
 export class DuplicateItemError extends Error {
   constructor() {
-    super("Предмет с таким названием уже есть в общем каталоге.");
+    super("Свой предмет с таким названием уже есть, возможно в архиве.");
     this.name = "DuplicateItemError";
   }
 }

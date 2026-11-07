@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 const transaction = {
+  $queryRaw: vi.fn().mockResolvedValue([]),
   raid: { updateMany: mocks.raidUpdateMany },
   saleTransaction: {
     findUnique: mocks.saleFindUnique,

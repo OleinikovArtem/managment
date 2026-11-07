@@ -29,6 +29,7 @@ export function RaidDetailView({ raid, partyName, canManage }: { raid: Raid; par
           <div className="raidDetail-metadata">
             <LocalDateTimeDisplay value={raid.occurredAt.toISOString()} />
             {raid.instanceName && raid.instanceName !== raid.name && <span>{raid.instanceName}</span>}
+            <span>{raid.stageNameSnapshot || "Стадия не указана"}</span>
           </div>
         </div>
         {hasFinancialHistory ? (

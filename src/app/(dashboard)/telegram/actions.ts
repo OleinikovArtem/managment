@@ -34,9 +34,8 @@ export async function saveTelegramAliasAction(name: string, itemId: string): Pro
   const access = await requirePartyActionAccess("ADMIN");
   if (!z.string().trim().min(1).max(240).safeParse(name).success) return { ok: false, message: "Введите название из Telegram (до 240 символов)." };
   const normalizedName = normalizeTelegramName(name);
-  const item = await prisma.item.findUnique({ where: { id: itemId }, select: { id: true } });
-  const collision = await prisma.item.findFirst({ where: { normalizedName, id: { not: itemId } }, select: { id: true } });
-  if (!item || collision) return { ok: false, message: "Предмет не найден или название совпадает с другим предметом каталога." };
+  const item = await prisma.item.findFirst({ where: { id: itemId, OR: [{ partyId: null }, { partyId: access.partyId }] }, select: { id: true } });
+  if (!item) return { ok: false, message: "Предмет не найден в доступном каталоге." };
   await prisma.telegramItemAlias.upsert({ where: { partyId_normalizedName: { partyId: access.partyId, normalizedName } }, create: { partyId: access.partyId, itemId, name: name.trim(), normalizedName }, update: { itemId, name: name.trim() } });
   await recordPartyAuditEvent(access, { action: "UPDATE", entityType: "telegram-alias", summary: `Сопоставил название Telegram: ${name.trim().slice(0, 240)}.` });
   revalidatePath("/telegram");

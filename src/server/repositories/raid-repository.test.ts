@@ -24,9 +24,11 @@ const {
     lootDropUpdateMany: vi.fn(),
   };
   const transaction = {
+    $queryRaw: vi.fn().mockResolvedValue([]),
+    serverStage: { count: vi.fn().mockResolvedValue(0) },
     partyMember: { findMany: mocks.activeMemberFindMany },
-    item: { findMany: mocks.itemFindMany },
-    raid: { create: mocks.raidCreate, findFirst: mocks.raidFindFirst, updateMany: mocks.raidUpdateMany },
+    item: { findMany: mocks.itemFindMany, count: vi.fn().mockResolvedValue(1) },
+    raid: { create: mocks.raidCreate, findFirst: mocks.raidFindFirst, findUnique: vi.fn().mockResolvedValue(null), updateMany: mocks.raidUpdateMany },
     raidParticipant: { create: mocks.raidParticipantCreate, updateMany: mocks.raidParticipantUpdateMany },
     lootDrop: { create: mocks.lootDropCreate, updateMany: mocks.lootDropUpdateMany },
   };
@@ -69,6 +71,7 @@ import {
 } from "@/server/repositories/raid-repository";
 
 const validInput = {
+  creationKey: "e535278a-b278-4b04-94a8-07bd6108ad06",
   name: "Sunday Raid",
   instanceName: "",
   occurredAt: "2026-11-01T18:30:00.000Z",
@@ -116,7 +119,7 @@ describe("raid repository", () => {
     expect($transaction).toHaveBeenCalledOnce();
     expect(activeMemberFindMany).toHaveBeenCalledWith({
       where: { partyId: "party-a", isActive: true },
-      select: { id: true, nickname: true, distributionWeight: true },
+      select: { id: true, nickname: true, distributionWeight: true, className: true, role: true, level: true },
     });
     expect(raidParticipantCreate).toHaveBeenNthCalledWith(
       1,
@@ -155,8 +158,9 @@ describe("raid repository", () => {
 
   it("updates existing attendance records and adds loot without deleting history", async () => {
     raidFindFirst.mockResolvedValue({
+      lockedAt: null, stageId: null, _count: { saleTransactions: 0 },
       participants: [{ memberId: "member-1" }, { memberId: "member-2" }],
-      lootDrops: [{ id: "drop-1" }],
+      lootDrops: [{ id: "drop-1", itemId: "item-1" }],
     });
     itemFindMany.mockResolvedValue([{ id: "item-1" }]);
     raidParticipantUpdateMany.mockResolvedValue({ count: 1 });

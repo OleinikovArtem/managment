@@ -48,6 +48,8 @@ async function ItemsContent({ searchParams }: ItemsPageProps) {
   ]);
   const items: ItemListRow[] = records.items.map((item) => ({
     id: item.id,
+    partyId: item.partyId,
+    isActive: item.isActive,
     canonicalName: item.canonicalName,
     displayName: item.displayName ?? "",
     category: item.category ?? "",
@@ -66,7 +68,7 @@ async function ItemsContent({ searchParams }: ItemsPageProps) {
 
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">Предметы</h1>
         <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-          Общий справочник предметов. Добыча и продажи хранятся в истории каждой группы.
+          Общий справочник и собственные предметы группы. Общие записи доступны только для чтения.
         </p>
       </header>
 

@@ -1,0 +1,21 @@
+[
+ ["LAB_78","Labyrinth of the Abyss (78)","Лаба 78","SERVER_VARIANT","Kamaloka",["лаба","labyrinth","78"]],
+ ["LAB_81","Labyrinth of the Abyss (81)","Лаба 81","SERVER_VARIANT","Kamaloka",["лаба","labyrinth","81"]],
+ ["LAB_83","Labyrinth of the Abyss (83)","Лаба 83","SERVER_VARIANT","Kamaloka",["лаба","labyrinth","83"]],
+ ["TWINS","Hall of Suffering (Twins)","Близы","H5","Seed of Infinity",["twins","близнецы"]],
+ ["ISTINA","Istina","Истина","SERVER_VARIANT","Epic",["истхина"]],
+ ["ZAKEN_DAY","Daytime Zaken","Закен день","H5","Epic",["дневной закен"]],
+ ["ZAKEN_NIGHT","Nighttime Zaken","Закен ночь","H5","Epic",["ночной закен"]],
+ ["ZAKEN_83","Daytime Zaken (83)","Закен 83","H5","Epic",["zaken hard"]],
+ ["FREYA_NORMAL","Freya (Normal)","Фрея","H5","Epic",["freya normal"]],
+ ["FREYA_HARD","Freya (Hard)","Фрея Б","H5","Epic",["бфрея","blessed freya","freya hard"]],
+ ["TIAT","Seed of Destruction (Tiat)","Тиата","H5","Gracia",["тиат"]],
+ ["FRINTEZZA","Frintezza","Фринтеза","H5","Epic",["фринта","last imperial tomb"]],
+ ["FRINTEZZA_CHAOTIC","Frintezza (Chaotic)","Фринтеза хаотик","SERVER_VARIANT","Epic",["хаотик"]],
+ ["HALL_ABYSS","Hall of the Abyss","Холл Бездны","SERVER_VARIANT","Kamaloka",["хол оф абус","kamaloka"]],
+ ["FORTRESS_DUNGEON","Fortress/Castle Dungeon","Fortress/Castle Dungeon","SERVER_VARIANT","Fortress",["подвал","подвал крепости","castle dungeon","fortress dungeon"]],
+ ["DELUSION","Delusion Chamber","Деллюжен","H5","Instance",["chamber of delusion","делюжен"]],
+ ["BAYLOR","Crystal Caverns (Baylor)","Байлор","H5","Instance",["кристальные пещеры"]],
+ ["EKIMUS","Heart of Infinity (Ekimus)","Экимус","H5","Seed of Infinity",["сердце бессмертия"]],
+ ["COHEMENES","Hall of Erosion (Cohemenes)","Коэменес","H5","Seed of Infinity",["кохеменес","зал гибели"]]
+]

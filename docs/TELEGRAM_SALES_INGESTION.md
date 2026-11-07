@@ -119,7 +119,11 @@ sent on behalf of a chat are ignored. The current balance and unrelated notices
 create no financial entries.
 
 Item matching uses normalized canonical names, display names and per-party
-`TelegramItemAlias` records. An ambiguous match is never chosen automatically.
+`TelegramItemAlias` records. Only global items and items owned by the importing
+party are eligible, including archived items needed for historical unsold loot.
+An explicit party alias chooses its exact eligible item; without an alias, an
+ambiguous canonical/display match is never chosen automatically. Other parties'
+private catalog entries are excluded from lookup and alias maintenance.
 Only unsold loot in the same party is eligible. Allocate oldest raid first, then
 loot creation time and ID. One row may span multiple raids; distribute its
 proceeds per unit, assigning integer remainders to the earliest allocated units.

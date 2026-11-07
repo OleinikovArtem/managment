@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Создание рейда · Прототип Party Bank</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<svg class="symbols" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
+<symbol id="swords" viewBox="0 0 24 24"><path d="m14 3 7 0 0 7-12 12-7-7L14 3ZM3 3l6 0 12 12-6 6L3 9V3Z"/></symbol>
+<symbol id="bank" viewBox="0 0 24 24"><path d="m3 9 9-6 9 6H3Zm2 3v7m7-7v7m7-7v7M3 22h18"/></symbol>
+<symbol id="grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+<symbol id="users" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3m1-17a3 3 0 0 1 0 6m3 3a6 6 0 0 1 3 5v3"/></symbol>
+<symbol id="wallet" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 8V5l14-3v3m4 7h-6v5h6"/></symbol>
+<symbol id="box" viewBox="0 0 24 24"><path d="m3 7 9-5 9 5v10l-9 5-9-5V7Zm0 0 9 5 9-5m-9 5v10M7 5l10 5"/></symbol>
+<symbol id="settings" viewBox="0 0 24 24"><path d="M3 7h18M3 17h18M8 3v8m8 2v8"/></symbol>
+<symbol id="chevron" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
+<symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+<symbol id="trash" viewBox="0 0 24 24"><path d="M3 6h18M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7m4-7v7"/></symbol>
+<symbol id="search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></symbol>
+<symbol id="arrow" viewBox="0 0 24 24"><path d="M19 12H5m6-6-6 6 6 6"/></symbol>
+</defs></svg>
+<aside class="sidebar">
+ <div class="brand"><svg><use href="#bank"/></svg><div><b>Party Bank</b><small>Казна группы</small></div></div>
+ <nav aria-label="Навигация прототипа"><span><svg><use href="#grid"/></svg>Обзор</span><span class="active" aria-current="page"><svg><use href="#swords"/></svg>Рейды</span><span><svg><use href="#wallet"/></svg>Финансы</span><span><svg><use href="#users"/></svg>Группа</span><div class="nav-gap"></div><span><svg><use href="#box"/></svg>Лут</span><span><svg><use href="#grid"/></svg>Каталог предметов</span><span><svg><use href="#settings"/></svg>Настройки</span></nav>
+ <div class="party"><b>Evening Party</b><small>Демонстрационная группа</small></div>
+</aside>
+<div class="mobile-header"><div class="brand"><svg><use href="#bank"/></svg><b>Party Bank</b></div><span>Рейды</span></div>
+<main>
+ <div class="preview-bar"><span><i></i>Визуальный прототип · данные только в браузере</span><div><button type="button" id="empty-demo">Пустые рекомендации</button><button type="button" id="filled-demo">Пример дропа</button></div></div>
+ <div class="back"><svg><use href="#arrow"/></svg>Рейды <span>/</span> Новый рейд</div>
+ <h1 class="sr-only">Создание рейда</h1>
+ <form id="raid-form">
+ <section class="instance-section compact-context" aria-label="Инстанс, дата и стадия">
+  <div class="context-row"><div class="context-instance"><label for="instance">Инстанс</label><div class="instance-with-add"><div class="instance-picker"><input id="instance" list="instances" value="Фрея Б" autocomplete="off"><datalist id="instances"><option value="Фрея Б"><option value="Фрея"><option value="Лаба 83"><option value="Близы"><option value="Закен 83"><option value="Тиата"></datalist><svg><use href="#chevron"/></svg></div><button type="button" class="add-instance-button" id="add-instance" aria-label="Добавить свой инстанс" title="Добавить свой инстанс"><svg aria-hidden="true"><use href="#plus"/></svg></button></div></div>
+   <label class="context-date">Дата и время<input id="raid-date" type="datetime-local" value="2026-11-06T20:30" required></label>
+   <div class="context-stage"><span class="field-label">Стадия</span><div class="stage-wrapper"><button type="button" class="stage-button" id="stage-button" popovertarget="stage-popover" aria-label="Стадия черновика: Stage 3"><span id="stage-label">Stage 3</span><svg><use href="#chevron"/></svg></button>
+   <div id="stage-popover" popover><p>Стадия этого рейда</p><button type="button" data-stage="1">Stage 1<span></span></button><button type="button" data-stage="2">Stage 2<span></span></button><button type="button" data-stage="3">Stage 3<span>✓</span></button><small>Выбор не меняет настройки пати</small></div></div></div>
+  </div>
+  <details class="optional-name"><summary>Своё название <span>необязательно</span></summary><label class="sr-only" for="raid-name">Название рейда</label><input id="raid-name" placeholder="Например, вечерний заход" maxlength="120"></details>
+ </section>
+ <section aria-labelledby="attendance-heading">
+  <div class="section-heading"><div class="heading-with-count"><h2 id="attendance-heading">Участники</h2><span id="attendance-count" class="count">7 из 9</span></div><div class="selection-actions"><button type="button" id="select-all" class="text-button">Все</button><button type="button" id="select-none" class="text-button">Снять</button></div></div>
+  <div class="composition-line"><label for="composition">Шаблон состава</label><select id="composition"><option value="manual">Выбрать вручную</option value="main">Основной состав · 9</option><option value="small">Малая группа · 5</option></select><button type="button" class="text-button" id="last-raid">Как в прошлом рейде</button></div>
+  <div id="members" class="member-grid"></div>
+ </section>
+ <section aria-labelledby="loot-heading" class="loot-section">
+  <div class="section-heading"><div class="heading-with-count"><h2 id="loot-heading">Дроп</h2><span class="count" id="loot-count">0 позиций</span></div><span class="section-note">Добавляйте только то, что выпало</span></div>
+  <div class="loot-tabs" role="tablist" aria-label="Каталог добычи"><button type="button" role="tab" id="tab-recommended" aria-selected="true" data-tab="recommended" aria-controls="loot-panel">Возможный дроп</button><button type="button" role="tab" id="tab-quick" aria-selected="false" data-tab="quick" aria-controls="loot-panel" tabindex="-1">Быстрый</button><button type="button" role="tab" id="tab-all" aria-selected="false" data-tab="all" aria-controls="loot-panel" tabindex="-1">Все предметы</button></div>
+  <div id="loot-panel" role="tabpanel" aria-labelledby="tab-recommended"><p id="loot-hint" class="loot-hint">Для этой стадии рекомендации ещё не заполнены. Добавьте предмет из каталога.</p><div id="loot-grid" class="loot-grid"></div></div>
+  <details class="raid-note"><summary>Комментарий к рейду <span>необязательно</span></summary><label class="sr-only" for="raid-comment">Комментарий к рейду</label><textarea id="raid-comment" placeholder="Заметка о заходе, договорённости по добыче…" rows="2" maxlength="1000"></textarea></details>
+ </section>
+ <footer class="save-bar"><div><strong id="summary">Фрея Б · Stage 3</strong><span id="summary-detail">7 участников · без добычи</span></div><button type="submit" class="primary"><svg><use href="#check"/></svg>Создать рейд</button></footer>
+ </form>
+ <p class="prototype-note">Демонстрационные предметы показывают только компоновку. Это не таблица дропа инстанса.</p>
+</main>
+<dialog id="catalog-dialog"><div class="dialog-heading"><div><h2>Добавить предмет</h2><p>Демонстрационный каталог</p></div><button type="button" class="icon-button close-dialog" aria-label="Закрыть">×</button></div><label class="search-field"><svg><use href="#search"/></svg><input id="catalog-search" placeholder="Название предмета" aria-label="Поиск предмета"></label><div id="catalog-items"></div><form id="custom-item-form"><label>Нет в каталоге?<input id="custom-item-name" placeholder="Название своего предмета" maxlength="200" required></label><button class="secondary" type="submit">Создать и добавить</button></form></dialog>
+<dialog id="instance-dialog"><div class="dialog-heading"><h2>Свой инстанс</h2><button type="button" class="icon-button close-dialog" aria-label="Закрыть">×</button></div><form id="custom-instance-form"><label>Название<input id="custom-instance-name" maxlength="120" required></label><button class="primary" type="submit">Добавить инстанс</button></form></dialog>
+<div id="toast" role="status" hidden></div>
+<script src="prototype.js"></script>
+</body></html>

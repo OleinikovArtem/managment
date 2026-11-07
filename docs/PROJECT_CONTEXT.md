@@ -18,16 +18,17 @@ Party Bank Manager — русскоязычное приложение для у
 | Сохранённые составы | `src/features/compositions/` |
 | Каталог, поиск, редактирование | `src/features/items/` |
 | Весь лут, фильтры продаж и остатки | `src/features/loot/`, `src/server/repositories/loot-repository.ts`, `src/app/(dashboard)/loot/` |
-| Создание и редактирование рейда | `src/features/raids/raid-form.tsx`, `item-combobox.tsx` |
+| Создание и редактирование рейда | `src/features/raids/raid-form.tsx`, `loot-picker.tsx`, `instance-picker.tsx`, `profile-picker.tsx` |
+| Инстансы, стадии, настройки рекомендаций | `src/features/instances/`, `instance-repository.ts`, `raids/catalog-actions.ts`; [INSTANCE_CATALOG.md](./INSTANCE_CATALOG.md) |
 | Detail рейда, история и продажа | `raid-detail-view.tsx`, `raid-detail-view.css`, `raid-sale-workspace.tsx` в `src/features/raids/` |
 | Передачи и получатели | `src/features/sales/payment-form.tsx`, `payout-list.tsx` |
 | Продажа и валидация финансов | `src/features/sales/sale-form.tsx`, `sale-schema.ts`, `payment-schema.ts` |
 | Журнал | `src/features/ledger/history-list.tsx` |
 | Настройки и выборочный сброс группы | `src/features/settings/reset-plan.ts`, `reset-data-card.tsx`, `src/server/repositories/party-repository.ts` |
 | Правила и транзакции | `src/server/services/`, `src/server/repositories/` |
-| Базовый каталог предметов | `src/server/bootstrap/`, `prisma/seeds/lineage2-high-five-items.json` |
+| Общие и собственные каталоги | `item-repository.ts`, `catalog-scope.ts`; административный bootstrap в `src/server/bootstrap/`, metadata seed `scripts/seed-instance-catalog.cjs` |
 | Авторизация, роли, приглашения, активность и Telegram-токен | `src/lib/auth.ts`, `src/server/auth/`, `src/server/services/account-party-service.ts`, `src/server/services/telegram-credential-service.ts`, `src/app/(auth)/`, `src/app/(dashboard)/settings/` |
-| Схема и PostgreSQL-защиты | `prisma/schema.prisma`, `prisma/postgresql-constraints.sql` |
+| Схема и PostgreSQL-защиты | `prisma/schema.prisma`, `prisma/postgresql-constraints.sql`, `prisma/catalog-constraints.sql` |
 | Клиент БД | `src/lib/db/prisma.ts` |
 | Parser и короткие суммы | `src/lib/adena.ts`, `src/components/ui/adena-amount.tsx` |
 | CSV | `src/server/services/financial-history-csv.ts`, `src/app/api/ledger/export/route.ts` |

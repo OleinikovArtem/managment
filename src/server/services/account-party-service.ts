@@ -3,7 +3,6 @@ import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 import { PartyRole } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db/prisma";
-import { ensureBaseItemCatalog } from "@/server/bootstrap/base-item-catalog";
 
 const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -20,7 +19,6 @@ export async function createPartyForUser(userId: string, name: string) {
     await transaction.partyMembership.create({
       data: { partyId: party.id, userId, role: PartyRole.OWNER },
     });
-    await ensureBaseItemCatalog(transaction);
     const creator = await transaction.user.findUniqueOrThrow({
       where: { id: userId },
       select: { displayName: true, username: true },

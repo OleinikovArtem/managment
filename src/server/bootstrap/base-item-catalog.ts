@@ -1,92 +1,19 @@
 import { normalizeItemName } from "@/features/items/item-schema";
-import {
-  classifyHighFiveItem,
-  legacyHighFiveCategories,
-} from "@/server/bootstrap/high-five-item-classification";
+import { classifyHighFiveItem } from "./high-five-item-classification";
 import baseItemDump from "../../../prisma/seeds/lineage2-high-five-items.json";
+import instanceLootDump from "../../../prisma/seeds/bohpts-stage-1-loot.json";
 
-type ItemCatalogSeedClient = {
-  item: {
-    findMany(args: {
-      where: { normalizedName: { in: string[] } };
-      select: {
-        normalizedName: true;
-        category: true;
-      };
-    }): Promise<{
-      normalizedName: string;
-      category: string | null;
-    }[]>;
-    upsert(args: {
-      where: {
-        normalizedName: string;
-      };
-      update: {
-        category: string;
-        grade: string | null;
-        itemType: string | null;
-        itemSubtype: string | null;
-        isRare: boolean;
-      };
-      create: {
-        canonicalName: string;
-        normalizedName: string;
-        category: string;
-        grade: string | null;
-        itemType: string | null;
-        itemSubtype: string | null;
-        isRare: boolean;
-        gameVersion: string;
-      };
-    }): Promise<unknown>;
-  };
-};
+const supplementalItems = Object.values(instanceLootDump.sources)
+  .flatMap((source) => source.items)
+  .filter((item, index, all) => all.findIndex((candidate) => candidate.name === item.name) === index)
+  .map((item) => ({ canonicalName: item.name, category: item.category }));
+const allBaseItems = [
+  ...baseItemDump.items,
+  ...supplementalItems.filter((item) => !baseItemDump.items.some((existing) => existing.canonicalName === item.canonicalName)),
+];
 
-export async function ensureBaseItemCatalog(
-  transaction: ItemCatalogSeedClient,
-) {
-  const seedItems = baseItemDump.items.map((item) => ({
-    ...item,
-    normalizedName: normalizeItemName(item.canonicalName),
-    classification: classifyHighFiveItem(item),
-  }));
-  const existingItems = await transaction.item.findMany({
-    where: {
-      normalizedName: { in: seedItems.map((item) => item.normalizedName) },
-    },
-    select: {
-      normalizedName: true,
-      category: true,
-    },
-  });
-  const existingByName = new Map(
-    existingItems.map((item) => [item.normalizedName, item]),
-  );
-  const missingItems = seedItems.filter(
-    (item) => !existingByName.has(item.normalizedName),
-  );
-  const itemsToReconcile = seedItems.filter((item) => {
-    const existing = existingByName.get(item.normalizedName);
-    return (
-      !existing ||
-      legacyHighFiveCategories[item.category]?.includes(existing.category ?? "") ===
-        true
-    );
-  });
-
-  for (const item of itemsToReconcile) {
-    await transaction.item.upsert({
-      where: {
-        normalizedName: item.normalizedName,
-      },
-      update: item.classification,
-      create: {
-        canonicalName: item.canonicalName,
-        normalizedName: item.normalizedName,
-        ...item.classification,
-        gameVersion: baseItemDump.gameVersion,
-      },
-    });
-  }
-  return missingItems.length;
+// Administrative bootstrap only. Preserve existing catalog and party-owned rows.
+export async function ensureBaseItemCatalog(client: { item: { createMany(args: { data: { canonicalName: string; normalizedName: string; partyId: null; category: string; grade: string | null; itemType: string | null; itemSubtype: string | null; isRare: boolean; gameVersion: string }[]; skipDuplicates: true }): Promise<{ count: number }> } }) {
+  const result = await client.item.createMany({ data: allBaseItems.map(item => ({ canonicalName: item.canonicalName, normalizedName: normalizeItemName(item.canonicalName), partyId: null, ...classifyHighFiveItem(item), gameVersion: baseItemDump.gameVersion })), skipDuplicates: true });
+  return result.count;
 }

@@ -1,4 +1,5 @@
 import "server-only";
+import { lockParty } from "./catalog-locks";
 
 import { Prisma, type Prisma as PrismaTypes } from "@/generated/prisma/client";
 import {
@@ -104,6 +105,7 @@ export async function createPartySaleRecord(
   partyId: string,
   input: SaleRecordInput,
 ) {
+  await lockParty(transaction, partyId);
   const existing = await transaction.saleTransaction.findUnique({
     where: {
       partyId_idempotencyKey: {

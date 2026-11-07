@@ -20,7 +20,11 @@ const lootDropSchema = z.object({
 
 const raidFields = {
   compositionId: z.string().trim().min(1).optional(),
-  name: z.string().trim().min(1, "Введите название рейда.").max(120),
+  name: z.string().trim().max(120),
+  instanceId: z.string().trim().min(1).nullable().optional(),
+  stageId: z.string().trim().min(1).nullable().optional(),
+  stageRevision: z.number().int().positive().nullable().optional(),
+  creationKey: z.string().uuid().optional(),
   instanceName: text(120, "Название инстанса"),
   comment: text(1000, "Комментарий"),
   participants: z.array(participantSchema).min(1, "Добавьте участников рейда."),
