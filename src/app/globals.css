@@ -119,6 +119,10 @@ body {
   background: var(--background);
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 ::selection {
   background: #e6be6740;
   color: var(--foreground);

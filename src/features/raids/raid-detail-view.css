@@ -236,6 +236,7 @@
   min-width: 0;
   flex-direction: column;
   align-self: start;
+  container: raid-card / inline-size;
   border: 1px solid var(--raid-detail-rule);
   border-radius: 6px;
   background: var(--raid-detail-surface);
@@ -386,8 +387,26 @@
   margin-top: 10px;
 }
 
+@container raid-card (max-width: 340px) {
+  .raidDetail-cardActions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .raidDetail-history > summary {
+    justify-content: flex-start;
+  }
+}
+
 .raidDetail-saleEntry {
   min-width: 0;
+}
+
+.raidDetail-cardActions:has(.raidDetail-saleEntry > form) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.raidDetail-saleEntry:has(> form) {
+  grid-column: 1 / -1;
 }
 
 .raidDetail-saleEntry > div {
@@ -435,13 +454,33 @@
 
 .raidDetail-saleEntry > form {
   display: grid;
-  grid-column: 1 / -1;
-  gap: 16px;
+  min-width: 0;
+  gap: 12px;
   margin-top: 6px;
   border: 1px solid var(--raid-detail-rule);
   border-radius: 6px;
   background: var(--raid-detail-raised);
   padding: 14px;
+}
+
+.raidDetail-saleEntry > form > div:nth-of-type(2) {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+
+.raidDetail-saleEntry > form > div:nth-of-type(2) > label {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+  line-height: 1.4;
+}
+
+.raidDetail-saleEntry > form > div:nth-of-type(2) > label > div,
+.raidDetail-saleEntry > form > div:nth-of-type(2) > label > input {
+  width: 100%;
+  min-width: 0;
 }
 
 .raidDetail-saleEntry > form [data-slot="button"] {
@@ -892,6 +931,10 @@
 
   .raidDetail-drop {
     padding: 9px;
+  }
+
+  .raidDetail-drop:has(.raidDetail-saleEntry > form) {
+    grid-column: 1 / -1;
   }
 
   .raidDetail-dropHeader {
