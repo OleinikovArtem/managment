@@ -1,6 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { useSyncExternalStore } from "react";
+
+function subscribe(callback: () => void) {
+  window.addEventListener("popstate", callback);
+  return () => window.removeEventListener("popstate", callback);
+}
+
+function getView() {
+  return new URLSearchParams(window.location.search).get("view");
+}
 
 export function RaidModeTabs({
   view,
@@ -11,6 +21,8 @@ export function RaidModeTabs({
   calendarHref: string;
   listHref: string;
 }) {
+  const urlView = useSyncExternalStore(subscribe, getView, () => view);
+  const activeView = urlView === "list" ? "list" : "calendar";
   const tabs = [
     { id: "calendar" as const, label: "Календарь", href: calendarHref },
     { id: "list" as const, label: "Список", href: listHref },
@@ -26,8 +38,8 @@ export function RaidModeTabs({
         <Link
           key={tab.id}
           role="tab"
-          aria-selected={view === tab.id}
-          tabIndex={view === tab.id ? 0 : -1}
+          aria-selected={activeView === tab.id}
+          tabIndex={activeView === tab.id ? 0 : -1}
           href={tab.href}
           onKeyDown={(event) => {
             if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
@@ -48,7 +60,7 @@ export function RaidModeTabs({
                     elements.length;
             elements[next]?.focus();
           }}
-          className={`inline-flex min-h-10 items-center justify-center rounded-md px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${view === tab.id ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+          className={`inline-flex min-h-10 items-center justify-center rounded-md px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${activeView === tab.id ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
         >
           {tab.label}
         </Link>

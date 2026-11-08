@@ -45,7 +45,7 @@ test("raid creation retries a lost committed response without duplicating the ra
     .rows;
   expect(before).toHaveLength(1);
   await page.getByRole("button", { name: "Создать рейд", exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/raids/${before[0].id}$`), { timeout: 30_000 });
+  await expect(page).toHaveURL(new RegExp(`/raids/${before[0].id}(?:\\?.*)?$`), { timeout: 30_000 });
   expect(keys).toHaveLength(2);
   expect(keys[0]).toBe(keys[1]);
   expect(

@@ -28,8 +28,7 @@ test("raid views share navigation, preserve each mode state and redirect legacy 
   await page.goto("/calendar?month=2026-01&day=2026-01-07&instance=lab-id&member=member-id&resets=1");
   await expect(page).toHaveURL(/\/raids\?month=2026-01&day=2026-01-07&instance=lab-id&member=member-id&resets=1&view=calendar/);
   const calendarTab = page.getByRole("tab", { name: "Календарь", exact: true });
-  await calendarTab.focus();
-  await page.keyboard.press("ArrowRight");
+  await calendarTab.press("ArrowRight");
   await expect(page.getByRole("tab", { name: "Список", exact: true })).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/view=list/);
@@ -40,6 +39,47 @@ test("raid views share navigation, preserve each mode state and redirect legacy 
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/view=calendar/);
   expect(new URL(page.url()).searchParams.get("day")).toBe("2026-01-07");
+  await page.goBack();
+  await expect(page).toHaveURL(/view=list/);
+  await expect(page.getByRole("tab", { name: "Список", exact: true })).toHaveAttribute("aria-selected", "true");
+  await page.goForward();
+  await expect(page).toHaveURL(/view=calendar/);
+  await expect(page.getByRole("tab", { name: "Календарь", exact: true })).toHaveAttribute("aria-selected", "true");
+});
+
+test("list filters, empty reset, detail return context and viewport widths work", async ({ page, local }) => {
+  const raidId = await local.addRaid();
+  const instance = (
+    await local.db.query(
+      'SELECT id,COALESCE(NULLIF("displayName",\'\'),name) AS label FROM "Instance" WHERE code=$1 AND "partyId" IS NULL',
+      ["LAB_83"],
+    )
+  ).rows[0];
+  await local.db.query(
+    'UPDATE "Raid" SET "instanceId"=$1,"instanceName"=$2,"occurredAt"=$3::timestamp WHERE id=$4',
+    [instance.id, instance.label, "2026-01-15 12:00:00", raidId],
+  );
+  await page.goto(`/raids?view=list&instance=${instance.id}&q=Fixture&period=all&page=1`);
+  const raidLink = page.getByRole("link", { name: /P1 Fixture Raid/ });
+  await expect(raidLink).toBeVisible();
+  await expect(page.getByRole("status")).toContainText("1 рейд");
+  await raidLink.click();
+  await expect(page).toHaveURL(new RegExp(`/raids/${raidId}\\?returnTo=`));
+  await page.locator("[data-raid-detail] .raidDetail-breadcrumb a").click();
+  await expect(page).toHaveURL(/view=list/);
+  expect(new URL(page.url()).searchParams.get("instance")).toBe(instance.id);
+  expect(new URL(page.url()).searchParams.get("q")).toBe("Fixture");
+
+  await page.getByRole("textbox", { name: "Поиск рейдов" }).fill("no matching raid");
+  await expect(page.getByText("Рейдов по этим условиям нет. Измените поиск или сбросьте фильтры.")).toBeVisible();
+  await page.getByRole("button", { name: "Сбросить фильтры", exact: true }).click();
+  await expect(page.getByRole("link", { name: /P1 Fixture Raid/ })).toBeVisible();
+
+  for (const width of [320, 390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(page.getByRole("tablist", { name: "Режим отображения походов" })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  }
 });
 
 test("top action uses current time; day plus presets only today or past", async ({ page, local }) => {

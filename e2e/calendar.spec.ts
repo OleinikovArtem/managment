@@ -325,7 +325,11 @@ test("group isolation and MEMBER permissions apply to the day panel and new-raid
     [`${other}-access`, other, local.userId],
   );
   await page.goto("/calendar?month=2026-01&day=2026-01-07");
-  const originalPartyDay = await selectDay(page, "2026-01-07");
+  const originalPartyDay = page.getByRole("dialog", {
+    name: dayTitle("2026-01-07"),
+    exact: true,
+  });
+  await expect(originalPartyDay).toBeVisible();
   await expect(originalPartyDay.getByRole("link", { name: "Лаба ↗", exact: true })).toHaveAttribute(
     "href",
     new RegExp(`^/raids/${raid}\\?returnTo=`),
@@ -340,12 +344,10 @@ test("group isolation and MEMBER permissions apply to the day panel and new-raid
   const cookie = (await context.cookies()).find((c) => c.name === "party-bank-active-party")!;
   await context.addCookies([{ ...cookie, value: other }]);
   await page.goto("/calendar?month=2026-01&day=2026-01-07");
-  await page.keyboard.press("Escape");
   const isolatedDay = page.getByRole("dialog", {
     name: dayTitle("2026-01-07"),
     exact: true,
   });
-  await selectDay(page, "2026-01-07");
   await expect(isolatedDay).toBeVisible();
   await expect(isolatedDay.getByText("Походы группы не записаны.", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Лаба ↗", exact: true })).toHaveCount(0);
