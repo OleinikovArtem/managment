@@ -16,11 +16,19 @@ export async function replayAction(page: Page, request: Request, changes?: Recor
     throw new Error("Unexpected Server Action argument encoding.");
   }
   if (changes) Object.assign(args[0], changes);
+  return replayArguments(page, request, args);
+}
+
+export async function sendActionArguments(page: Page, request: Request, args: unknown[]) {
   const headers = await request.allHeaders();
   for (const key of ["cookie", "host", "content-length", "connection"]) delete headers[key];
-  const response = await page.request.post(request.url(), {
+  return page.request.post(request.url(), {
     headers, data: JSON.stringify(args),
   });
+}
+
+export async function replayArguments(page: Page, request: Request, args: unknown[]) {
+  const response = await sendActionArguments(page, request, args);
   if (!response.ok()) throw new Error(`Action replay returned HTTP ${response.status()}`);
   return response.text();
 }
