@@ -10,6 +10,7 @@ const now = new Date(2026, 10, 7, 12);
 function raid(id: string, day: number, month = 10): RaidListRow {
   return {
     id,
+    instanceId: "instance-1",
     name: id,
     instanceName: "Instance",
     occurredAt: new Date(2026, month, day, 19).toISOString(),

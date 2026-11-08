@@ -8,20 +8,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { RaidForm } from "@/features/raids/raid-form";
 import { requirePartyPageAccess } from "@/server/auth/party-access";
 import { getRaid, getRaidSetup, RaidNotFoundError } from "@/server/services/raid-service";
+import { safeRaidReturnTo, raidHrefWithReturnTo } from "@/features/raids/raid-navigation";
 
-type EditRaidPageProps = { params: Promise<{ id: string }> };
+type EditRaidPageProps = { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> };
 
-export default function EditRaidPage({ params }: EditRaidPageProps) {
+export default function EditRaidPage({ params, searchParams }: EditRaidPageProps) {
   return (
     <Suspense fallback={<div className="h-96 animate-pulse rounded-2xl bg-muted/50" />}>
-      <EditRaidContent params={params} />
+      <EditRaidContent params={params} searchParams={searchParams} />
     </Suspense>
   );
 }
 
-async function EditRaidContent({ params }: EditRaidPageProps) {
+async function EditRaidContent({ params, searchParams }: EditRaidPageProps) {
   await io();
-  const { id } = await params;
+  const [{ id }, query] = await Promise.all([params, searchParams]);
+  const returnTo = safeRaidReturnTo(query.returnTo);
+  const detailHref = raidHrefWithReturnTo(`/raids/${id}`, returnTo);
   const workspace = await requirePartyPageAccess();
   if (!workspace.canManage) redirect("/dashboard");
   let raid;
@@ -43,7 +46,7 @@ async function EditRaidContent({ params }: EditRaidPageProps) {
           </p>
         </header>
         <Link
-          href={`/raids/${raid.id}`}
+          href={detailHref}
           className="inline-flex min-h-11 items-center text-sm underline underline-offset-4"
         >
           К рейду и оставшейся добыче
@@ -56,7 +59,7 @@ async function EditRaidContent({ params }: EditRaidPageProps) {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <Link
-        href={`/raids/${raid.id}`}
+        href={detailHref}
         className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft aria-hidden="true" size={16} />К рейду
@@ -74,6 +77,7 @@ async function EditRaidContent({ params }: EditRaidPageProps) {
         </CardHeader>
         <CardContent>
           <RaidForm
+            returnTo={returnTo}
             members={raid.participants.map((participant) => ({
               id: participant.memberId,
               nickname: participant.nicknameSnapshot,

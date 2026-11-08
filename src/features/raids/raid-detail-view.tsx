@@ -12,10 +12,12 @@ export function RaidDetailView({
   raid,
   partyName,
   canManage,
+  returnTo,
 }: {
   raid: Raid;
   partyName: string;
   canManage: boolean;
+  returnTo: string;
 }) {
   const presentParticipants = raid.participants.filter(({ status }) => status === "PRESENT");
   // Presentation guard only: legacy records can have sales without lockedAt.
@@ -26,9 +28,9 @@ export function RaidDetailView({
   return (
     <article className="raidDetail-workspace" data-raid-detail>
       <div className="raidDetail-breadcrumb">
-        <Link href="/raids">
+        <Link href={returnTo}>
           <ArrowLeft size={15} aria-hidden="true" />
-          Рейды
+          Походы
         </Link>
         <span aria-hidden="true">/</span>
         <span>{partyName}</span>
@@ -53,7 +55,7 @@ export function RaidDetailView({
             Рейд зафиксирован и не редактируется
           </p>
         ) : canManage ? (
-          <Link className="raidDetail-edit" href={`/raids/${raid.id}/edit`}>
+          <Link className="raidDetail-edit" href={`/raids/${raid.id}/edit?returnTo=${encodeURIComponent(returnTo)}`}>
             <Pencil size={14} aria-hidden="true" />
             Редактировать рейд
           </Link>
@@ -81,7 +83,7 @@ export function RaidDetailView({
               <p>Предметы, количество и время поступления.</p>
             </div>
             {canEditLoot && (
-              <Link className="raidDetail-edit" href={`/raids/${raid.id}/edit`}>
+              <Link className="raidDetail-edit" href={`/raids/${raid.id}/edit?returnTo=${encodeURIComponent(returnTo)}`}>
                 <Plus size={14} aria-hidden="true" />
                 Добавить или удалить предмет
               </Link>
@@ -91,7 +93,7 @@ export function RaidDetailView({
             <div className="raidDetail-empty">
               <h3>Добычи пока нет</h3>
               <p>Поступления этого рейда появятся здесь после добавления.</p>
-              {canEditLoot && <Link href={`/raids/${raid.id}/edit`}>Добавить добычу</Link>}
+              {canEditLoot && <Link href={`/raids/${raid.id}/edit?returnTo=${encodeURIComponent(returnTo)}`}>Добавить добычу</Link>}
             </div>
           ) : (
             <ul className="raidDetail-dropList">

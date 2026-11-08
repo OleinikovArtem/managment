@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { InstanceSelect } from "@/features/instances/instance-select";
+import type { InstanceOption } from "@/features/instances/catalog-schema";
 import { LocalDateTimeDisplay } from "@/features/raids/local-date-time-display";
 import { RaidListSkeleton } from "@/components/ui/page-skeleton";
 import {
@@ -31,30 +33,25 @@ function readPage(value: string | null) {
   return Number.isSafeInteger(page) && page > 0 ? page : 1;
 }
 
-export function RaidList({ raids }: { raids: RaidListRow[] }) {
+export function RaidList({ raids, instances }: { raids: RaidListRow[]; instances: InstanceOption[] }) {
   const params = useSearchParams();
+  const pathname = usePathname();
   const timezone = useSyncExternalStore(
     subscribeTimezone,
     () => Intl.DateTimeFormat().resolvedOptions().timeZone,
     () => "server",
   );
   const [query, setQuery] = useState(() => params.get("q") ?? "");
-  const [instance, setInstance] = useState(() => params.get("instance") ?? "all");
+  const [instance, setInstance] = useState(() => params.get("instance") ?? "");
   const [period, setPeriod] = useState(() => params.get("period") ?? "all");
   const [page, setPage] = useState(() => readPage(params.get("page")));
-  const instances = useMemo(
-    () =>
-      [...new Set(raids.map((raid) => raid.instanceName?.trim() || "Без инстанса"))].toSorted(
-        (left, right) => left.localeCompare(right, "ru-RU"),
-      ),
-    [raids],
-  );
+  const returnTo = `${pathname}${params.size ? `?${params}` : ""}`;
 
   useEffect(() => {
     function syncFromHistory() {
       const current = new URLSearchParams(window.location.search);
       setQuery(current.get("q") ?? "");
-      setInstance(current.get("instance") ?? "all");
+      setInstance(current.get("instance") ?? "");
       setPeriod(current.get("period") ?? "all");
       setPage(readPage(current.get("page")));
     }
@@ -71,7 +68,7 @@ export function RaidList({ raids }: { raids: RaidListRow[] }) {
     window.history.replaceState(
       null,
       "",
-      `${window.location.pathname}${next.size ? `?${next}` : ""}`,
+      `${pathname}${next.size ? `?${next}` : ""}`,
     );
   }
 
@@ -92,7 +89,7 @@ export function RaidList({ raids }: { raids: RaidListRow[] }) {
         .includes(normalizedQuery);
       return (
         matchesQuery &&
-        (instance === "all" || instanceName === instance) &&
+        (!instance || raid.instanceId === instance) &&
         (period === "all" || getRaidPeriod(raid.occurredAt) === period)
       );
     });
@@ -122,21 +119,14 @@ export function RaidList({ raids }: { raids: RaidListRow[] }) {
           placeholder="Название рейда или инстанса"
           aria-label="Поиск рейдов"
         />
-        <label className="raid-filter-control">
-          <span>Инстанс</span>
-          <select
-            aria-label="Фильтр по инстансу"
-            value={instance}
-            onChange={(event) => updateFilter("instance", event.target.value)}
-          >
-            <option value="all">Все инстансы</option>
-            {instances.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <InstanceSelect
+          rows={instances}
+          value={instance || null}
+          onChange={(value) => updateFilter("instance", value ?? "")}
+          disabled={false}
+          emptyLabel="Все инстансы"
+          label="Фильтр инстанса"
+        />
         <label className="raid-filter-control">
           <span>Период</span>
           <select
@@ -170,10 +160,13 @@ export function RaidList({ raids }: { raids: RaidListRow[] }) {
               className="mt-3"
               onClick={() => {
                 setQuery("");
-                setInstance("all");
+                setInstance("");
                 setPeriod("all");
                 setPage(1);
-                window.history.replaceState(null, "", window.location.pathname);
+                const next = new URLSearchParams(window.location.search);
+                for (const key of ["q", "instance", "period", "page"]) next.delete(key);
+                next.set("view", "list");
+                window.history.replaceState(null, "", `${pathname}?${next}`);
               }}
             >
               Сбросить фильтры
@@ -192,7 +185,10 @@ export function RaidList({ raids }: { raids: RaidListRow[] }) {
                 <ul className="data-list">
                   {group.raids.map((raid) => (
                     <li key={raid.id}>
-                      <Link href={`/raids/${raid.id}`} className="list-row min-h-11">
+                      <Link
+                        href={`/raids/${raid.id}?returnTo=${encodeURIComponent(returnTo)}`}
+                        className="list-row min-h-11"
+                      >
                         <div className="min-w-0">
                           <h3 className="truncate text-sm font-medium">{raid.name}</h3>
                           <p className="mt-1 truncate text-xs text-muted-foreground">

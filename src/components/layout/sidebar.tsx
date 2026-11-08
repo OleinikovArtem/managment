@@ -13,7 +13,6 @@ import {
   BookOpen,
   Settings2,
   PackageOpen,
-  CalendarDays,
 } from "lucide-react";
 import { SidePanel } from "@/components/ui/side-panel";
 import {
@@ -29,12 +28,11 @@ import { SignOutButton } from "@/features/auth/party-forms";
 
 const mainLinks = [
   { href: "/dashboard", label: "Обзор", icon: LayoutDashboard, routes: ["/dashboard"] },
-  { href: "/raids", label: "Рейды", icon: Swords, routes: ["/raids"] },
+  { href: "/raids", label: "Походы", icon: Swords, routes: ["/raids", "/calendar"] },
   { href: "/sales", label: "Финансы", icon: WalletCards, routes: ["/sales", "/ledger"] },
   { href: "/members", label: "Группа", icon: UsersRound, routes: ["/members", "/compositions"] },
 ];
 const secondaryLinks = [
-  { href: "/calendar", label: "Календарь", icon: CalendarDays, routes: ["/calendar"] },
   { href: "/loot", label: "Лут", icon: PackageOpen, routes: ["/loot"] },
   { href: "/items", label: "Каталог предметов", icon: BookOpen, routes: ["/items"] },
   { href: "/settings", label: "Настройки", icon: Settings2, routes: ["/settings"] },

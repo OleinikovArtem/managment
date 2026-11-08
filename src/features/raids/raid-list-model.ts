@@ -1,5 +1,6 @@
 export type RaidListRow = {
   id: string;
+  instanceId: string | null;
   name: string;
   instanceName: string | null;
   occurredAt: string;

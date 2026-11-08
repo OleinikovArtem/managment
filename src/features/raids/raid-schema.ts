@@ -72,13 +72,27 @@ function validateCollections(
   }
 }
 
+function validateRaidIsNotFuture(occurredAt: string, context: z.RefinementCtx) {
+  const timestamp = Date.parse(occurredAt);
+  if (Number.isFinite(timestamp) && timestamp > Date.now()) {
+    context.addIssue({
+      code: "custom",
+      path: ["occurredAt"],
+      message: "Нельзя записать поход в будущем.",
+    });
+  }
+}
+
 export const raidInputSchema = z
   .object({
     ...raidFields,
     occurredAt: z.string().datetime({ message: "Укажите дату и время рейда." }),
   })
   .strict()
-  .superRefine(validateCollections);
+  .superRefine((input, context) => {
+    validateCollections(input, context);
+    validateRaidIsNotFuture(input.occurredAt, context);
+  });
 
 export const raidFormSchema = z
   .object({
@@ -86,7 +100,10 @@ export const raidFormSchema = z
     occurredAt: z.string().min(1, "Укажите дату и время рейда."),
   })
   .strict()
-  .superRefine(validateCollections);
+  .superRefine((input, context) => {
+    validateCollections(input, context);
+    validateRaidIsNotFuture(input.occurredAt, context);
+  });
 
 export const raidIdSchema = z.string().trim().min(1, "Некорректный идентификатор рейда.");
 

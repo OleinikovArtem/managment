@@ -4,22 +4,25 @@ import { io } from "next/cache";
 import { requirePartyPageAccess } from "@/server/auth/party-access";
 import { getRaid, RaidNotFoundError } from "@/server/services/raid-service";
 import { RaidDetailView } from "@/features/raids/raid-detail-view";
+import { safeRaidReturnTo } from "@/features/raids/raid-navigation";
 
 type RaidDetailPageProps = {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export default function RaidDetailPage({ params }: RaidDetailPageProps) {
+export default function RaidDetailPage({ params, searchParams }: RaidDetailPageProps) {
   return (
     <Suspense fallback={<div className="h-96 animate-pulse rounded-2xl bg-muted/50" />}>
-      <RaidDetailContent params={params} />
+      <RaidDetailContent params={params} searchParams={searchParams} />
     </Suspense>
   );
 }
 
-async function RaidDetailContent({ params }: RaidDetailPageProps) {
+async function RaidDetailContent({ params, searchParams }: RaidDetailPageProps) {
   await io();
-  const { id } = await params;
+  const [{ id }, query] = await Promise.all([params, searchParams]);
+  const returnTo = safeRaidReturnTo(query.returnTo);
   const workspace = await requirePartyPageAccess();
 
   let raid;
@@ -33,6 +36,11 @@ async function RaidDetailContent({ params }: RaidDetailPageProps) {
   }
 
   return (
-    <RaidDetailView raid={raid} partyName={workspace.partyName} canManage={workspace.canManage} />
+    <RaidDetailView
+      raid={raid}
+      partyName={workspace.partyName}
+      canManage={workspace.canManage}
+      returnTo={returnTo}
+    />
   );
 }

@@ -67,17 +67,23 @@ test("month grid opens historical party raids with original PRESENT names in Kyi
     await expect(panel).toBeVisible();
     await expect(panel.getByRole("link", { name: "Лаба ↗", exact: true })).toHaveAttribute(
       "href",
-      `/raids/${raid}`,
+      new RegExp(`^/raids/${raid}\\?returnTo=`),
     );
     await expect(panel.getByRole("link", { name: "Фрея Блесс ↗", exact: true })).toHaveAttribute(
       "href",
-      `/raids/${second}`,
+      new RegExp(`^/raids/${second}\\?returnTo=`),
     );
     const lab = panel.getByRole("list", { name: "Участники: Лаба", exact: true });
     await expect(lab).toHaveText("HistoricalHero");
     await expect(lab.getByText("Hero1", { exact: true })).toHaveCount(0);
     await expect(panel.getByText("01:30", { exact: true })).toBeVisible();
     await expect(panel.getByRole("link", { name: "Лаба ↗" })).toHaveCount(1);
+    await panel.getByRole("link", { name: "Лаба ↗", exact: true }).click();
+    await expect(view.getByRole("heading", { level: 1 })).toBeVisible();
+    await view.locator("#main-content").getByRole("link", { name: "Походы", exact: true }).click();
+    await expect(view).toHaveURL(/\/raids\?.*month=2026-01.*view=calendar/);
+    expect(new URL(view.url()).searchParams.get("day")).toBe("2026-01-16");
+    await expect(view.getByRole("dialog", { name: dayTitle("2026-01-16"), exact: true })).toBeVisible();
     await view.reload();
     await expect(
       view.getByRole("dialog", { name: dayTitle("2026-01-16"), exact: true }),
@@ -204,14 +210,14 @@ test("recording a party raid updates history without daily-reset warnings", asyn
   await page.getByRole("option").filter({ hasText: "Fortress/Castle Dungeon" }).click();
   await page.getByRole("checkbox", { name: /Hero1/ }).uncheck();
   await page.getByRole("button", { name: "Создать рейд", exact: true }).click();
-  await expect(page).toHaveURL(/\/raids\/(?!new)[^/]+$/);
+  await expect(page).toHaveURL(/\/raids\/(?!new)[^/?]+(?:\?.*)?$/);
   const raidId = new URL(page.url()).pathname.split("/").at(-1)!;
   await page.goto("/calendar");
   await expect(dailyWarning).toHaveCount(0);
   const history = await selectDay(page, today);
   await expect(history.getByRole("link", { name: "Подвал ↗", exact: true })).toHaveAttribute(
     "href",
-    `/raids/${raidId}`,
+    new RegExp(`^/raids/${raidId}\\?returnTo=`),
   );
   expect(
     (
@@ -319,9 +325,10 @@ test("group isolation and MEMBER permissions apply to the day panel and new-raid
     [`${other}-access`, other, local.userId],
   );
   await page.goto("/calendar?month=2026-01&day=2026-01-07");
-  await expect(page.getByRole("link", { name: "Лаба ↗", exact: true })).toHaveAttribute(
+  const originalPartyDay = await selectDay(page, "2026-01-07");
+  await expect(originalPartyDay.getByRole("link", { name: "Лаба ↗", exact: true })).toHaveAttribute(
     "href",
-    `/raids/${raid}`,
+    new RegExp(`^/raids/${raid}\\?returnTo=`),
   );
   await local.db.query('UPDATE "PartyMembership" SET role=\'MEMBER\' WHERE "partyId"=$1', [
     local.partyId,
@@ -333,7 +340,14 @@ test("group isolation and MEMBER permissions apply to the day panel and new-raid
   const cookie = (await context.cookies()).find((c) => c.name === "party-bank-active-party")!;
   await context.addCookies([{ ...cookie, value: other }]);
   await page.goto("/calendar?month=2026-01&day=2026-01-07");
-  await expect(page.getByText("Походы группы не записаны.", { exact: true })).toBeVisible();
+  await page.keyboard.press("Escape");
+  const isolatedDay = page.getByRole("dialog", {
+    name: dayTitle("2026-01-07"),
+    exact: true,
+  });
+  await selectDay(page, "2026-01-07");
+  await expect(isolatedDay).toBeVisible();
+  await expect(isolatedDay.getByText("Походы группы не записаны.", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Лаба ↗", exact: true })).toHaveCount(0);
   expect(
     (

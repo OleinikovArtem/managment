@@ -18,6 +18,15 @@ describe("raid input validation", () => {
     expect(raidInputSchema.safeParse(validInput).success).toBe(true);
   });
 
+  it("rejects a raid timestamp in the future", () => {
+    const future = new Date(Date.now() + 60_000).toISOString();
+    const result = raidInputSchema.safeParse({ ...validInput, occurredAt: future });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.some((issue) => issue.path[0] === "occurredAt")).toBe(true);
+    }
+  });
+
   it("accepts a manually selected roster without an optional composition", () => {
     expect(raidInputSchema.safeParse({ ...validInput, compositionId: undefined }).success).toBe(
       true,

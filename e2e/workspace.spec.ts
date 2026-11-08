@@ -4,7 +4,7 @@ import { test, expect } from "./fixtures";
 test("group sections load after selecting a group", async ({ page }) => {
   for (const [path, heading] of [
     ["/dashboard", "Обзор"], ["/members", "Участники"],
-    ["/compositions", "Составы"], ["/raids", "Рейды"],
+    ["/compositions", "Составы"], ["/raids", "Походы"],
     ["/loot", "Лут"], ["/sales", "Финансы"], ["/ledger", "Финансы"],
     ["/items", "Предметы"], ["/telegram", "Продажи из Telegram"],
   ]) {
@@ -16,7 +16,7 @@ test("group sections load after selecting a group", async ({ page }) => {
 
 test("raid search and period survive reload", async ({ page }) => {
   const query = `e2e-no-match-${randomUUID()}`;
-  await page.goto("/raids");
+  await page.goto("/raids?view=list");
   await page.getByRole("textbox", { name: "Поиск рейдов" }).fill(query);
   await page.getByLabel("Фильтр по периоду").selectOption("upcoming");
   await expect(page).toHaveURL(new RegExp(`q=${query}.*period=upcoming`));
