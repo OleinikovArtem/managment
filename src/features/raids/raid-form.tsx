@@ -72,6 +72,7 @@ type Props = {
   initialValues?: Omit<RaidFormValues, "occurredAt"> & { occurredAt: string };
   raidId?: string;
   submitLabel: string;
+  initialOccurredAt?: string;
   instances: InstanceOption[];
   stages: StageOption[];
   defaultStage: StageContext;
@@ -86,6 +87,7 @@ export function RaidForm({
   initialValues,
   raidId,
   submitLabel,
+  initialOccurredAt,
   instances: originalInstances,
   stages: originalStages,
   defaultStage,
@@ -137,7 +139,7 @@ export function RaidForm({
           instanceId: null,
           stageId: defaultStage.stageId,
           stageRevision: defaultStage.revision,
-          occurredAt: toLocalDateTimeInput(new Date()),
+          occurredAt: toLocalDateTimeInput(initialOccurredAt ?? new Date()),
           comment: "",
           participants: members.map((member) => ({ memberId: member.id, status: member.status })),
           lootDrops: [],

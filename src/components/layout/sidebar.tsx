@@ -13,8 +13,18 @@ import {
   BookOpen,
   Settings2,
   PackageOpen,
+  CalendarDays,
 } from "lucide-react";
-import { EditorDialog } from "@/components/ui/editor-dialog";
+import { SidePanel } from "@/components/ui/side-panel";
+import {
+  SidebarProvider,
+  Sidebar as SidebarFrame,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+} from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { SignOutButton } from "@/features/auth/party-forms";
 
 const mainLinks = [
@@ -24,6 +34,7 @@ const mainLinks = [
   { href: "/members", label: "Группа", icon: UsersRound, routes: ["/members", "/compositions"] },
 ];
 const secondaryLinks = [
+  { href: "/calendar", label: "Календарь", icon: CalendarDays, routes: ["/calendar"] },
   { href: "/loot", label: "Лут", icon: PackageOpen, routes: ["/loot"] },
   { href: "/items", label: "Каталог предметов", icon: BookOpen, routes: ["/items"] },
   { href: "/settings", label: "Настройки", icon: Settings2, routes: ["/settings"] },
@@ -51,21 +62,49 @@ function Navigation({ displayName, partyName, loading = false }: SidebarProps) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   function links(items: typeof mainLinks, mobile = false) {
-    return items.map(({ href, label, icon: Icon, routes }) => {
-      const active = routes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
-      return (
-        <Link
-          href={href}
+    if (mobile)
+      return items.map(({ href, label, icon: Icon, routes }) => (
+        <Button
           key={href}
-          aria-current={active ? "page" : undefined}
+          variant="ghost"
+          nativeButton={false}
+          role="link"
+          render={<Link href={href} />}
+          aria-current={
+            routes.some((route) => pathname === route || pathname.startsWith(route + "/"))
+              ? "page"
+              : undefined
+          }
           onClick={() => setMenuOpen(false)}
-          className={mobile ? "mobile-nav-link" : "sidebar-link"}
+          className="mobile-nav-link"
         >
           <Icon size={17} aria-hidden="true" />
           <span>{label}</span>
-        </Link>
-      );
-    });
+        </Button>
+      ));
+    return (
+      <SidebarMenu>
+        {items.map(({ href, label, icon: Icon, routes }) => {
+          const active = routes.some(
+            (route) => pathname === route || pathname.startsWith(route + "/"),
+          );
+          return (
+            <SidebarMenuItem key={href}>
+              <SidebarMenuButton
+                render={<Link href={href} />}
+                isActive={active}
+                aria-current={active ? "page" : undefined}
+                onClick={() => setMenuOpen(false)}
+                className="min-h-11 text-sm"
+              >
+                <Icon size={17} aria-hidden="true" />
+                <span>{label}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          );
+        })}
+      </SidebarMenu>
+    );
   }
   const brand = (
     <Link
@@ -82,34 +121,37 @@ function Navigation({ displayName, partyName, loading = false }: SidebarProps) {
   );
 
   return (
-    <>
+    <SidebarProvider keyboardShortcut={false} style={{ display: "contents" }}>
       <aside className="app-sidebar">
-        <div className="mb-9">{brand}</div>
-        <nav aria-label="Основная навигация" className="space-y-1">
-          {links(mainLinks)}
-        </nav>
-        <nav aria-label="Справочник и настройки" className="mt-8 space-y-1">
-          {links(secondaryLinks)}
-        </nav>
-        <SidebarAccount displayName={displayName} partyName={partyName} loading={loading} />
+        <SidebarFrame collapsible="none" className="w-full bg-transparent">
+          <div className="mb-9">{brand}</div>
+          <nav aria-label="Основная навигация" className="space-y-1">
+            {links(mainLinks)}
+          </nav>
+          <nav aria-label="Справочник и настройки" className="mt-8 space-y-1">
+            {links(secondaryLinks)}
+          </nav>
+          <SidebarAccount displayName={displayName} partyName={partyName} loading={loading} />
+        </SidebarFrame>
       </aside>
       <header className="mobile-shell">
         <div className="flex items-center justify-between px-4 py-2">
           {brand}
-          <button
+          <Button
+            variant="ghost"
             type="button"
             className="inline-flex min-h-11 items-center gap-2 px-2 text-sm"
             onClick={() => setMenuOpen(true)}
           >
             <Menu size={18} aria-hidden="true" />
             Меню
-          </button>
+          </Button>
         </div>
         <nav aria-label="Основная навигация" className="grid grid-cols-4 border-t border-border">
           {links(mainLinks, true)}
         </nav>
       </header>
-      <EditorDialog open={menuOpen} onClose={() => setMenuOpen(false)} title="Навигация">
+      <SidePanel open={menuOpen} onOpenChange={setMenuOpen} title="Навигация">
         <nav aria-label="Все разделы" className="space-y-1">
           {links(mainLinks)}
           <Link
@@ -131,8 +173,8 @@ function Navigation({ displayName, partyName, loading = false }: SidebarProps) {
             onNavigate={() => setMenuOpen(false)}
           />
         </nav>
-      </EditorDialog>
-    </>
+      </SidePanel>
+    </SidebarProvider>
   );
 }
 
@@ -150,8 +192,8 @@ function SidebarAccount({
         className={`${mobile ? "mt-4 min-h-[88px] border-t pt-3" : "mt-auto min-h-[76px] border-t pt-4"} border-border`}
       >
         <span className="sr-only">Загрузка профиля и группы</span>
-        <div className={`h-3 w-28 animate-pulse rounded bg-muted ${mobile ? "mx-3" : ""}`} />
-        <div className={`mt-2 h-3 w-20 animate-pulse rounded bg-muted ${mobile ? "mx-3" : ""}`} />
+        <Skeleton className={`h-3 w-28 ${mobile ? "mx-3" : ""}`} />
+        <Skeleton className={`mt-2 h-3 w-20 ${mobile ? "mx-3" : ""}`} />
       </div>
     );
   }

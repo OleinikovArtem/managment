@@ -34,6 +34,7 @@ export async function createRaidAction(payload: unknown): Promise<RaidActionResu
       summary: `Добавил рейд «${parsed.data.name}» (${parsed.data.lootDrops.length} поступлений).`,
     });
     revalidatePath("/raids");
+    revalidatePath("/calendar");
     revalidatePath("/dashboard");
     revalidatePath("/loot");
     return { ok: true, message: "Рейд сохранён.", raidId };
@@ -81,6 +82,7 @@ export async function updateRaidAction(
     });
     revalidatePath("/raids");
     revalidatePath(`/raids/${updatedId}`);
+    revalidatePath("/calendar");
     revalidatePath("/loot");
     for (const itemId of new Set(parsed.data.lootDrops.map(({ itemId }) => itemId))) {
       revalidatePath(`/items/${itemId}`);

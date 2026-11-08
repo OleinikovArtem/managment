@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { TelegramAllocation } from "@/server/telegram/sale-parser";
@@ -75,20 +77,24 @@ export function TelegramNotifications({ partyId }: { partyId: string }) {
   }, [partyId, router]);
   return (
     <div className="mb-4 flex justify-end">
-      <Link
-        href="/telegram"
+      <Button
+        variant="link"
+        nativeButton={false}
+        role="link"
+        render={<Link href="/telegram" />}
         className="inline-flex min-h-11 items-center gap-2 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
       >
         Продажи Telegram
         {count > 0 && (
-          <span
+          <Badge
+            variant="secondary"
             className="rounded bg-muted px-2 py-0.5 text-foreground"
             aria-label={`${count} непрочитанных уведомлений`}
           >
             {count === 20 ? "20+" : count}
-          </span>
+          </Badge>
         )}
-      </Link>
+      </Button>
     </div>
   );
 }

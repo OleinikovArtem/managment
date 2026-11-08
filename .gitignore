@@ -30,6 +30,7 @@
 /prompts
 /playwright-report/
 /test-results/
+/.taste-skill/
 
 # misc
 .DS_Store

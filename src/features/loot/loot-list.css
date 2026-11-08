@@ -368,7 +368,7 @@
   .loot-card-action {
     align-items: flex-start;
   }
-  .editor-dialog:has(.sale-dialog-form) {
+  [data-slot="dialog-content"]:has(.sale-dialog-form) {
     padding: 18px;
   }
 }

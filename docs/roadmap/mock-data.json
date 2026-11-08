@@ -1,63 +1,8 @@
 {
   "schemaVersion": 1,
   "mode": "demo",
-  "warning": "Все расписания, боссы и переходы СА вымышлены. Не отправлять реальные уведомления. Не импортировать как verified.",
+  "warning": "Примеры правил СА вымышлены. Приложение их не загружает. Не импортировать как verified.",
   "instanceCodeSource": "prisma/seeds/instances.json",
-  "timezone": "Europe/Kyiv",
-  "effectiveFrom": "2026-11-01T00:00:00Z",
-  "resetRules": [
-    {
-      "instanceCode": "LAB_78",
-      "revision": 1,
-      "type": "daily",
-      "localTime": "06:30",
-      "lockoutKey": "DEMO_LAB_78",
-      "source": "mock"
-    },
-    {
-      "instanceCode": "LAB_81",
-      "revision": 1,
-      "type": "daily",
-      "localTime": "06:30",
-      "lockoutKey": "DEMO_LAB_81",
-      "source": "mock"
-    },
-    {
-      "instanceCode": "TWINS",
-      "revision": 1,
-      "type": "daily",
-      "localTime": "06:30",
-      "lockoutKey": "DEMO_TWINS",
-      "source": "mock"
-    },
-    {
-      "instanceCode": "ZAKEN_DAY",
-      "revision": 1,
-      "type": "weekly",
-      "isoWeekdays": [1, 4],
-      "localTime": "06:30",
-      "lockoutKey": "DEMO_ZAKEN_DAY",
-      "source": "mock"
-    },
-    {
-      "instanceCode": "FREYA_NORMAL",
-      "revision": 1,
-      "type": "weekly",
-      "isoWeekdays": [3, 6],
-      "localTime": "06:30",
-      "lockoutKey": "DEMO_FREYA_NORMAL",
-      "source": "mock"
-    },
-    {
-      "instanceCode": "FREYA_HARD",
-      "revision": 1,
-      "type": "weekly",
-      "isoWeekdays": [3, 6],
-      "localTime": "06:30",
-      "lockoutKey": "DEMO_FREYA_HARD",
-      "source": "mock"
-    }
-  ],
   "soulCrystalRules": [
     {
       "instanceCode": "TWINS",

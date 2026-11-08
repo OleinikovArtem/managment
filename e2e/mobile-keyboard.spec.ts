@@ -126,9 +126,10 @@ test("dialogs trap keyboard focus, Escape closes them and payment drafts survive
   for (const key of ["Tab", "Shift+Tab"]) {
     for (let index = 0; index < 14; index++) {
       await page.keyboard.press(key);
-      expect(await dialog.evaluate((element) => element.contains(document.activeElement))).toBe(
-        true,
-      );
+      // Base UI routes wrapping focus through a focus guard before restoring it.
+      await expect
+        .poll(() => dialog.evaluate((element) => element.contains(document.activeElement)))
+        .toBe(true);
     }
   }
   await page.keyboard.press("Escape");
