@@ -34,7 +34,7 @@ export default defineConfig({
   webServer: {
     command: `node node_modules/next/dist/bin/next dev --hostname 127.0.0.1 --port ${port}`,
     url: `http://127.0.0.1:${port}/login`,
-    reuseExistingServer: false,
+    reuseExistingServer: process.env.E2E_REUSE_SERVER === "1",
     env: {
       DATABASE_URL: testDatabaseUrl,
       BETTER_AUTH_URL: `http://127.0.0.1:${port}`,
