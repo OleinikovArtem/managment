@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ArrowUpRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { AdenaAmount } from "@/components/ui/adena-amount";
@@ -26,6 +26,7 @@ export function PayoutList({
   const [filter, setFilter] = useState("all");
   const [activeId, setActiveId] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  const paymentTriggerRef = useRef<HTMLButtonElement | null>(null);
   const [drafts, setDrafts] = useState<Record<string, PaymentDraft>>({});
   const activeMember = members.find((member) => member.memberId === activeId);
   const filters = [
@@ -85,7 +86,8 @@ export function PayoutList({
             <PayoutCard
               member={member}
               canManage={canManage}
-              onSelect={() => {
+              onSelect={(trigger) => {
+                paymentTriggerRef.current = trigger;
                 setActiveId(member.memberId);
                 setPanelOpen(true);
               }}
@@ -95,6 +97,7 @@ export function PayoutList({
       </ul>
       {canManage && activeMember && (
         <PaymentForm
+          returnFocus={paymentTriggerRef}
           key={`${activeMember.memberId}:${activeMember.payable}:${partyCash}:${totalOutstanding}`}
           memberId={activeMember.memberId}
           nickname={activeMember.nickname}
@@ -129,7 +132,7 @@ function PayoutCard({
 }: {
   member: Row;
   canManage: boolean;
-  onSelect: () => void;
+  onSelect: (trigger: HTMLButtonElement) => void;
 }) {
   const payable = BigInt(member.payable);
   const body = (
@@ -161,7 +164,7 @@ function PayoutCard({
     <button
       type="button"
       className="group block w-full rounded-md text-left text-foreground outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-      onClick={onSelect}
+      onClick={(event) => onSelect(event.currentTarget)}
       aria-haspopup="dialog"
       aria-label={`Оформить передачу Adena участнику ${member.nickname}: ${member.payable}`}
     >

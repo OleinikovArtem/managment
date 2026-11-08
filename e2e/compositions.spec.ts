@@ -14,6 +14,7 @@ test("composition professions apply to a new raid without changing member classe
   await page.reload();
   await expect(page.getByRole("button", { name: "Действия состава P1 Composition", exact: true })).toBeVisible();
   await page.goto("/raids/new");
+  await expect(page.getByRole("button", { name: "Создать рейд", exact: true })).toBeEnabled({ timeout: 30_000 });
   await page.getByLabel("Шаблон состава", { exact: true }).selectOption({ label: "P1 Composition" });
   await expect(page.getByRole("combobox", { name: "Профессия Hero0", exact: true })).toHaveValue("Duelist");
   await expect(page.getByRole("combobox", { name: "Профессия Hero1", exact: true })).toHaveValue("Archmage");

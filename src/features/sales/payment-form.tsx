@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, LoaderCircle, MessageSquarePlus } from "lucide-react";
@@ -15,6 +15,7 @@ import { parseAdenaInput } from "@/lib/adena";
 import { AdenaAmount } from "@/components/ui/adena-amount";
 
 type PaymentFormProps = {
+  returnFocus?: RefObject<HTMLElement | null>;
   memberId: string;
   nickname: string;
   remaining: string;
@@ -41,6 +42,7 @@ function getLocalDateTimeValue(date: Date) {
 }
 
 export function PaymentForm({
+  returnFocus,
   memberId,
   nickname,
   remaining,
@@ -128,7 +130,15 @@ export function PaymentForm({
     const payload = { ...request, idempotencyKey: currentKey.key };
 
     startTransition(async () => {
-      const result: PaymentActionResult = await registerPaymentAction(payload);
+      let result: PaymentActionResult;
+      try {
+        result = await registerPaymentAction(payload);
+      } catch {
+        const message = "Не удалось получить ответ. Повторите запись — операция не продублируется.";
+        setMessage(message);
+        toast.error(message);
+        return;
+      }
       if (!result.ok) {
         setMessage(result.message);
         toast.error(result.message);
@@ -158,6 +168,7 @@ export function PaymentForm({
 
   return (
     <SidePanel
+      finalFocus={returnFocus}
       open={open}
       onOpenChange={(next) => {
         if (!isPending) onOpenChange(next);

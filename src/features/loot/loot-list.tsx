@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useMemo, useState, useTransition } from "react";
+import { useCallback, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Banknote, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ export function LootList({ rows, canManage }: { rows: LootRow[]; canManage: bool
   const [pending, startTransition] = useTransition();
   const params = useSearchParams();
   const [activeRow, setActiveRow] = useState<LootGroup | null>(null);
+  const saleTriggerRef = useRef<HTMLButtonElement | null>(null);
   const [salePending, setSalePending] = useState(false);
   const onPendingChange = useCallback((next: boolean) => setSalePending(next), []);
   const query = params.get("q") ?? "";
@@ -187,7 +188,14 @@ export function LootList({ rows, canManage }: { rows: LootRow[]; canManage: bool
                   </div>
                   <div className="loot-card-action">
                     {row.remaining > 0 && canManage ? (
-                      <Button type="button" variant="outline" onClick={() => setActiveRow(row)}>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={(event) => {
+                          saleTriggerRef.current = event.currentTarget;
+                          setActiveRow(row);
+                        }}
+                      >
                         <Banknote aria-hidden="true" size={15} />
                         Отметить продажу
                       </Button>
@@ -230,40 +238,48 @@ export function LootList({ rows, canManage }: { rows: LootRow[]; canManage: bool
           </Button>
         </nav>
       )}
-      {activeRow && (
-        <EditorDialog
-          open
-          onClose={() => {
-            if (!salePending) setActiveRow(null);
-          }}
-          title="Отметить продажу"
-          description={`${activeRow.name}${combine ? " · FIFO" : ""} · рейд: ${activeDrop?.raidName ?? activeRow.raidName}`}
-        >
-          <div className="loot-sale-dialog-item">
-            <GameIcon
-              kind="item"
-              name={activeRow.canonicalName}
-              category={activeRow.category}
-              size="lg"
+      {/* Keep the root mounted while Base UI restores focus after closing. */}
+      <EditorDialog
+        open={Boolean(activeRow)}
+        finalFocus={saleTriggerRef}
+        onClose={() => {
+          if (!salePending) setActiveRow(null);
+        }}
+        title="Отметить продажу"
+        description={
+          activeRow
+            ? `${activeRow.name}${combine ? " · FIFO" : ""} · рейд: ${activeDrop?.raidName ?? activeRow.raidName}`
+            : undefined
+        }
+      >
+        {activeRow && (
+          <>
+            <div className="loot-sale-dialog-item">
+              <GameIcon
+                kind="item"
+                name={activeRow.canonicalName}
+                category={activeRow.category}
+                size="lg"
+              />
+              <p>
+                <span>{combine ? "Доступно по всем поступлениям" : "Доступно в поступлении"}</span>
+                <strong>{activeRow.remaining} шт.</strong>
+              </p>
+            </div>
+            <SaleForm
+              lootDropId={combine ? undefined : activeRow.drops[0].id}
+              itemId={combine ? activeRow.itemId : undefined}
+              remainingQuantity={activeRow.remaining}
+              variant="dialog"
+              open
+              onOpenChange={(open) => {
+                if (!open && !salePending) setActiveRow(null);
+              }}
+              onPendingChange={onPendingChange}
             />
-            <p>
-              <span>{combine ? "Доступно по всем поступлениям" : "Доступно в поступлении"}</span>
-              <strong>{activeRow.remaining} шт.</strong>
-            </p>
-          </div>
-          <SaleForm
-            lootDropId={combine ? undefined : activeRow.drops[0].id}
-            itemId={combine ? activeRow.itemId : undefined}
-            remainingQuantity={activeRow.remaining}
-            variant="dialog"
-            open
-            onOpenChange={(open) => {
-              if (!open && !salePending) setActiveRow(null);
-            }}
-            onPendingChange={onPendingChange}
-          />
-        </EditorDialog>
-      )}
+          </>
+        )}
+      </EditorDialog>
     </section>
   );
 }

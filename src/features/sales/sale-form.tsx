@@ -96,9 +96,17 @@ export function SaleForm({
     const payload = { ...request, idempotencyKey: idempotencyKey.current.key };
 
     startTransition(async () => {
-      const result: SaleActionResult = itemId
-        ? await registerGroupedSaleAction(payload)
-        : await registerSaleAction(payload);
+      let result: SaleActionResult;
+      try {
+        result = itemId
+          ? await registerGroupedSaleAction(payload)
+          : await registerSaleAction(payload);
+      } catch {
+        const message = "Не удалось получить ответ. Повторите запись — операция не продублируется.";
+        setMessage(message);
+        toast.error(message);
+        return;
+      }
       if (!result.ok) {
         setMessage(result.message);
         toast.error(result.message);

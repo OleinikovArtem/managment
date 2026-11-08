@@ -2,19 +2,21 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { X } from "lucide-react";
-import type { ReactNode } from "react";
+import type { ReactNode, RefObject } from "react";
 
 export function EditorDialog({
   open,
   onClose,
   title,
   description,
+  finalFocus,
   children,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   description?: string;
+  finalFocus?: RefObject<HTMLElement | null>;
   children: ReactNode;
 }) {
   return (
@@ -26,7 +28,7 @@ export function EditorDialog({
     >
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-40 bg-black/70" />
-        <Dialog.Popup className="editor-dialog">
+        <Dialog.Popup className="editor-dialog" finalFocus={finalFocus}>
           <div className="mb-5 flex items-start justify-between gap-4">
             <div>
               <Dialog.Title className="text-lg font-semibold">{title}</Dialog.Title>
