@@ -1,6 +1,11 @@
 "use client";
 
-import { Menu } from "@base-ui/react/menu";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
 import { useRef, useState } from "react";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
@@ -24,32 +29,30 @@ export function ActionMenu({
   const triggerRef = useRef<HTMLButtonElement>(null);
   return (
     <>
-      <Menu.Root>
-        <Menu.Trigger
+      <DropdownMenu>
+        <DropdownMenuTrigger
           ref={triggerRef}
           aria-label={label}
           disabled={disabled}
           className="action-menu-trigger"
         >
           <MoreHorizontal size={18} aria-hidden="true" />
-        </Menu.Trigger>
-        <Menu.Portal>
-          <Menu.Positioner sideOffset={6} align="end" className="z-50">
-            <Menu.Popup className="action-menu-popup">
-              {items.map((item) => (
-                <Menu.Item
-                  key={item.label}
-                  onClick={item.confirmation ? () => setSelected(item) : item.onClick}
-                  disabled={item.disabled}
-                  className={`action-menu-item ${item.destructive ? "text-destructive" : ""}`}
-                >
-                  {item.label}
-                </Menu.Item>
-              ))}
-            </Menu.Popup>
-          </Menu.Positioner>
-        </Menu.Portal>
-      </Menu.Root>
+        </DropdownMenuTrigger>
+
+        <DropdownMenuContent align="end" className="min-w-48">
+          {items.map((item) => (
+            <DropdownMenuItem
+              key={item.label}
+              onClick={item.confirmation ? () => setSelected(item) : item.onClick}
+              disabled={item.disabled}
+              variant={item.destructive ? "destructive" : "default"}
+              className="min-h-11 px-3"
+            >
+              {item.label}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
       {selected?.confirmation && (
         <ConfirmationDialog
           open

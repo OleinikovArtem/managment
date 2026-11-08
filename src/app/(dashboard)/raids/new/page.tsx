@@ -6,20 +6,42 @@ import { ArrowLeft } from "lucide-react";
 import { RaidForm } from "@/features/raids/raid-form";
 import { requirePartyPageAccess } from "@/server/auth/party-access";
 import { getRaidSetup } from "@/server/services/raid-service";
+import { calendarDate, validCalendarDate } from "@/features/calendar/month-calendar-model";
+import { wallTimeToUtc } from "@/server/services/instance-reset-schedule";
 
-export default function NewRaidPage() {
+export default function NewRaidPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   return (
     <Suspense fallback={<div className="h-96 animate-pulse rounded-2xl bg-muted/50" />}>
-      <NewRaidContent />
+      <NewRaidContent searchParams={searchParams} />
     </Suspense>
   );
 }
 
-async function NewRaidContent() {
+async function NewRaidContent({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   await io();
   const workspace = await requirePartyPageAccess();
   if (!workspace.canManage) redirect("/dashboard");
   const setup = await getRaidSetup(workspace.partyId);
+  const params = await searchParams;
+  const now = new Date(),
+    today = calendarDate(now);
+  const day =
+    typeof params.calendarDate === "string" &&
+    validCalendarDate(params.calendarDate) &&
+    params.calendarDate <= today
+      ? params.calendarDate
+      : null;
+  const initialOccurredAt = day
+    ? (day === today ? now : wallTimeToUtc(`${day}T12:00`, "Europe/Kyiv")).toISOString()
+    : undefined;
 
   return (
     <div className="mx-auto max-w-6xl space-y-5">
@@ -31,6 +53,7 @@ async function NewRaidContent() {
       </Link>
       <h1 className="sr-only">Создание рейда</h1>
       <RaidForm
+        initialOccurredAt={initialOccurredAt}
         members={setup.members.map((member) => ({ ...member, status: "PRESENT" as const }))}
         items={setup.items}
         instances={setup.catalog.instances}

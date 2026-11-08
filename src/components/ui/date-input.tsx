@@ -3,6 +3,10 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { CalendarDays } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { ru } from "date-fns/locale";
 
 function pad(value: string) {
   return value.padStart(2, "0");
@@ -48,6 +52,7 @@ type Props = Omit<React.ComponentProps<typeof Input>, "value" | "onChange" | "ty
 
 export function DateInput({ value, onChange, withTime = false, ...props }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const errorId = useId();
   const [draft, setDraft] = useState(() => dateToDisplay(value));
   const [error, setError] = useState<string | null>(null);
@@ -111,7 +116,7 @@ export function DateInput({ value, onChange, withTime = false, ...props }: Props
             [props["aria-describedby"], error ? errorId : null].filter(Boolean).join(" ") ||
             undefined
           }
-          className={`pl-9 ${props.className ?? ""}`}
+          className={`pl-9 pr-12 ${props.className ?? ""}`}
           onChange={(event) => {
             setDraft(event.target.value);
             setError(null);
@@ -129,6 +134,35 @@ export function DateInput({ value, onChange, withTime = false, ...props }: Props
             props.onKeyDown?.(event);
           }}
         />
+        <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+          <PopoverTrigger
+            render={<Button type="button" variant="ghost" size="icon" />}
+            className="absolute right-0 top-0 min-h-10"
+            aria-label="Выбрать дату"
+            disabled={props.disabled}
+          >
+            <CalendarDays aria-hidden="true" />
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="end">
+            <Calendar
+              mode="single"
+              locale={ru}
+              selected={value ? new Date(`${value.slice(0, 10)}T12:00:00`) : undefined}
+              defaultMonth={value ? new Date(`${value.slice(0, 10)}T12:00:00`) : undefined}
+              className="[--cell-size:2.75rem]"
+              onSelect={(date) => {
+                if (!date) return;
+                const next = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}${withTime ? `T${value.split("T")[1] || "00:00"}` : ""}`;
+                setLastEmitted(next);
+                onChange(next);
+                setDraft(dateToDisplay(next));
+                setError(null);
+                inputRef.current?.setCustomValidity("");
+                setCalendarOpen(false);
+              }}
+            />
+          </PopoverContent>
+        </Popover>
       </div>
       {error && (
         <p id={errorId} role="alert" className="mt-1 text-xs text-destructive">

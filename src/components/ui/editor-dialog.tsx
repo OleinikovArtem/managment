@@ -1,9 +1,12 @@
 "use client";
-
-import { Dialog } from "@base-ui/react/dialog";
-import { X } from "lucide-react";
 import type { ReactNode, RefObject } from "react";
-
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+  DialogHeader,
+} from "@/components/ui/dialog";
 export function EditorDialog({
   open,
   onClose,
@@ -20,31 +23,22 @@ export function EditorDialog({
   children: ReactNode;
 }) {
   return (
-    <Dialog.Root
+    <Dialog
       open={open}
       onOpenChange={(next) => {
         if (!next) onClose();
       }}
     >
-      <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-40 bg-black/70" />
-        <Dialog.Popup className="editor-dialog" finalFocus={finalFocus}>
-          <div className="mb-5 flex items-start justify-between gap-4">
-            <div>
-              <Dialog.Title className="text-lg font-semibold">{title}</Dialog.Title>
-              {description && (
-                <Dialog.Description className="mt-1 text-sm text-muted-foreground">
-                  {description}
-                </Dialog.Description>
-              )}
-            </div>
-            <Dialog.Close className="action-menu-trigger" aria-label="Закрыть окно">
-              <X size={18} aria-hidden="true" />
-            </Dialog.Close>
-          </div>
-          {children}
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+      <DialogContent
+        finalFocus={finalFocus}
+        className="max-h-[90dvh] overflow-y-auto p-5 sm:max-w-2xl motion-reduce:animate-none"
+      >
+        <DialogHeader className="pr-8">
+          <DialogTitle>{title}</DialogTitle>
+          {description && <DialogDescription>{description}</DialogDescription>}
+        </DialogHeader>
+        {children}
+      </DialogContent>
+    </Dialog>
   );
 }

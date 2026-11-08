@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "mode": "demo",
+  "warning": "Примеры правил СА вымышлены. Приложение их не загружает. Не импортировать как verified.",
+  "instanceCodeSource": "prisma/seeds/instances.json",
+  "soulCrystalRules": [
+    {
+      "instanceCode": "TWINS",
+      "bossKey": "DEMO_TWINS_BOSS",
+      "bossLabel": "Демонстрационный босс Близов",
+      "fromLevel": 10,
+      "targetLevel": 11,
+      "crystalType": null,
+      "chancePercent": null,
+      "conditions": "Вымышленный пример условия: СА в инвентаре. Не является игровым правилом.",
+      "revision": 1,
+      "source": "mock"
+    },
+    {
+      "instanceCode": "ZAKEN_DAY",
+      "bossKey": "DEMO_ZAKEN_BOSS",
+      "bossLabel": "Демонстрационный босс Закена",
+      "fromLevel": 11,
+      "targetLevel": 12,
+      "crystalType": null,
+      "chancePercent": null,
+      "conditions": "Условия будут заменены таблицей пользователя.",
+      "revision": 1,
+      "source": "mock"
+    },
+    {
+      "instanceCode": "FREYA_NORMAL",
+      "bossKey": "DEMO_FREYA_BOSS",
+      "bossLabel": "Демонстрационный босс Фреи",
+      "fromLevel": 12,
+      "targetLevel": 13,
+      "crystalType": null,
+      "chancePercent": null,
+      "conditions": "Условия будут заменены таблицей пользователя.",
+      "revision": 1,
+      "source": "mock"
+    }
+  ]
+}

@@ -14,6 +14,12 @@ export default function RaidsPage() {
           <h1>Рейды</h1>
           <p className="mt-2">Состав, добыча и продажи каждого выхода группы.</p>
         </div>
+        <Link
+          href="/calendar"
+          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+        >
+          Календарь инстансов
+        </Link>
         <Suspense fallback={<div className="h-10 w-28 animate-pulse rounded-md bg-muted" />}>
           <NewRaidAction />
         </Suspense>

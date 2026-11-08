@@ -4,6 +4,9 @@ Party Bank Manager — русскоязычное приложение для у
 Участники → состав рейда → добыча → полученная оплата → доли → передачи Adena.
 Продуктовые правила: [PROJECT_SPEC.md](../PROJECT_SPEC.md).
 Запуск и восстановление: [README.md](../README.md).
+Календарь `/calendar` показывает месячную сетку рейдов группы и опциональные
+справочные откаты, вычисляемые без записи в БД. Подробности дня — в боковой панели.
+Следующие фичи и границы развития: [scope и этапы](./roadmap/README.md).
 
 ## Навигация и исходники
 
@@ -12,6 +15,7 @@ Party Bank Manager — русскоязычное приложение для у
 | Маршруты, загрузка, Server Actions                              | `src/app/(dashboard)/`                                                                                                                                                                          |
 | Shell и связь разделов                                          | `src/components/layout/sidebar.tsx`, `section-navigation.tsx`                                                                                                                                   |
 | Общий стиль и UI                                                | `src/app/globals.css`, `src/components/ui/`                                                                                                                                                     |
+| Календарь, история рейдов и справочные откаты                   | `src/features/calendar/`, `src/app/(dashboard)/calendar/`, `month-calendar-repository.ts`, `month-calendar-service.ts`, `instance-reset-schedule.ts`; shadcn Base UI в `src/components/ui/`     |
 | Обзор и аналитика                                               | `src/features/dashboard/dashboard-analytics.tsx`                                                                                                                                                |
 | Участники и профили                                             | `src/features/members/`                                                                                                                                                                         |
 | Main/Subclass, выбор профессии состава и локальные иконки       | `member-schema.ts`, `member-subclass-repository.ts`, `profession-options.ts`, `profession-select.tsx`, `public/game-icons/classes/`; источники: [GAME_DATA_SOURCES.md](./GAME_DATA_SOURCES.md)  |

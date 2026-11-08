@@ -1,5 +1,11 @@
+import { Skeleton } from "@/components/ui/skeleton";
 function SkeletonBlock({ className = "" }: { className?: string }) {
-  return <div className={`animate-pulse rounded-md bg-muted/70 ${className}`} aria-hidden="true" />;
+  return (
+    <Skeleton
+      className={`rounded-md bg-muted/70 motion-reduce:animate-none ${className}`}
+      aria-hidden="true"
+    />
+  );
 }
 
 export function RaidListSkeleton() {
@@ -117,13 +123,7 @@ export function DashboardSkeleton() {
   );
 }
 
-export function GridRowsSkeleton({
-  label,
-  rows = 6,
-}: {
-  label: string;
-  rows?: number;
-}) {
+export function GridRowsSkeleton({ label, rows = 6 }: { label: string; rows?: number }) {
   return (
     <div className="page-skeleton" role="status" aria-label={label}>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
@@ -188,7 +188,11 @@ export function LootListSkeleton() {
 
 export function SettingsSkeleton() {
   return (
-    <div className="page-skeleton max-w-5xl space-y-7" role="status" aria-label="Загружаются настройки">
+    <div
+      className="page-skeleton max-w-5xl space-y-7"
+      role="status"
+      aria-label="Загружаются настройки"
+    >
       {[0, 1].map((section) => (
         <section key={section} className="space-y-4 border-b border-border pb-7">
           <SkeletonBlock className="h-5 w-40" />

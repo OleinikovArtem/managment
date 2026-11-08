@@ -153,7 +153,7 @@ describe.skipIf(!testDatabaseUrl?.startsWith("postgres"))(
       // must roll back, including ledger entries, profiles and lock changes.
       const rollback = await fixture();
       const originalTransaction = prisma.$transaction.bind(prisma);
-      const failedTransaction = vi.spyOn(prisma, "$transaction").mockImplementationOnce((async (
+      const failedTransaction = vi.spyOn(prisma, "$transaction").mockImplementation((async (
         work: unknown,
         options?: Parameters<typeof prisma.$transaction>[1],
       ) => {
