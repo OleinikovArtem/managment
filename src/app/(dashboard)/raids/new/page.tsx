@@ -7,6 +7,7 @@ import { RaidForm } from "@/features/raids/raid-form";
 import { requirePartyPageAccess } from "@/server/auth/party-access";
 import { getRaidSetup } from "@/server/services/raid-service";
 import { calendarDate, validCalendarDate } from "@/features/calendar/month-calendar-model";
+import { safeRaidReturnTo } from "@/features/raids/raid-navigation";
 import { wallTimeToUtc } from "@/server/services/instance-reset-schedule";
 
 export default function NewRaidPage({
@@ -46,7 +47,7 @@ async function NewRaidContent({
   return (
     <div className="mx-auto max-w-6xl space-y-5">
       <Link
-        href="/raids"
+        href={safeRaidReturnTo(params.returnTo)}
         className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft aria-hidden="true" size={16} />К рейдам
@@ -54,6 +55,7 @@ async function NewRaidContent({
       <h1 className="sr-only">Создание рейда</h1>
       <RaidForm
         initialOccurredAt={initialOccurredAt}
+        returnTo={safeRaidReturnTo(params.returnTo)}
         members={setup.members.map((member) => ({ ...member, status: "PRESENT" as const }))}
         items={setup.items}
         instances={setup.catalog.instances}

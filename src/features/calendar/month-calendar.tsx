@@ -1,6 +1,7 @@
 "use client";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 import {
   WEEKDAYS,
   addCalendarDays,
@@ -17,6 +18,8 @@ export function MonthCalendar({
   events,
   onSelect,
   onChangeMonth,
+  canCreate,
+  onCreate,
 }: {
   month: string;
   days: string[];
@@ -25,6 +28,8 @@ export function MonthCalendar({
   events: MonthEvent[];
   onSelect: (day: string) => void;
   onChangeMonth: (direction: number) => void;
+  canCreate: boolean;
+  onCreate: (day: string) => void;
 }) {
   const [focused, setFocused] = useState(days.includes(selected) ? selected : `${month}-01`);
   const refs = useRef(new Map<string, HTMLButtonElement>());
@@ -73,7 +78,7 @@ export function MonthCalendar({
                 role="gridcell"
                 key={day}
                 aria-selected={selected === day}
-                className={`min-w-0 border-b border-r border-border last:border-r-0 ${selected === day ? "bg-accent/60" : day.slice(0, 7) !== month ? "bg-muted/20" : ""}`}
+                className={`group/day relative min-w-0 border-b border-r border-border last:border-r-0 ${selected === day ? "bg-accent/60" : day.slice(0, 7) !== month ? "bg-muted/20" : ""}`}
               >
                 <Button
                   ref={(node) => {
@@ -140,6 +145,19 @@ export function MonthCalendar({
                     )}
                   </span>
                 </Button>
+                {canCreate && day <= today && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="icon-sm"
+                    aria-label={`Записать поход за ${dayTitle(day)}`}
+                    title="Записать поход за этот день"
+                    className="absolute right-2 top-2 z-10 opacity-0 group-focus-within/day:opacity-100 sm:group-hover/day:opacity-100 sm:focus-visible:opacity-100"
+                    onClick={() => onCreate(day)}
+                  >
+                    <Plus />
+                  </Button>
+                )}
               </div>
             );
           })}

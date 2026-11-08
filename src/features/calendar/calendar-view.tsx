@@ -11,6 +11,7 @@ import { MonthCalendar } from "./month-calendar";
 import { CalendarDayDetails } from "./calendar-day-details";
 import { WeeklyResetReference } from "./weekly-reset-reference";
 import { CalendarWarnings } from "./calendar-warnings";
+import type { InstanceOption } from "@/features/instances/catalog-schema";
 import {
   calendarDate,
   validCalendarDate,
@@ -21,7 +22,13 @@ import {
   type MonthCalendarData,
 } from "./month-calendar-model";
 
-export function CalendarView({ data }: { data: MonthCalendarData }) {
+export function CalendarView({
+  data,
+  instances,
+}: {
+  data: MonthCalendarData;
+  instances: InstanceOption[];
+}) {
   const router = useRouter(),
     params = useSearchParams();
   const fallback = data.days.includes(data.today) ? data.today : `${data.month}-01`;
@@ -74,12 +81,13 @@ export function CalendarView({ data }: { data: MonthCalendarData }) {
     };
   }, [data.serverNow, data.nextUpdateAt, router]);
   function url(changes: Record<string, string>) {
-    const query = new URLSearchParams(window.location.search);
+    const query = new URLSearchParams(params.toString());
     for (const [key, value] of Object.entries(changes)) {
       if (value) query.set(key, value);
       else query.delete(key);
     }
-    return `/calendar${query.size ? `?${query}` : ""}`;
+    query.set("view", "calendar");
+    return `/raids${query.size ? `?${query}` : ""}`;
   }
   function changeFilter(key: "instance" | "member", value: string) {
     setFilters((current) => ({ ...current, [key]: value }));
@@ -180,7 +188,7 @@ export function CalendarView({ data }: { data: MonthCalendarData }) {
         <div>
           <span className="mb-2 block text-xs text-muted-foreground">Инстанс</span>
           <InstanceSelect
-            rows={data.instanceOptions}
+            rows={instances}
             value={filters.instance || null}
             onChange={(value) => changeFilter("instance", value ?? "")}
             disabled={refreshing}
@@ -224,6 +232,11 @@ export function CalendarView({ data }: { data: MonthCalendarData }) {
           events={showResets ? events : events.filter((event) => event.kind === "raid")}
           onSelect={select}
           onChangeMonth={(direction) => navigate(shiftCalendarMonth(data.month, direction))}
+          canCreate={data.canManage}
+          onCreate={(day) => {
+            const returnTo = url({});
+            router.push(`/raids/new?calendarDate=${day}&returnTo=${encodeURIComponent(returnTo)}`);
+          }}
         />
       </div>
       <SidePanel
@@ -241,6 +254,7 @@ export function CalendarView({ data }: { data: MonthCalendarData }) {
           today={data.today}
           events={dayEvents}
           canManage={data.canManage}
+          returnTo={url({})}
         />
       </SidePanel>
     </div>

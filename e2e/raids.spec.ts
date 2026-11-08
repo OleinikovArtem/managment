@@ -50,7 +50,7 @@ test("create and edit raid through UI preserve attendance, local date and catalo
   await page.reload();
   await expect(page.getByRole("heading", { level: 1, name: "E2E Original Raid" })).toBeVisible();
   await page.getByRole("link", { name: "Редактировать рейд", exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/raids/${raidId}/edit$`), { timeout: 30_000 });
+  await expect(page).toHaveURL(new RegExp(`/raids/${raidId}/edit(?:\\?|$)`), { timeout: 30_000 });
   await expect(page.getByRole("heading", { name: "Редактирование рейда", exact: true })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole("checkbox", { name: /RaidAbsent/ })).not.toBeChecked();
   await expect(page.getByLabel("Дата и время", { exact: true })).toHaveValue("15.01.2026 18:30");

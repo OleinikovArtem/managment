@@ -34,6 +34,7 @@ import { InstancePicker } from "./instance-picker";
 import { ProfessionSelect } from "@/features/members/profession-select";
 import { LootPicker } from "./loot-picker";
 import "./raid-form.css";
+import { raidHrefWithReturnTo } from "./raid-navigation";
 
 export type RaidMemberOption = {
   id: string;
@@ -73,6 +74,7 @@ type Props = {
   raidId?: string;
   submitLabel: string;
   initialOccurredAt?: string;
+  returnTo?: string;
   instances: InstanceOption[];
   stages: StageOption[];
   defaultStage: StageContext;
@@ -88,6 +90,7 @@ export function RaidForm({
   raidId,
   submitLabel,
   initialOccurredAt,
+  returnTo = "/raids?view=calendar",
   instances: originalInstances,
   stages: originalStages,
   defaultStage,
@@ -366,7 +369,7 @@ export function RaidForm({
           return;
         }
         toast.success(result.message);
-        router.push(`/raids/${result.raidId}`);
+        router.push(raidHrefWithReturnTo(`/raids/${result.raidId}`, returnTo));
         router.refresh();
       } catch {
         setMessage(
@@ -746,7 +749,7 @@ export function RaidForm({
                   setConfirmation("leave-raid");
                   return;
                 }
-                router.push(raidId ? `/raids/${raidId}` : "/raids");
+                router.push(raidId ? raidHrefWithReturnTo(`/raids/${raidId}`, returnTo) : returnTo);
               }}
             >
               Отмена
@@ -983,7 +986,8 @@ export function RaidForm({
         }
         onConfirm={async () => {
           if (confirmation === "replace-roster" && pendingRoster) applyRoster(pendingRoster);
-          if (confirmation === "leave-raid") router.push(raidId ? `/raids/${raidId}` : "/raids");
+          if (confirmation === "leave-raid")
+            router.push(raidId ? raidHrefWithReturnTo(`/raids/${raidId}`, returnTo) : returnTo);
           if (confirmation === "delete-loot" && pendingRaidValues) saveRaid(pendingRaidValues);
           setPendingRoster(null);
           setPendingRaidValues(null);

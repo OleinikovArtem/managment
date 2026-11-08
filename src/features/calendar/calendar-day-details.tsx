@@ -8,11 +8,13 @@ export function CalendarDayDetails({
   today,
   events,
   canManage,
+  returnTo,
 }: {
   day: string;
   today: string;
   events: MonthEvent[];
   canManage: boolean;
+  returnTo: string;
 }) {
   const raids = events.filter((e) => e.kind === "raid"),
     resets = events.filter((e) => e.kind === "reset");
@@ -30,7 +32,11 @@ export function CalendarDayDetails({
             role="link"
             variant="outline"
             className="min-h-11"
-            render={<Link href={`/raids/new?calendarDate=${day}`} />}
+            render={
+              <Link
+                href={`/raids/new?calendarDate=${day}&returnTo=${encodeURIComponent(returnTo)}`}
+              />
+            }
           >
             Записать поход
           </Button>
@@ -51,7 +57,7 @@ export function CalendarDayDetails({
               <article key={event.id} className="rounded-md bg-muted/30 p-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <Link
-                    href={`/raids/${event.raidId}`}
+                    href={`/raids/${event.raidId}?returnTo=${encodeURIComponent(returnTo)}`}
                     className="text-sm font-medium underline-offset-4 hover:underline"
                   >
                     {event.name} ↗

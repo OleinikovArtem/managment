@@ -4,8 +4,10 @@ Party Bank Manager — русскоязычное приложение для у
 Участники → состав рейда → добыча → полученная оплата → доли → передачи Adena.
 Продуктовые правила: [PROJECT_SPEC.md](../PROJECT_SPEC.md).
 Запуск и восстановление: [README.md](../README.md).
-Календарь `/calendar` показывает месячную сетку рейдов группы и опциональные
-справочные откаты, вычисляемые без записи в БД. Подробности дня — в боковой панели.
+Раздел `/raids` объединяет календарь группы и список рейдов; старый `/calendar`
+перенаправляет в режим календаря. Справочные откаты вычисляются без записи в БД.
+Подробности дня открываются в боковой панели, запись похода доступна только для
+сегодняшней и прошедших дат.
 Следующие фичи и границы развития: [scope и этапы](./roadmap/README.md).
 
 ## Навигация и исходники
@@ -15,7 +17,7 @@ Party Bank Manager — русскоязычное приложение для у
 | Маршруты, загрузка, Server Actions                              | `src/app/(dashboard)/`                                                                                                                                                                          |
 | Shell и связь разделов                                          | `src/components/layout/sidebar.tsx`, `section-navigation.tsx`                                                                                                                                   |
 | Общий стиль и UI                                                | `src/app/globals.css`, `src/components/ui/`                                                                                                                                                     |
-| Календарь, история рейдов и справочные откаты                   | `src/features/calendar/`, `src/app/(dashboard)/calendar/`, `month-calendar-repository.ts`, `month-calendar-service.ts`, `instance-reset-schedule.ts`; shadcn Base UI в `src/components/ui/`     |
+| Единый раздел походов: календарь, список и справочные откаты   | `/raids`, `src/features/calendar/`, `src/features/raids/raid-list.tsx`, `/calendar` redirect, `month-calendar-repository.ts`, `month-calendar-service.ts` |
 | Обзор и аналитика                                               | `src/features/dashboard/dashboard-analytics.tsx`                                                                                                                                                |
 | Участники и профили                                             | `src/features/members/`                                                                                                                                                                         |
 | Main/Subclass, выбор профессии состава и локальные иконки       | `member-schema.ts`, `member-subclass-repository.ts`, `profession-options.ts`, `profession-select.tsx`, `public/game-icons/classes/`; источники: [GAME_DATA_SOURCES.md](./GAME_DATA_SOURCES.md)  |
@@ -114,6 +116,9 @@ Telegram API/доставки сообщений в Telegram эти тесты �
 добычу из общего каталога, преобразование даты Europe/Kyiv в UTC, сохранность
 Stage и отказ создания с пустой посещаемостью или неверной датой. Подготовка
 добавляет участников в новую локальную группу; сам рейд создаётся только через UI.
+`e2e/raids-calendar.spec.ts` проверяет объединённые режимы, сохранение состояния,
+предзаполнение записи и запрет будущей даты; `e2e/calendar.spec.ts` покрывает сетку,
+панель дня, возврат к выбранному дню, откаты и изоляцию групп.
 
 Команды: `npm run format` (Prettier для исходников и скриптов), `npm run format:check`,
 `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`.
