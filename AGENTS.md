@@ -10,6 +10,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Project context
 
+Localhost Docker PostgreSQL contains disposable application data; only the item
+catalog must be preserved. E2E may create raids, groups, members, sales and payments
+in the existing local database using the existing local account. Financial records
+there are test data. No additional database or server environment is required.
+Never delete or reset the item catalog as part of test preparation or cleanup.
+
 Start with `docs/PROJECT_CONTEXT.md` for a compact map of the implementation and
 task-specific source files. Read `docs/ARCHITECTURE.md` when changing data flows,
 financial logic, persistence or backups. `PROJECT_SPEC.md` describes current product
