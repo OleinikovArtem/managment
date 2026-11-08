@@ -41,3 +41,22 @@ Use TypeScript strict mode, existing architecture and dependencies. Keep busines
 logic out of presentation components. Run checks appropriate to the change;
 UI changes require desktop/mobile visual review, not compilation alone. Report
 actual verification and material limits without claiming checks that were not run.
+
+## E2E coverage
+
+Every new user-facing feature or change to an existing user workflow must include
+new or updated Playwright E2E tests in `e2e/` in the same change. Cover the primary
+flow and relevant validation failures, permissions, group isolation and persisted
+results. Financial flows must verify exact amounts and applicable invariants.
+Add a regression scenario for reproduced user-visible bugs. Assertions must verify
+the user's result; a page heading or successful HTTP response alone is insufficient.
+
+Reuse existing fixtures and the existing local account and Docker database.
+Preserve the item catalog and keep credentials and generated artifacts out of Git.
+Chromium is the required browser; include mobile widths and keyboard scenarios
+when the feature affects those flows.
+
+Run affected E2E scenarios during development and the full Chromium suite before
+committing a feature. Treat coverage and verification as part of feature completion.
+If an environment problem prevents execution, report the concrete blocker and
+which scenarios remain unverified; never claim a skipped or unrun check passed.
