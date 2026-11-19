@@ -79,6 +79,12 @@ for (const role of ["OWNER", "ADMIN", "MEMBER"]) {
     if (role === "OWNER") await expect(page.getByRole("heading", { name: "Опасная зона" })).toBeVisible({ timeout: 30_000 });
     else await expect(page.getByText("Сбрасывать данные группы может только владелец.", { exact: true })).toBeVisible({ timeout: 30_000 });
     await page.goto("/settings?tab=telegram");
+    if (role === "OWNER") {
+      await expect(page.getByText("Не подключён", { exact: true })).toBeVisible();
+      await expect(page.getByLabel("Токен BotFather", { exact: true })).toBeEditable();
+      await expect(page.getByRole("button", { name: "Подключить бота", exact: true })).toBeEnabled();
+      await page.screenshot({ path: test.info().outputPath("telegram-owner-desktop.png") });
+    }
     if (role !== "OWNER") await expect(page.getByText("Настраивать receiving bot может только владелец группы.", { exact: true })).toBeVisible();
     await page.goto("/settings/access");
     if (role === "MEMBER") await expect(page).toHaveURL(/\/dashboard$/, { timeout: 30_000 });

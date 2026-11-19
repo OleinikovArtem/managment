@@ -78,6 +78,7 @@ export function ResetDataCard() {
     }
     setValue("");
     setRequested([]);
+    if (selected.includes("telegram")) window.dispatchEvent(new Event("telegram-read"));
     toast.success(result.message);
     router.refresh();
   }
@@ -98,6 +99,7 @@ export function ResetDataCard() {
     profiles: "Профили",
     telegramProcessed: "Обработанные Telegram-сообщения",
     telegramPending: "Нерешённые Telegram-сообщения",
+    telegramMessages: "Сообщения Telegram",
   };
 
   return (
@@ -175,9 +177,9 @@ export function ResetDataCard() {
       </fieldset>
       <p className="text-xs leading-5 text-muted-foreground">
         Сохранятся общий и собственный каталоги предметов, аккаунты и доступы, группа, настройки
-        Telegram, соответствия предметов, история импорта и журнал действий. При сбросе продаж
-        обработанные Telegram-сообщения сохраняют защиту от повтора, нерешённые переходят в статус
-        «Игнорировано».
+        Telegram, соответствия предметов и журнал действий. История импорта очищается при выборе
+        «Сообщения Telegram». При сбросе только продаж нерешённые сообщения перейдут в статус
+        «Игнорировано». Защита от повторного импорта сохраняется.
       </p>
       <section
         aria-live="polite"
@@ -202,12 +204,19 @@ export function ResetDataCard() {
               зависимости.
             </p>
             <ul className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-              {Object.entries(preview.preview.counts).map(([key, count]) => (
-                <li key={key} className="flex justify-between gap-3">
-                  <span>{countLabels[key] ?? key}</span>
-                  <strong className="tabular-nums">{count}</strong>
-                </li>
-              ))}
+              {Object.entries(preview.preview.counts)
+                .filter(
+                  ([key]) =>
+                    selected.length !== 1 ||
+                    selected[0] !== "telegram" ||
+                    key === "telegramMessages",
+                )
+                .map(([key, count]) => (
+                  <li key={key} className="flex justify-between gap-3">
+                    <span>{countLabels[key] ?? key}</span>
+                    <strong className="tabular-nums">{count}</strong>
+                  </li>
+                ))}
             </ul>
           </>
         )}

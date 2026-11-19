@@ -158,6 +158,8 @@ Administrator corrections are stored separately in `correctedText`.
   loot, conflicting totals or a failed business invariant. No partial sale exists.
 - `PROCESSED`: all allocations committed. Replays and manual retry cannot resell it.
 - `IGNORED`: explicitly dismissed by an administrator without creating sales.
+- `CLEARED`: reset removed the message content and read markers. Its identity
+  remains to prevent duplicate imports.
 
 Known business failures are persisted and acknowledged. Temporary database
 failures return 503 so Telegram can redeliver. Serializable transactions and
@@ -169,9 +171,11 @@ posted finance. An edit first seen without the original goes to review. Pending
 or unresolved edits require explicit retry. Telegram message deletion is not a
 refund or reversal; the Bot API receiver does not infer either from a deletion.
 
-Party reset preserves the inbox and aliases as well as bot configuration. Old
-processed notices remain deduplicated and cannot recreate cleared history.
-When the selection includes sales, processed receipts retain PROCESSED for replay
+Party reset preserves aliases and bot configuration. The Telegram messages
+option clears the app's import history and notifications for the active party.
+Previously accounted sales and members' shares stay intact when only messages
+are selected. Cleared notices remain deduplicated, including forwarded copies.
+When the selection includes sales only, processed receipts retain PROCESSED for replay
 protection, but allocations are cleared and a reset explanation is recorded.
 PENDING and NEEDS_REVIEW receipts become IGNORED so they cannot resume processing
 against the reset state. A payout-only or composition-only reset leaves imports intact.

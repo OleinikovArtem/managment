@@ -7,6 +7,8 @@ import { requirePartyActionAccess } from "@/server/auth/party-access";
 import { retryTelegramImport } from "@/server/telegram/import-service";
 import { normalizeTelegramName } from "@/server/telegram/sale-parser";
 import { recordPartyAuditEvent } from "@/server/services/party-audit-service";
+import { lockParty } from "@/server/repositories/catalog-locks";
+import { CLEARED_IMPORT_STATUS } from "@/server/telegram/cleared-import";
 
 type Result = { ok: boolean; message: string };
 
@@ -102,15 +104,18 @@ export async function removeTelegramAliasAction(id: string): Promise<Result> {
 
 export async function readTelegramImportsAction(): Promise<void> {
   const access = await requirePartyActionAccess("MEMBER");
-  const records = await prisma.telegramSaleImport.findMany({
-    where: { partyId: access.partyId },
-    select: { id: true },
-    orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
-    take: 100,
-  });
-  if (records.length)
-    await prisma.telegramImportRead.createMany({
-      data: records.map((record) => ({ importId: record.id, userId: access.userId })),
-      skipDuplicates: true,
+  await prisma.$transaction(async (tx) => {
+    await lockParty(tx, access.partyId);
+    const records = await tx.telegramSaleImport.findMany({
+      where: { partyId: access.partyId, status: { not: CLEARED_IMPORT_STATUS } },
+      select: { id: true },
+      orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+      take: 100,
     });
+    if (records.length)
+      await tx.telegramImportRead.createMany({
+        data: records.map((record) => ({ importId: record.id, userId: access.userId })),
+        skipDuplicates: true,
+      });
+  });
 }

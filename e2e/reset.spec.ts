@@ -8,6 +8,7 @@ for (const [category, label] of [
   ["raids", "Рейды"],
   ["compositions", "Сохранённые составы"],
   ["members", "Участники и профили"],
+  ["telegram", "Сообщения Telegram"],
 ]) {
   test(`selective reset of ${category} respects dependencies and preserves catalogs and access`, async ({
     page,
@@ -163,11 +164,15 @@ for (const [category, label] of [
     ).toEqual([{ name: "Unrelated Raid" }]);
     expect(
       (
-        await local.db.query('SELECT status FROM "TelegramSaleImport" WHERE "partyId"=$1', [
+        await local.db.query('SELECT status,"rawText" FROM "TelegramSaleImport" WHERE "partyId"=$1', [
           local.partyId,
         ])
       ).rows,
-    ).toEqual([{ status: removed.has("sales") ? "IGNORED" : "NEEDS_REVIEW" }]);
+    ).toEqual([
+      category === "telegram"
+        ? { status: "CLEARED", rawText: "" }
+        : { status: removed.has("sales") ? "IGNORED" : "NEEDS_REVIEW", rawText: "fixture" },
+    ]);
     expect(
       (
         await local.db.query('SELECT COUNT(*)::int AS n FROM "SaleShare" WHERE "partyId"=$1', [

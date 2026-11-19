@@ -86,7 +86,7 @@ async function SettingsContent() {
               Автоматически учитывайте распознанные продажи и проверяйте их исходные сообщения.
             </p>
           </header>
-          {access.isOwner && telegramSettings ? (
+          {access.isOwner ? (
             <TelegramBotSettings settings={telegramSettings} />
           ) : (
             <p className="text-sm text-muted-foreground">

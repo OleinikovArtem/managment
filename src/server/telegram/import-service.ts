@@ -18,6 +18,7 @@ import {
   type LootCandidate,
 } from "./sale-parser";
 import type { DiscoveredSource } from "./connection-service";
+import { clearedImportData, CLEARED_IMPORT_STATUS } from "./cleared-import";
 
 const id = z.number().int().safe();
 export const telegramUpdateSchema = z.object({
@@ -131,19 +132,22 @@ async function importSale(
           senderId: source.senderId,
           receivedAt: source.receivedAt,
           sourceHash: source.sourceHash,
-          status: "PROCESSED",
+          status: { in: ["PROCESSED", CLEARED_IMPORT_STATUS] },
           ...(existing ? { id: { not: existing.id } } : {}),
           ...(!source.messageId.startsWith("forward:")
             ? { messageId: { startsWith: "forward:" } }
             : {}),
         },
-        select: { id: true },
+        select: { id: true, status: true },
       });
       if (duplicate) {
-        const data = {
-          status: "IGNORED" as const,
-          reason: `Повтор пересылки: такая продажа уже учтена (${duplicate.id}).`,
-        };
+        const data =
+          duplicate.status === CLEARED_IMPORT_STATUS
+            ? clearedImportData
+            : {
+                status: "IGNORED" as const,
+                reason: `Повтор пересылки: такая продажа уже учтена (${duplicate.id}).`,
+              };
         if (existing) await tx.telegramSaleImport.update({ where: { id: existing.id }, data });
         else await tx.telegramSaleImport.create({ data: { ...source, ...data } });
         return;
@@ -377,7 +381,8 @@ export async function receiveTelegramUpdate(webhookId: string, payload: unknown)
         },
       });
       if (record) {
-        if (record.sourceHash === source.sourceHash) return;
+        if (record.status === CLEARED_IMPORT_STATUS || record.sourceHash === source.sourceHash)
+          return;
         await tx.telegramSaleImport.update({
           where: { id: record.id },
           data: {

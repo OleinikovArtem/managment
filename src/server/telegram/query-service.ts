@@ -2,6 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/db/prisma";
 import type { DiscoveredSource } from "./connection-service";
 import type { TelegramAllocation } from "./sale-parser";
+import { CLEARED_IMPORT_STATUS } from "./cleared-import";
 
 export async function getTelegramSettings(partyId: string) {
   const config = await prisma.partyTelegramBotConfig.findUnique({
@@ -28,7 +29,7 @@ export async function getTelegramSettings(partyId: string) {
 
 export async function listTelegramImports(partyId: string) {
   const records = await prisma.telegramSaleImport.findMany({
-    where: { partyId },
+    where: { partyId, status: { not: CLEARED_IMPORT_STATUS } },
     orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
     take: 100,
     select: {

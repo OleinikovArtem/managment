@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import { Prisma } from "@/generated/prisma/client";
 import { resolveResetCategories, type ResetCategory } from "@/features/settings/reset-plan";
 import { isRetryableDatabaseError } from "./sale-repository";
+import { clearedImportData, CLEARED_IMPORT_STATUS } from "@/server/telegram/cleared-import";
 
 export async function getPartyById(partyId: string) {
   return prisma.party.findUnique({
@@ -47,6 +48,7 @@ export async function previewPartyReset(partyId: string, selection: readonly Res
         profiles,
         telegramProcessed,
         telegramPending,
+        telegramMessages,
       ] = await Promise.all([
         selected.has("payments") ? tx.memberPayment.count({ where: { partyId } }) : 0,
         selected.has("payments") ? tx.paymentAllocation.count({ where: { partyId } }) : 0,
@@ -59,12 +61,17 @@ export async function previewPartyReset(partyId: string, selection: readonly Res
         selected.has("compositions") ? tx.partyCompositionMember.count({ where: { partyId } }) : 0,
         selected.has("members") ? tx.partyMember.count({ where: { partyId } }) : 0,
         selected.has("members") ? tx.partyMemberProfile.count({ where: { partyId } }) : 0,
-        selected.has("sales")
+        selected.has("sales") && !selected.has("telegram")
           ? tx.telegramSaleImport.count({ where: { partyId, status: "PROCESSED" } })
           : 0,
-        selected.has("sales")
+        selected.has("sales") && !selected.has("telegram")
           ? tx.telegramSaleImport.count({
               where: { partyId, status: { in: ["PENDING", "NEEDS_REVIEW"] } },
+            })
+          : 0,
+        selected.has("telegram")
+          ? tx.telegramSaleImport.count({
+              where: { partyId, status: { not: CLEARED_IMPORT_STATUS } },
             })
           : 0,
       ]);
@@ -105,6 +112,7 @@ export async function previewPartyReset(partyId: string, selection: readonly Res
           profiles,
           telegramProcessed,
           telegramPending,
+          ...(selected.has("telegram") ? { telegramMessages } : {}),
         },
       };
     },
@@ -146,6 +154,14 @@ export async function resetPartyData(partyId: string, selection: readonly ResetC
               where: { partyId },
               data: { status: "RECEIVED" },
             });
+          }
+          if (selected.has("telegram")) {
+            await transaction.telegramSaleImport.updateMany({
+              where: { partyId, status: { not: CLEARED_IMPORT_STATUS } },
+              data: clearedImportData,
+            });
+            await transaction.telegramImportRead.deleteMany({ where: { import: { partyId } } });
+          } else if (selected.has("sales")) {
             // Keep processed fingerprints: forwarding an old notice must not
             // recreate deleted sales. Stop unresolved imports from resuming.
             await transaction.telegramSaleImport.updateMany({

@@ -8,12 +8,13 @@ export const resetCategorySchema = z.enum([
   "raids",
   "compositions",
   "members",
+  "telegram",
 ]);
 export type ResetCategory = z.infer<typeof resetCategorySchema>;
 export const resetSelectionSchema = z
   .array(resetCategorySchema)
   .min(1, "Выберите данные для сброса.")
-  .max(6);
+  .max(resetCategorySchema.options.length);
 export const resetRequestSchema = z.object({
   confirmation: z.literal(RESET_PARTY_CONFIRMATION, {
     error: `Введите точно: ${RESET_PARTY_CONFIRMATION}.`,
@@ -62,6 +63,13 @@ export const RESET_OPTIONS: ReadonlyArray<{
     label: "Участники и профили",
     description: "Игровые персонажи и профили; также удалятся составы, рейды, лут и финансы.",
     dependencies: ["raids", "compositions"],
+  },
+  {
+    id: "telegram",
+    label: "Сообщения Telegram",
+    description:
+      "История импорта и уведомления в приложении. Эту категорию можно сбросить отдельно от продаж.",
+    dependencies: [],
   },
 ];
 

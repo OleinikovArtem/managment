@@ -28,6 +28,73 @@ test("webhook authenticates source, imports once and MEMBER reads notifications"
   expect((await unread.json()).items).toHaveLength(1);
   await page.getByRole("button", { name: "Отметить прочитанными", exact: true }).click();
   await expect.poll(async () => (await (await page.request.get("/api/telegram/notifications")).json()).items.length).toBe(0);
+
+  await local.db.query('UPDATE "PartyMembership" SET role=\'OWNER\' WHERE "partyId"=$1', [
+    local.partyId,
+  ]);
+  const otherPartyId = `${local.partyId}-other-inbox`;
+  await local.db.query('INSERT INTO "Party" (id,name,"updatedAt") VALUES ($1,$1,NOW())', [
+    otherPartyId,
+  ]);
+  await local.db.query(
+    'INSERT INTO "TelegramSaleImport" (id,"partyId","chatId","senderId","messageId","updateId","rawText","sourceHash",status,"receivedAt","updatedAt") SELECT $1,$1,"chatId","senderId","messageId","updateId","rawText","sourceHash",status,"receivedAt",NOW() FROM "TelegramSaleImport" WHERE "partyId"=$2 AND status=\'PROCESSED\'',
+    [otherPartyId, local.partyId],
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/settings?tab=reset");
+  await page.getByRole("checkbox", { name: /^Сообщения Telegram/ }).check();
+  const preview = page.getByRole("listitem").filter({ hasText: "Сообщения Telegram" });
+  await expect(preview).toHaveText(/Сообщения Telegram\s*2/);
+  await expect(page.getByRole("checkbox", { name: /^Продажи/ })).not.toBeChecked();
+  await page.screenshot({
+    path: test.info().outputPath("telegram-reset-mobile.png"),
+    fullPage: true,
+  });
+  await page.getByRole("textbox", { name: /Введите вручную/ }).fill("Resset");
+  await page.getByRole("button", { name: "Сбросить выбранное", exact: true }).click();
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Сбросить выбранное", exact: true })
+    .click();
+  await expect(page.getByRole("alertdialog")).toHaveCount(0);
+  expect((await send(update)).status()).toBe(200);
+  expect(
+    (
+      await send({ ...update, update_id: 4, message: { ...update.message, message_id: 4 } })
+    ).status(),
+  ).toBe(200);
+  await page.goto("/telegram");
+  await expect(page.getByText("Уведомлений о продажах пока нет", { exact: true })).toBeVisible();
+  expect((await (await page.request.get("/api/telegram/notifications")).json()).items).toHaveLength(
+    0,
+  );
+  expect(
+    (
+      await local.db.query('SELECT "totalPrice" FROM "SaleTransaction" WHERE "partyId"=$1', [
+        local.partyId,
+      ])
+    ).rows,
+  ).toEqual([{ totalPrice: "10000000" }]);
+  expect(
+    (await local.db.query('SELECT amount FROM "SaleShare" WHERE "partyId"=$1', [local.partyId]))
+      .rows,
+  ).toEqual([{ amount: "5000000" }, { amount: "5000000" }]);
+  expect(
+    (
+      await local.db.query(
+        'SELECT "rawText", status FROM "TelegramSaleImport" WHERE "partyId"=$1',
+        [otherPartyId],
+      )
+    ).rows,
+  ).toEqual([{ rawText: text, status: "PROCESSED" }]);
+  expect(
+    (
+      await local.db.query(
+        'SELECT "webhookEnabled" FROM "PartyTelegramBotConfig" WHERE "partyId"=$1',
+        [local.partyId],
+      )
+    ).rows,
+  ).toEqual([{ webhookEnabled: true }]);
 });
 
 test("failed multiline import is atomic, alias fixes retry and dismiss creates no sales", async ({ page, local }) => {
