@@ -19,7 +19,7 @@ export const test = base.extend<object, { accountState: State }>({
       const page = await context.newPage();
       await page.goto("/parties");
       await expect(page.getByRole("heading", { name: "Ваши группы" })).toBeVisible({ timeout: 30_000 });
-      await page.getByRole("button", { name: "Открыть", exact: true }).first().click();
+      await page.getByRole("button", { name: /^Продолжить в группе / }).first().click();
       await expect(page).toHaveURL(/\/dashboard$/, { timeout: 30_000 });
       await provide(await context.storageState());
     } finally {

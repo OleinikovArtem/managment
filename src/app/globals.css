@@ -658,7 +658,7 @@ textarea {
     align-self: flex-start;
     position: sticky;
     top: 0;
-    min-height: 100dvh;
+    height: 100dvh;
     padding: 24px 16px;
     border-right: 1px solid var(--border);
   }

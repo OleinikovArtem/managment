@@ -32,10 +32,7 @@ async function PartiesContent() {
       <p className="mb-3 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
         Аккаунт {user.name}
       </p>
-      <h1 className="text-2xl font-semibold tracking-tight">Ваши группы</h1>
-      <p className="mt-2 mb-6 text-sm text-muted-foreground">
-        Выберите, с какими данными работать.
-      </p>
+      <h1 className="mb-6 text-2xl font-semibold tracking-tight">Ваши группы</h1>
       <PartyPicker
         parties={parties.map(({ party, role }) => ({ id: party.id, name: party.name, role }))}
         activePartyId={activePartyId}

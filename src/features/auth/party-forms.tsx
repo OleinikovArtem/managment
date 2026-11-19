@@ -81,47 +81,63 @@ export function PartyPicker({
   const [pendingId, setPendingId] = useState("");
   const [result, setResult] = useState<SimpleActionResult | null>(null);
   return (
-    <div className="max-w-2xl space-y-1">
+    <ul
+      aria-label="Ваши группы"
+      className="max-w-2xl divide-y divide-border border-y border-border"
+    >
       {parties.map((party) => (
-        <div
+        <li
           key={party.id}
-          className="flex min-h-14 items-center justify-between gap-4 border-b border-border py-2"
+          className="flex min-h-14 flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3"
         >
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium">{party.name}</p>
-            <p className="text-xs text-muted-foreground">
+          <div className="min-w-0 flex-[1_1_8rem]">
+            <p className="wrap-anywhere text-sm font-medium">{party.name}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
               {party.role === "OWNER"
                 ? "Владелец"
                 : party.role === "MEMBER"
                   ? "Участник"
                   : "Администратор"}
+              {party.id === activePartyId && (
+                <span>
+                  {" "}
+                  · <span>Активная</span>
+                </span>
+              )}
             </p>
           </div>
-          {party.id === activePartyId ? (
-            <span className="text-xs text-muted-foreground">Активная</span>
-          ) : (
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={Boolean(pendingId)}
-              onClick={async () => {
-                setPendingId(party.id);
+          <Button
+            className="min-h-11 shrink-0"
+            variant={party.id === activePartyId ? "default" : "outline"}
+            aria-label={`Продолжить в группе ${party.name}`}
+            disabled={Boolean(pendingId)}
+            onClick={async () => {
+              setPendingId(party.id);
+              setResult(null);
+              try {
                 const response = await selectPartyAction(party.id);
-                setResult(response);
-                setPendingId("");
                 if (response.ok) {
                   router.replace("/dashboard");
                   router.refresh();
+                  return;
                 }
-              }}
-            >
-              {pendingId === party.id ? "Выбираем…" : "Открыть"}
-            </Button>
-          )}
-        </div>
+                setResult(response);
+              } catch {
+                setResult({ ok: false, message: "Не удалось открыть группу. Попробуйте ещё раз." });
+              }
+              setPendingId("");
+            }}
+          >
+            {pendingId === party.id ? "Открываем…" : "Продолжить"}
+          </Button>
+        </li>
       ))}
-      <ActionMessage result={result} />
-    </div>
+      {result && (
+        <li className="py-3">
+          <ActionMessage result={result} />
+        </li>
+      )}
+    </ul>
   );
 }
 
@@ -413,13 +429,14 @@ export function PartyMemberAccessManager({
   );
 }
 
-export function SignOutButton() {
+export function SignOutButton({ className }: { className?: string }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   return (
     <Button
       variant="ghost"
       size="sm"
+      className={className}
       disabled={pending}
       onClick={async () => {
         setPending(true);

@@ -92,9 +92,10 @@ for (const role of ["OWNER", "ADMIN", "MEMBER"]) {
 test("switching groups changes visible data and prevents cross-group raid access", async ({ page, local, context, baseURL }) => {
   const raidId = await local.addRaid();
   await page.goto("/parties");
-  const row = page.locator("div.min-h-14").filter({ hasText: local.partyId });
+  const row = page.getByRole("listitem").filter({ hasText: local.partyId });
   await expect(row.getByText("Активная", { exact: true })).toBeVisible();
-  await page.locator("div.min-h-14").filter({ has: page.getByRole("button", { name: "Открыть", exact: true }) }).first().getByRole("button", { name: "Открыть", exact: true }).click();
+  await page.getByRole("listitem").filter({ hasNotText: local.partyId })
+    .getByRole("button", { name: /^Продолжить в группе / }).first().click();
   await expect(page).toHaveURL(/\/dashboard$/, { timeout: 30_000 });
   await page.goto(`/raids/${raidId}`);
   await expect(page.getByRole("heading", { name: "Запись не найдена" })).toBeVisible({ timeout: 30_000 });

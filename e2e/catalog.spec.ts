@@ -42,7 +42,7 @@ test("own item can be created, edited and archived while shared items remain imm
   await page.goto("/items");
   await expect(page.getByRole("button", { name: "Добавить предмет", exact: true })).toHaveCount(0);
   await page.goto("/parties");
-  await page.getByRole("button", { name: "Открыть", exact: true }).first().click();
+  await page.getByRole("button", { name: /^Продолжить в группе / }).first().click();
   await expect(page).toHaveURL(/\/dashboard$/, { timeout: 30_000 });
   await page.goto(`/items/${itemId}`);
   await expect(page.getByRole("heading", { name: "Запись не найдена" })).toBeVisible({ timeout: 30_000 });

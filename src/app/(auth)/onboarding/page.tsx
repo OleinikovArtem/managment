@@ -23,7 +23,8 @@ async function OnboardingContent() {
   await io();
   const user = await requireSignedInPageUser();
   const parties = await listUserParties(user.id);
-  if (parties.length > 0) redirect("/parties");
+  if (parties.length === 1) redirect("/dashboard");
+  if (parties.length > 1) redirect("/parties");
 
   return (
     <section className="w-full max-w-2xl">

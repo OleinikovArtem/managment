@@ -93,7 +93,7 @@ function Navigation({ displayName, partyName, loading = false }: SidebarProps) {
                 isActive={active}
                 aria-current={active ? "page" : undefined}
                 onClick={() => setMenuOpen(false)}
-                className="min-h-11 text-sm"
+                className="min-h-11 gap-3 px-3 text-sm"
               >
                 <Icon size={17} aria-hidden="true" />
                 <span>{label}</span>
@@ -121,14 +121,12 @@ function Navigation({ displayName, partyName, loading = false }: SidebarProps) {
   return (
     <SidebarProvider keyboardShortcut={false} style={{ display: "contents" }}>
       <aside className="app-sidebar">
-        <SidebarFrame collapsible="none" className="w-full bg-transparent">
-          <div className="mb-9">{brand}</div>
-          <nav aria-label="Основная навигация" className="space-y-1">
-            {links(mainLinks)}
-          </nav>
-          <nav aria-label="Справочник и настройки" className="mt-8 space-y-1">
-            {links(secondaryLinks)}
-          </nav>
+        <SidebarFrame collapsible="none" className="min-h-0 w-full flex-1 bg-transparent">
+          <div className="mb-6 shrink-0">{brand}</div>
+          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto">
+            <nav aria-label="Основная навигация">{links(mainLinks)}</nav>
+            <nav aria-label="Справочник и настройки">{links(secondaryLinks)}</nav>
+          </div>
           <SidebarAccount displayName={displayName} partyName={partyName} loading={loading} />
         </SidebarFrame>
       </aside>
@@ -138,6 +136,7 @@ function Navigation({ displayName, partyName, loading = false }: SidebarProps) {
           <Button
             variant="ghost"
             type="button"
+            disabled={loading}
             className="inline-flex min-h-11 items-center gap-2 px-2 text-sm"
             onClick={() => setMenuOpen(true)}
           >
@@ -150,7 +149,7 @@ function Navigation({ displayName, partyName, loading = false }: SidebarProps) {
         </nav>
       </header>
       <SidePanel open={menuOpen} onOpenChange={setMenuOpen} title="Навигация">
-        <nav aria-label="Все разделы" className="space-y-1">
+        <nav aria-label="Все разделы" className="min-h-0 flex-1 space-y-1 overflow-y-auto">
           {links(mainLinks)}
           <Link
             href="/compositions"
@@ -163,14 +162,13 @@ function Navigation({ displayName, partyName, loading = false }: SidebarProps) {
             Операции
           </Link>
           <div className="pt-4">{links(secondaryLinks)}</div>
-          <SidebarAccount
-            displayName={displayName}
-            partyName={partyName}
-            loading={loading}
-            mobile
-            onNavigate={() => setMenuOpen(false)}
-          />
         </nav>
+        <SidebarAccount
+          displayName={displayName}
+          partyName={partyName}
+          loading={loading}
+          onNavigate={() => setMenuOpen(false)}
+        />
       </SidePanel>
     </SidebarProvider>
   );
@@ -180,36 +178,29 @@ function SidebarAccount({
   displayName,
   partyName,
   loading,
-  mobile = false,
   onNavigate,
-}: SidebarProps & { mobile?: boolean; onNavigate?: () => void }) {
-  const accountClass = mobile ? "sidebar-link" : "text-xs text-muted-foreground";
+}: SidebarProps & { onNavigate?: () => void }) {
   if (loading) {
     return (
-      <div
-        className={`${mobile ? "mt-4 min-h-[88px] border-t pt-3" : "mt-auto min-h-[76px] border-t pt-4"} border-border`}
-      >
+      <div className="mt-4 min-h-[202px] shrink-0 border-t border-border pt-3">
         <span className="sr-only">Загрузка профиля и группы</span>
-        <Skeleton className={`h-3 w-28 ${mobile ? "mx-3" : ""}`} />
-        <Skeleton className={`mt-2 h-3 w-20 ${mobile ? "mx-3" : ""}`} />
+        <Skeleton className="mx-3 h-3 w-28" />
+        <Skeleton className="mx-3 mt-2 h-3 w-20" />
       </div>
     );
   }
   return (
-    <div className={`${mobile ? "mt-4 border-t pt-3" : "mt-auto border-t pt-4"} border-border`}>
-      <p className={`truncate font-medium ${mobile ? "px-3 text-xs" : "text-xs"}`}>{partyName}</p>
-      <p className={`mt-1 truncate text-muted-foreground ${mobile ? "px-3 text-xs" : "text-xs"}`}>
-        {displayName}
-      </p>
-      <div className={`${mobile ? "mt-2 space-y-1" : "mt-2 flex items-center gap-2"}`}>
-        <Link href="/profile" onClick={onNavigate} className={accountClass}>
+    <div className="shrink-0 border-t border-border pt-3">
+      <p className="truncate px-3 text-sm font-medium">{partyName}</p>
+      <p className="mt-1 truncate px-3 text-xs text-muted-foreground">{displayName}</p>
+      <div className="mt-2 flex flex-col gap-1">
+        <Link href="/profile" onClick={onNavigate} className="sidebar-link">
           Мой профиль
         </Link>
-        {mobile && <span className="sr-only"> · </span>}
-        <Link href="/parties" onClick={onNavigate} className={accountClass}>
+        <Link href="/parties" onClick={onNavigate} className="sidebar-link">
           Сменить группу
         </Link>
-        <SignOutButton />
+        <SignOutButton className="min-h-11 justify-start px-3 text-sm text-muted-foreground" />
       </div>
     </div>
   );
