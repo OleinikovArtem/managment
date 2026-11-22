@@ -27,7 +27,8 @@ export type HistoryEntry = {
   raidId: string | null;
   raidName: string | null;
   shares: { id: string; nickname: string; amount: string }[];
-  payment?: { id: string; memberId: string };
+  paymentId?: string;
+  recipientId?: string;
 };
 
 export function HistoryList({
@@ -38,7 +39,12 @@ export function HistoryList({
   members: CorrectionMember[];
 }) {
   const params = useSearchParams();
-  const filter = params.get("type") ?? "all";
+  const memberId = params.get("memberId");
+  const filter = memberId ? "payment" : (params.get("type") ?? "all");
+  const recipient = memberId
+    ? (members.find((member) => member.id === memberId)?.nickname
+      ?? entries.find((entry) => entry.recipientId === memberId)?.subtitle)
+    : undefined;
   const query = params.get("q") ?? "";
   const pageParam = Number(params.get("page")) || 1;
   const filtered = useMemo(
@@ -46,11 +52,12 @@ export function HistoryList({
       entries.filter(
         (entry) =>
           (filter === "all" || entry.kind === filter) &&
+          (!memberId || entry.recipientId === memberId) &&
           `${entry.subtitle} ${entry.raidName ?? ""} ${entry.comment ?? ""} ${entry.shares.map((s) => s.nickname).join(" ")}`
             .toLocaleLowerCase()
             .includes(query.toLocaleLowerCase()),
       ),
-    [entries, filter, query],
+    [entries, filter, memberId, query],
   );
   const counts = {
     all: entries.length,
@@ -63,6 +70,8 @@ export function HistoryList({
     const next = new URLSearchParams(params.toString());
     if (value && value !== "all") next.set(key, value);
     else next.delete(key);
+    if (key === "type" && value !== "payment") next.delete("memberId");
+    if (key === "memberId") next.set("type", "payment");
     if (key !== "page") next.delete("page");
     window.history.replaceState(
       null,
@@ -95,6 +104,14 @@ export function HistoryList({
           ))}
         </div>
       </div>
+      {memberId && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+          <p>{recipient ? `Передачи участнику ${recipient}` : "Передачи выбранному участнику"}</p>
+          <Button type="button" variant="ghost" size="sm" onClick={() => change("memberId", "")}>
+            Показать все передачи
+          </Button>
+        </div>
+      )}
       <p className="finance-list-summary" role="status">
         Найдено {filtered.length} из {entries.length}
         {pageCount > 1 && ` · страница ${page} из ${pageCount}`}
@@ -142,10 +159,11 @@ export function HistoryList({
                       {entry.comment}
                     </p>
                   )}
-                  {entry.payment && (
+                  {entry.paymentId && entry.recipientId && (
                     <PaymentCorrection
                       payment={{
-                        ...entry.payment,
+                        id: entry.paymentId,
+                        memberId: entry.recipientId,
                         nickname: entry.subtitle,
                         amount: entry.amount,
                         paidAt: entry.recordedAt,

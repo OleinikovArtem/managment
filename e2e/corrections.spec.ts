@@ -22,11 +22,22 @@ test("corrects and deletes a transfer with exact balances and group permissions"
     local.partyId,
   ]);
   await sell(page);
-  await pay(page, "3", "Ошибочная запись");
+  await pay(page, "6", "Ошибочная запись");
   const [original] = (
     await local.db.query('SELECT id FROM "MemberPayment" WHERE "partyId"=$1', [local.partyId])
   ).rows;
-  await page.goto("/ledger?type=payment");
+  await page.reload();
+  const overpayment = page.getByRole("link", { name: "Исправить переплату участнику Hero0" });
+  await expect(overpayment).toBeVisible();
+  await expect(page.locator('.finance-payout-card [title="-1000000 Adena"]')).toBeVisible();
+  await page.screenshot({ ...screenshotOptions, path: info.outputPath("06-overpayment-desktop.png") });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await overpayment.focus();
+  await page.screenshot({ ...screenshotOptions, path: info.outputPath("07-overpayment-mobile.png") });
+  await page.keyboard.press("Enter");
+  await expect(page.getByText("Передачи участнику Hero0", { exact: true })).toBeVisible();
+  expect(new URL(page.url()).searchParams.get("memberId")).toBe(`${local.partyId}-member-0`);
+  await page.setViewportSize({ width: 1280, height: 720 });
   const originalRow = page.locator(".finance-operation").filter({ hasText: "Hero0" });
   await originalRow.locator("summary").click();
   const edit = originalRow.getByRole("button", { name: "Исправить передачу" });
@@ -38,7 +49,7 @@ test("corrects and deletes a transfer with exact balances and group permissions"
   await edit.focus();
   await page.keyboard.press("Enter");
   const dialog = page.getByRole("dialog", { name: "Исправить передачу Adena" });
-  await expect(dialog.getByLabel("Сумма Adena")).toHaveValue("3000000");
+  await expect(dialog.getByLabel("Сумма Adena")).toHaveValue("6000000");
   await page.keyboard.press("Escape");
   await expect(edit).toBeFocused();
   await edit.click();
@@ -65,6 +76,9 @@ test("corrects and deletes a transfer with exact balances and group permissions"
   expect(await replayArguments(page, request, args)).toContain('"ok":true');
   expect(await replayArguments(page, request, [original.id, null])).toContain("уже изменена");
   await page.reload();
+  await expect(page.getByText("Передачи участнику Hero0", { exact: true })).toBeVisible();
+  await expect(page.locator(".finance-operation")).toHaveCount(0);
+  await page.getByRole("button", { name: "Показать все передачи", exact: true }).click();
   const correctedRow = page.locator(".finance-operation").filter({ hasText: "Hero1" });
   await correctedRow.locator("summary").click();
   await expect(correctedRow.getByText(/2\s450\s123 Adena/)).toBeVisible();
@@ -86,6 +100,7 @@ test("corrects and deletes a transfer with exact balances and group permissions"
   });
   await page.goto("/sales");
   await expect(page.locator('.finance-summary-primary [title="7549877 Adena"]')).toBeVisible();
+  await expect(overpayment).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: /^Оформить передачу Adena участнику Hero0:/ }),
   ).toBeVisible();
@@ -145,7 +160,7 @@ test("corrects and deletes a transfer with exact balances and group permissions"
   ).rows;
   expect(payments).toEqual([
     { id: corrected.id, amount: "2450123", voided: true },
-    { id: original.id, amount: "3000000", voided: true },
+    { id: original.id, amount: "6000000", voided: true },
   ]);
 });
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { AdenaAmount } from "@/components/ui/adena-amount";
@@ -135,6 +136,8 @@ function PayoutCard({
   onSelect: (trigger: HTMLButtonElement) => void;
 }) {
   const payable = BigInt(member.payable);
+  const actionClass =
+    "mt-3 flex items-center justify-between gap-2 border-t border-border pt-2.5 text-xs font-medium text-muted-foreground transition-colors";
   const body = (
     <>
       <div className="finance-payout-main">
@@ -153,9 +156,18 @@ function PayoutCard({
         <AdenaAmount amount={member.payable} className="finance-payout-amount" />
       </div>
       {canManage && payable > 0n && (
-        <span className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-2.5 text-xs font-medium text-muted-foreground transition-colors group-hover:text-foreground group-focus-visible:text-foreground">
+        <span className={cn(actionClass, "group-hover:text-foreground group-focus-visible:text-foreground")}>
           Передать Adena <ArrowUpRight aria-hidden="true" size={15} />
         </span>
+      )}
+      {canManage && payable < 0n && (
+        <Link
+          href={{ pathname: "/ledger", query: { type: "payment", memberId: member.memberId } }}
+          className={cn(actionClass, "min-h-11 pb-2 hover:text-foreground focus-visible:text-foreground")}
+          aria-label={`Исправить переплату участнику ${member.nickname}`}
+        >
+          Исправить переплату <ArrowUpRight aria-hidden="true" size={15} />
+        </Link>
       )}
     </>
   );
