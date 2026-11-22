@@ -185,17 +185,15 @@ export function LootPicker({
                 category={item?.category}
                 size="lg"
               />
-              {!row.id && (
-                <button
-                  type="button"
-                  className="raid-loot-remove"
-                  aria-label={`Удалить ${name}`}
-                  disabled={disabled}
-                  onClick={() => onChange(value.filter((_, i) => i !== index))}
-                >
-                  <Trash2 size={15} aria-hidden="true" />
-                </button>
-              )}
+              <button
+                type="button"
+                className="raid-loot-remove"
+                aria-label={`Удалить ${name}`}
+                disabled={disabled}
+                onClick={() => onChange(value.filter((_, i) => i !== index))}
+              >
+                <Trash2 size={15} aria-hidden="true" />
+              </button>
               <h3>{name}</h3>
               <p className="raid-tile-meta">
                 {row.id ? "Историческое поступление" : item?.category || "Добыча рейда"}

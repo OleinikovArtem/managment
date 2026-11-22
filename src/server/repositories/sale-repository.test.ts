@@ -339,7 +339,7 @@ describe("sale repository", () => {
       expect.objectContaining({
         where: {
           partyId: "party-1",
-          ledgerTransaction: { status: "POSTED" },
+          ledgerTransaction: { status: "POSTED", voidedAt: null },
         },
       }),
     );
@@ -352,7 +352,7 @@ describe("sale repository", () => {
 
     expect(mocks.ledgerTransactionFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { partyId: "party-1", status: "POSTED" },
+        where: { partyId: "party-1", status: "POSTED", voidedAt: null },
         orderBy: [{ postedAt: "desc" }, { createdAt: "desc" }],
         include: expect.objectContaining({
           entries: expect.any(Object),

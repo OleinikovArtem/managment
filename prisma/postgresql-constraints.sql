@@ -48,7 +48,12 @@ BEGIN
 
   IF TG_OP <> 'INSERT' THEN
     SELECT "lockedAt" INTO raid_locked FROM "Raid" WHERE "partyId" = OLD."partyId" AND id = OLD."raidId";
-    IF raid_locked IS NOT NULL THEN RAISE EXCEPTION 'Raid data is locked by financial history'; END IF;
+    IF raid_locked IS NOT NULL THEN
+      IF TG_TABLE_NAME = 'LootDrop' AND TG_OP = 'DELETE' AND NOT EXISTS (
+        SELECT 1 FROM "SaleTransaction" WHERE "partyId" = OLD."partyId" AND "lootDropId" = OLD.id
+      ) THEN RETURN OLD; END IF;
+      RAISE EXCEPTION 'Raid data is locked by financial history';
+    END IF;
   END IF;
   IF TG_OP <> 'DELETE' THEN
     SELECT "lockedAt" INTO raid_locked FROM "Raid" WHERE "partyId" = NEW."partyId" AND id = NEW."raidId";
@@ -102,7 +107,13 @@ BEGIN
   record_data := to_jsonb(OLD);
   party_id := record_data->>'partyId';
   IF TG_TABLE_NAME = 'LedgerTransaction' THEN
-    IF record_data->>'status' = 'POSTED' THEN RAISE EXCEPTION 'Posted ledger transaction is immutable'; END IF;
+    IF record_data->>'status' = 'POSTED' THEN
+      IF TG_OP = 'UPDATE' AND OLD.type = 'PAYOUT_POSTED'
+        AND OLD."voidedAt" IS NULL AND NEW."voidedAt" IS NOT NULL
+        AND (to_jsonb(NEW) - 'voidedAt') = (record_data - 'voidedAt')
+      THEN RETURN NEW; END IF;
+      RAISE EXCEPTION 'Posted ledger transaction is immutable';
+    END IF;
     IF (NEW.status = 'DRAFT' AND NEW."postedAt" IS NOT NULL)
       OR (NEW.status = 'POSTED' AND NEW."postedAt" IS NULL)
       OR (NEW."saleTransactionId" IS NULL) = (NEW."memberPaymentId" IS NULL)

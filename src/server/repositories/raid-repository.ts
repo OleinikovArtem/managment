@@ -258,7 +258,12 @@ export async function createPartyRaidRecord(partyId: string, input: RaidInput) {
   );
 }
 
-export async function updatePartyRaidRecord(partyId: string, raidId: string, input: RaidInput) {
+export async function updatePartyRaidRecord(
+  partyId: string,
+  raidId: string,
+  input: RaidInput,
+  removedDropIds: string[] = [],
+) {
   return prisma.$transaction(
     async (transaction) => {
       await lockParty(transaction, partyId);
@@ -301,6 +306,13 @@ export async function updatePartyRaidRecord(partyId: string, raidId: string, inp
       }
 
       const existingLootIds = new Set(raid.lootDrops.map(({ id }) => id));
+      if (
+        removedDropIds.some(
+          (id) => !existingLootIds.has(id) || input.lootDrops.some((drop) => drop.id === id),
+        )
+      ) {
+        throw new RaidOperationError("Запись о выпадении изменилась. Обновите страницу.");
+      }
       for (const lootDrop of input.lootDrops) {
         if (lootDrop.id && !existingLootIds.has(lootDrop.id)) {
           throw new RaidOperationError("Запись о выпадении не найдена в этом рейде.");
@@ -420,6 +432,11 @@ export async function updatePartyRaidRecord(partyId: string, raidId: string, inp
         }
       }
 
+      if (removedDropIds.length > 0) {
+        await transaction.lootDrop.deleteMany({
+          where: { partyId, raidId, id: { in: removedDropIds } },
+        });
+      }
       for (const lootDrop of input.lootDrops) {
         const data = {
           itemId: lootDrop.itemId,
@@ -445,6 +462,26 @@ export async function updatePartyRaidRecord(partyId: string, raidId: string, inp
     },
     { timeout: 25_000, maxWait: 10_000 },
   );
+}
+
+export async function removePartyRaidDrop(partyId: string, raidId: string, dropId: string) {
+  return prisma.$transaction(async (transaction) => {
+    await lockParty(transaction, partyId);
+    const drop = await transaction.lootDrop.findFirst({
+      where: { partyId, raidId, id: dropId },
+      select: {
+        itemId: true,
+        item: { select: { displayName: true, canonicalName: true } },
+        _count: { select: { saleTransactions: true } },
+      },
+    });
+    if (!drop) throw new RaidOperationError("Предмет не найден в этом рейде.");
+    if (drop._count.saleTransactions > 0) {
+      throw new RaidOperationError("По этому предмету уже есть продажа.");
+    }
+    await transaction.lootDrop.delete({ where: { partyId_id: { partyId, id: dropId } } });
+    return drop;
+  });
 }
 
 async function assertPartyItemsExist(transaction: Transaction, partyId: string, input: RaidInput) {

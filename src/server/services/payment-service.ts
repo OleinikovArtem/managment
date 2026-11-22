@@ -1,8 +1,16 @@
 import "server-only";
 
 import { PaymentOperationError } from "@/features/sales/payment-errors";
-import { paymentInputSchema } from "@/features/sales/payment-schema";
-import { listPartyPayments, registerPartyPayment } from "@/server/repositories/payment-repository";
+import { paymentInputSchema, type PaymentInput } from "@/features/sales/payment-schema";
+import {
+  correctPartyPayment,
+  listPartyPayments,
+  registerPartyPayment,
+} from "@/server/repositories/payment-repository";
+
+function toRecordInput(input: PaymentInput) {
+  return { ...input, amount: BigInt(input.amount), paidAt: new Date(input.paidAt) };
+}
 
 export class PaymentInputError extends PaymentOperationError {
   constructor(message: string) {
@@ -17,13 +25,7 @@ export async function registerPayment(partyId: string, input: unknown) {
     throw new PaymentInputError(parsed.error.issues[0]?.message ?? "Проверьте данные выплаты.");
   }
 
-  const payment = await registerPartyPayment(partyId, {
-    memberId: parsed.data.memberId,
-    amount: BigInt(parsed.data.amount),
-    paidAt: new Date(parsed.data.paidAt),
-    comment: parsed.data.comment,
-    idempotencyKey: parsed.data.idempotencyKey,
-  });
+  const payment = await registerPartyPayment(partyId, toRecordInput(parsed.data));
 
   return {
     id: payment.id,
@@ -40,4 +42,8 @@ export async function registerPayment(partyId: string, input: unknown) {
 
 export async function getPayments(partyId: string) {
   return listPartyPayments(partyId);
+}
+
+export async function correctPayment(partyId: string, paymentId: string, input?: PaymentInput) {
+  return correctPartyPayment(partyId, paymentId, input && toRecordInput(input));
 }

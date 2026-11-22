@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 const transaction = {
+  $queryRaw: vi.fn(),
   memberPayment: {
     findUnique: mocks.paymentFindUnique,
     findUniqueOrThrow: mocks.paymentFindUniqueOrThrow,
@@ -204,7 +205,7 @@ describe("payment repository", () => {
       expect.objectContaining({
         where: {
           partyId: "party-1",
-          ledgerTransaction: { is: { status: "POSTED" } },
+          ledgerTransaction: { is: { status: "POSTED", voidedAt: null } },
         },
         orderBy: [{ paidAt: "desc" }, { createdAt: "desc" }],
       }),

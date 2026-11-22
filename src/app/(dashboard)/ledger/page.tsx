@@ -5,6 +5,7 @@ import { LedgerSkeleton } from "@/components/ui/page-skeleton";
 import { HistoryList, type HistoryEntry } from "@/features/ledger/history-list";
 import { requirePartyPageAccess } from "@/server/auth/party-access";
 import { getFinancialHistory } from "@/server/services/sale-service";
+import { listPartyMembers } from "@/server/repositories/party-member-repository";
 
 export default function LedgerPage() {
   return (
@@ -32,7 +33,10 @@ export default function LedgerPage() {
 async function LedgerContent() {
   await io();
   const workspace = await requirePartyPageAccess();
-  const transactions = await getFinancialHistory(workspace.partyId);
+  const [transactions, members] = await Promise.all([
+    getFinancialHistory(workspace.partyId),
+    workspace.canManage ? listPartyMembers(workspace.partyId) : [],
+  ]);
   const entries: HistoryEntry[] = transactions.map((transaction) => {
     const sale = transaction.saleTransaction;
     const payment = transaction.memberPayment;
@@ -61,6 +65,7 @@ async function LedgerContent() {
       amount: payment!.amount.toString(),
       recordedAt: payment!.paidAt.toISOString(),
       title: "Передача Adena",
+      payment: workspace.canManage ? { id: payment!.id, memberId: payment!.memberId } : undefined,
       subtitle: payment!.nicknameSnapshot,
       comment: payment!.comment,
       raidId: null,
@@ -68,5 +73,10 @@ async function LedgerContent() {
       shares: [],
     };
   });
-  return <HistoryList entries={entries} />;
+  return (
+    <HistoryList
+      entries={entries}
+      members={members.map(({ id, nickname }) => ({ id, nickname }))}
+    />
+  );
 }

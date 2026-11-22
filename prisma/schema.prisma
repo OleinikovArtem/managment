@@ -683,6 +683,7 @@ model LedgerTransaction {
   memberPaymentId   String?
   createdAt         DateTime                @default(now())
   postedAt          DateTime?
+  voidedAt          DateTime?
 
   party           Party            @relation(fields: [partyId], references: [id], onDelete: Restrict)
   saleTransaction SaleTransaction? @relation(fields: [partyId, saleTransactionId], references: [partyId, id], onDelete: Restrict)

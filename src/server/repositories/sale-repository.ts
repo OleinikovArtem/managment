@@ -430,7 +430,7 @@ export async function getPartyFinancialBalances(partyId: string) {
   const entries = await prisma.ledgerEntry.findMany({
     where: {
       partyId,
-      ledgerTransaction: { status: LedgerTransactionStatus.POSTED },
+      ledgerTransaction: { status: LedgerTransactionStatus.POSTED, voidedAt: null },
     },
     select: {
       accountType: true,
@@ -478,7 +478,7 @@ export async function getPartyFinancialBalances(partyId: string) {
 
 export async function listPartyLedgerTransactions(partyId: string) {
   return prisma.ledgerTransaction.findMany({
-    where: { partyId, status: LedgerTransactionStatus.POSTED },
+    where: { partyId, status: LedgerTransactionStatus.POSTED, voidedAt: null },
     include: {
       entries: {
         orderBy: [{ accountType: "asc" }, { partyMemberId: "asc" }],

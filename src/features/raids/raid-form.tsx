@@ -355,7 +355,13 @@ export function RaidForm({
           creationKey: raidId ? undefined : creationKey.current!,
         };
         const result = raidId
-          ? await updateRaidAction(raidId, payload)
+          ? await updateRaidAction(
+              raidId,
+              payload,
+              (initialValues?.lootDrops ?? []).flatMap(({ id }) =>
+                id && !values.lootDrops.some((drop) => drop.id === id) ? [id] : [],
+              ),
+            )
           : await createRaidAction(payload);
         if (!result.ok) {
           setMessage(result.message);
@@ -981,7 +987,7 @@ export function RaidForm({
           confirmation === "replace-roster"
             ? "Заменить состав"
             : confirmation === "delete-loot"
-              ? "Сохранить без добычи"
+              ? "Удалить и сохранить"
               : "Выйти"
         }
         onConfirm={async () => {

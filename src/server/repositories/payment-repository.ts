@@ -12,6 +12,7 @@ import {
   PaymentTemporaryDatabaseError,
 } from "@/features/sales/payment-errors";
 import { prisma } from "@/lib/db/prisma";
+import { lockParty } from "./catalog-locks";
 
 type Transaction = PrismaTypes.TransactionClient;
 
@@ -63,12 +64,12 @@ type ExistingPayment = {
   comment: string | null;
 };
 
-function resolveExistingPayment(existing: ExistingPayment, input: PaymentRecordInput) {
+function resolveExistingPayment<T extends ExistingPayment>(existing: T, input: PaymentRecordInput) {
   if (
     existing.memberId !== input.memberId ||
     existing.amount !== input.amount ||
     existing.paidAt.getTime() !== input.paidAt.getTime() ||
-    (existing.comment ?? undefined) !== input.comment
+    (existing.comment ?? "") !== (input.comment ?? "")
   ) {
     throw new PaymentIdempotencyConflictError();
   }
@@ -94,6 +95,7 @@ async function createPartyPaymentRecord(
   transaction: Transaction,
   partyId: string,
   input: PaymentRecordInput,
+  nicknameSnapshot?: string,
 ) {
   const existing = await transaction.memberPayment.findUnique({
     where: { partyId_idempotencyKey: { partyId, idempotencyKey: input.idempotencyKey } },
@@ -125,7 +127,7 @@ async function createPartyPaymentRecord(
       paymentAllocations: {
         where: {
           memberPayment: {
-            ledgerTransaction: { is: { status: LedgerTransactionStatus.POSTED } },
+            ledgerTransaction: { is: { status: LedgerTransactionStatus.POSTED, voidedAt: null } },
           },
         },
         select: { amount: true },
@@ -170,7 +172,7 @@ async function createPartyPaymentRecord(
     data: {
       partyId,
       memberId: member.id,
-      nicknameSnapshot: member.nickname,
+      nicknameSnapshot: nicknameSnapshot ?? member.nickname,
       amount: input.amount,
       paidAt: input.paidAt,
       comment: input.comment || null,
@@ -237,9 +239,10 @@ async function createPartyPaymentRecord(
 export async function registerPartyPayment(partyId: string, input: PaymentRecordInput) {
   for (let attempt = 0; attempt < MAX_TRANSACTION_ATTEMPTS; attempt += 1) {
     try {
-      return await prisma.$transaction((transaction) =>
-        createPartyPaymentRecord(transaction, partyId, input),
-      );
+      return await prisma.$transaction(async (transaction) => {
+        await lockParty(transaction, partyId);
+        return createPartyPaymentRecord(transaction, partyId, input);
+      });
     } catch (error) {
       if (isRetryableDatabaseError(error)) {
         if (attempt < RETRY_DELAYS_MS.length) {
@@ -260,11 +263,64 @@ export async function registerPartyPayment(partyId: string, input: PaymentRecord
   throw new PaymentTemporaryDatabaseError();
 }
 
+export async function correctPartyPayment(
+  partyId: string,
+  paymentId: string,
+  input?: PaymentRecordInput,
+) {
+  const correctionPrefix = `correction:${paymentId}:`;
+  const replacement = input
+    ? { ...input, idempotencyKey: correctionPrefix + input.idempotencyKey }
+    : undefined;
+
+  return prisma.$transaction(async (transaction) => {
+    await lockParty(transaction, partyId);
+    const original = await transaction.memberPayment.findUnique({
+      where: { partyId_id: { partyId, id: paymentId } },
+      include: { ledgerTransaction: true },
+    });
+    const ledger = original?.ledgerTransaction;
+    if (!original || !ledger || ledger.status !== LedgerTransactionStatus.POSTED) {
+      throw new PaymentOperationError("Передача не найдена в этой группе.");
+    }
+    if (ledger.voidedAt) {
+      if (!replacement) {
+        const corrected = await transaction.memberPayment.findFirst({
+          where: { partyId, idempotencyKey: { startsWith: correctionPrefix } },
+          select: { id: true },
+        });
+        if (corrected) throw new PaymentOperationError("Передача уже изменена. Обновите журнал.");
+        return { original, replacement: null, changed: false };
+      }
+      const saved = await transaction.memberPayment.findUnique({
+        where: { partyId_idempotencyKey: { partyId, idempotencyKey: replacement.idempotencyKey } },
+      });
+      if (!saved)
+        throw new PaymentOperationError("Передача уже изменена или удалена. Обновите журнал.");
+      return { original, replacement: resolveExistingPayment(saved, replacement), changed: false };
+    }
+
+    await transaction.ledgerTransaction.update({
+      where: { partyId_id: { partyId, id: ledger.id } },
+      data: { voidedAt: new Date() },
+    });
+    const corrected = replacement
+      ? await createPartyPaymentRecord(
+          transaction,
+          partyId,
+          replacement,
+          original.memberId === replacement.memberId ? original.nicknameSnapshot : undefined,
+        )
+      : null;
+    return { original, replacement: corrected, changed: true };
+  });
+}
+
 export async function listPartyPayments(partyId: string) {
   return prisma.memberPayment.findMany({
     where: {
       partyId,
-      ledgerTransaction: { is: { status: LedgerTransactionStatus.POSTED } },
+      ledgerTransaction: { is: { status: LedgerTransactionStatus.POSTED, voidedAt: null } },
     },
     include: {
       allocations: {

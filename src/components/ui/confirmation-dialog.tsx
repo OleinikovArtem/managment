@@ -26,7 +26,7 @@ export function ConfirmationDialog({
   title: string;
   description: string;
   confirmLabel?: string;
-  onConfirm: () => Promise<void>;
+  onConfirm: () => Promise<void | string>;
 }) {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledOpen ?? internalOpen;
@@ -42,7 +42,11 @@ export function ConfirmationDialog({
     setPending(true);
     setError(null);
     try {
-      await onConfirm();
+      const message = await onConfirm();
+      if (message) {
+        setError(message);
+        return;
+      }
       setOpen(false);
     } catch {
       setError("Не удалось выполнить действие. Проверьте данные и повторите.");

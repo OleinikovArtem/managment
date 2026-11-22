@@ -9,6 +9,7 @@ import { StageConflictError } from "@/features/instances/catalog-schema";
 import { requirePartyActionAccess } from "@/server/auth/party-access";
 import { recordPartyAuditEvent } from "@/server/services/party-audit-service";
 import { createRaid, updateRaid } from "@/server/services/raid-service";
+import { removePartyRaidDrop } from "@/server/repositories/raid-repository";
 
 function isForeignKeyConstraintError(error: unknown): boolean {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2003";
@@ -58,10 +59,12 @@ export async function createRaidAction(payload: unknown): Promise<RaidActionResu
 export async function updateRaidAction(
   raidIdValue: unknown,
   payload: unknown,
+  removedDropIdsValue: unknown = [],
 ): Promise<RaidActionResult> {
   const raidId = raidIdSchema.safeParse(raidIdValue);
   const parsed = raidInputSchema.safeParse(payload);
-  if (!raidId.success || !parsed.success) {
+  const removedDropIds = raidIdSchema.array().safeParse(removedDropIdsValue);
+  if (!raidId.success || !parsed.success || !removedDropIds.success) {
     return {
       ok: false,
       message: parsed.success
@@ -73,7 +76,7 @@ export async function updateRaidAction(
   const access = await requirePartyActionAccess("ADMIN");
   const { partyId } = access;
   try {
-    const updatedId = await updateRaid(partyId, raidId.data, parsed.data);
+    const updatedId = await updateRaid(partyId, raidId.data, parsed.data, removedDropIds.data);
     await recordPartyAuditEvent(access, {
       action: "UPDATE",
       entityType: "raid",
@@ -84,6 +87,10 @@ export async function updateRaidAction(
     revalidatePath(`/raids/${updatedId}`);
     revalidatePath("/calendar");
     revalidatePath("/loot");
+    if (removedDropIds.data.length) {
+      revalidatePath("/items/[id]", "page");
+      revalidatePath("/dashboard");
+    }
     for (const itemId of new Set(parsed.data.lootDrops.map(({ itemId }) => itemId))) {
       revalidatePath(`/items/${itemId}`);
     }
@@ -97,6 +104,43 @@ export async function updateRaidAction(
         ok: false,
         message: "Связанная запись изменилась. Обновите страницу и повторите попытку.",
       };
+    }
+    throw error;
+  }
+}
+
+export async function removeRaidDropAction(
+  raidIdValue: unknown,
+  dropIdValue: unknown,
+): Promise<RaidActionResult> {
+  const access = await requirePartyActionAccess("ADMIN");
+  const raidId = raidIdSchema.safeParse(raidIdValue);
+  const dropId = raidIdSchema.safeParse(dropIdValue);
+  if (!raidId.success || !dropId.success) {
+    return { ok: false, message: "Проверьте данные предмета." };
+  }
+
+  try {
+    const drop = await removePartyRaidDrop(access.partyId, raidId.data, dropId.data);
+    const itemName = drop.item.displayName || drop.item.canonicalName;
+    await recordPartyAuditEvent(access, {
+      action: "DELETE",
+      entityType: "lootDrop",
+      entityId: dropId.data,
+      summary: `Удалил предмет «${itemName}» из рейда.`,
+    });
+    revalidatePath("/raids");
+    revalidatePath(`/raids/${raidId.data}`);
+    revalidatePath(`/raids/${raidId.data}/edit`);
+    revalidatePath("/calendar");
+    revalidatePath("/loot");
+    revalidatePath("/dashboard");
+    revalidatePath(`/items/${drop.itemId}`);
+    return { ok: true, message: "Предмет удалён из рейда.", raidId: raidId.data };
+  } catch (error) {
+    if (error instanceof RaidOperationError) return { ok: false, message: error.message };
+    if (isForeignKeyConstraintError(error)) {
+      return { ok: false, message: "Предмет связан с продажей. Обновите страницу." };
     }
     throw error;
   }

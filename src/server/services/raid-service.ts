@@ -97,9 +97,14 @@ export async function createRaid(partyId: string, input: unknown) {
   return createPartyRaidRecord(partyId, validInput);
 }
 
-export async function updateRaid(partyId: string, raidId: string, input: unknown) {
+export async function updateRaid(
+  partyId: string,
+  raidId: string,
+  input: unknown,
+  removedDropIds: string[] = [],
+) {
   const validInput = parseRaidInput(input);
-  const updatedId = await updatePartyRaidRecord(partyId, raidId, validInput);
+  const updatedId = await updatePartyRaidRecord(partyId, raidId, validInput, removedDropIds);
   if (!updatedId) {
     throw new RaidNotFoundError();
   }

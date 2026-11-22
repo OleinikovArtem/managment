@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { AdenaAmount } from "@/components/ui/adena-amount";
 import { LocalDateTimeDisplay } from "@/features/raids/local-date-time-display";
 import { cn } from "cn";
+import { PaymentCorrection, type CorrectionMember } from "@/features/sales/payment-correction";
 
 const operationFilters = [
   { value: "all", label: "Все" },
@@ -26,9 +27,16 @@ export type HistoryEntry = {
   raidId: string | null;
   raidName: string | null;
   shares: { id: string; nickname: string; amount: string }[];
+  payment?: { id: string; memberId: string };
 };
 
-export function HistoryList({ entries }: { entries: HistoryEntry[] }) {
+export function HistoryList({
+  entries,
+  members,
+}: {
+  entries: HistoryEntry[];
+  members: CorrectionMember[];
+}) {
   const params = useSearchParams();
   const filter = params.get("type") ?? "all";
   const query = params.get("q") ?? "";
@@ -133,6 +141,18 @@ export function HistoryList({ entries }: { entries: HistoryEntry[] }) {
                     <p className="mt-3 whitespace-pre-wrap text-muted-foreground">
                       {entry.comment}
                     </p>
+                  )}
+                  {entry.payment && (
+                    <PaymentCorrection
+                      payment={{
+                        ...entry.payment,
+                        nickname: entry.subtitle,
+                        amount: entry.amount,
+                        paidAt: entry.recordedAt,
+                        comment: entry.comment,
+                      }}
+                      members={members}
+                    />
                   )}
                   {entry.shares.length > 0 && (
                     <div className="finance-share-section mt-4">

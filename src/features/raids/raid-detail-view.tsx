@@ -3,6 +3,7 @@ import { ArrowLeft, ChevronDown, LockKeyhole, Pencil, Plus } from "lucide-react"
 import type { getRaid } from "@/server/services/raid-service";
 import { GameIcon } from "@/components/ui/game-icon";
 import { LocalDateTimeDisplay } from "@/features/raids/local-date-time-display";
+import { RemoveRaidDropButton } from "@/features/raids/remove-raid-drop-button";
 import "./raid-detail-view.css";
 
 type Raid = Awaited<ReturnType<typeof getRaid>>;
@@ -52,7 +53,7 @@ export function RaidDetailView({
         {hasFinancialHistory ? (
           <p className="raidDetail-lock">
             <LockKeyhole size={14} aria-hidden="true" />
-            Рейд зафиксирован и не редактируется
+            Рейд зафиксирован после продажи
           </p>
         ) : canManage ? (
           <Link className="raidDetail-edit" href={`/raids/${raid.id}/edit?returnTo=${encodeURIComponent(returnTo)}`}>
@@ -85,7 +86,7 @@ export function RaidDetailView({
             {canEditLoot && (
               <Link className="raidDetail-edit" href={`/raids/${raid.id}/edit?returnTo=${encodeURIComponent(returnTo)}`}>
                 <Plus size={14} aria-hidden="true" />
-                Добавить или удалить предмет
+                Добавить предмет
               </Link>
             )}
           </div>
@@ -140,6 +141,14 @@ export function RaidDetailView({
                         </summary>
                         <p className="raidDetail-note">{drop.comment}</p>
                       </details>
+                    )}
+                    {canManage && drop.saleTransactions.length === 0 && (
+                      <RemoveRaidDropButton
+                        raidId={raid.id}
+                        dropId={drop.id}
+                        itemName={itemName}
+                        quantity={drop.quantity}
+                      />
                     )}
                   </li>
                 );
