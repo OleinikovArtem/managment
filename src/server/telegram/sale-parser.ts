@@ -42,6 +42,8 @@ type Draft = { name: string; quantity?: number; price?: bigint; subtotal?: bigin
 const saleNotice =
   /(?:successful sale|sale successful|successfully sold|sale completed|items? (?:has been |have been )?sold|your items? (?:has been |have been |was |were )?purchased)/i;
 const headerLine = new RegExp(`^(?:${saleNotice.source})[!:. ]*$`, "i");
+const footerLine =
+  /^[^\p{L}\p{N}]*[\p{L}\p{N}][\p{L}\p{N} ._-]*\s+x\d+\s*[.·][^\p{L}\p{N}]*[\p{L}\p{N}_-]+$/iu;
 
 /** Supports BOHPTS compact notices and the original translated label format. */
 export function parseTelegramSale(text: string): TelegramSaleRow[] | null {
@@ -64,14 +66,10 @@ export function parseTelegramSale(text: string): TelegramSaleRow[] | null {
     if (rows.length > 50) throw new TelegramReviewError("В сообщении больше 50 строк предметов.");
     draft = undefined;
   }
-  for (const original of text.split(/\r?\n/)) {
-    // BOHPTS identifies the server and character in a non-financial footer.
-    if (
-      /^[✨🌟⭐]\uFE0F?\s+[\p{L}\p{N}][\p{L}\p{N} ._-]*\s+x\d+\s*[.·]\s*👤\uFE0F?\s+[\p{L}\p{N}_-]+\s*$/u.test(
-        original.trim(),
-      )
-    )
-      continue;
+  const lines = text.trimEnd().split(/\r?\n/);
+  // The final BOHPTS server and character signature may carry decorative icons.
+  if (footerLine.test(lines.at(-1) ?? "")) lines.pop();
+  for (const original of lines) {
     const line = original.trim().replace(/^[^\p{L}\p{N}]+/u, "");
     if (!line || headerLine.test(line)) continue;
     if (/^Buyer:\s*\S.{0,239}$/i.test(line) || /^Items:\s*$/i.test(line)) continue;

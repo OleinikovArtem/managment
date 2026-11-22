@@ -17,6 +17,21 @@ Total: 22 222 222 💰 Adena
       { name: "Sealed Moirai Leather Boots", quantity: 1, proceeds: 22222222n },
     ]);
   });
+  it.each(["🌞 Light x20 · 👤 A123", "☀️ Light x20 · 🧙 A123", "Light x20 · A123"])(
+    "ignores the server and character signature %s",
+    (footer) => {
+      expect(
+        parseTelegramSale(`💰 Successful sale
+Buyer: DeDoD
+Items:
+• 🔹 Mid-grade Life Stone × 2 @ 399 900 🔹 Adena
+Total: 799 800 🔹 Adena
+💰 Current adena: 2 884 941
+
+${footer}\n`),
+      ).toEqual([{ name: "Mid-grade Life Stone", quantity: 2, proceeds: 799800n }]);
+    },
+  );
   it("still reconciles BOHPTS totals and rejects an unrecognized extra item", () => {
     expect(() =>
       parseTelegramSale(bohptsNotice.replace("Total: 22 222 222", "Total: 22 222 223")),

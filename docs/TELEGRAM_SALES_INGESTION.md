@@ -49,8 +49,9 @@ with ingestion using a party advisory lock.
 ## English message format
 
 The observed BOHPTS English notice uses the following layout. Item and currency
-icons can precede the item name and `Adena`; buyer, section heading, balance and
-the server/character footer are metadata, not sale income.
+icons can precede the item name and `Adena`. The parser skips the buyer, section
+heading, balance, and the final server and character signature. The signature
+is recognized by its structure (`Light x20 · A123`), with or without decorative icons.
 
 ```text
 💰 Successful sale
