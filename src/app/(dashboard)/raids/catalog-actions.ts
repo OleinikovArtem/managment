@@ -18,6 +18,7 @@ import {
   updateCustomInstance,
 } from "@/server/repositories/instance-repository";
 import { searchSelectableItems } from "@/server/repositories/item-repository";
+import { listPartyRaidItems } from "@/server/repositories/raid-repository";
 import { normalizeItemName } from "@/features/items/item-schema";
 
 export async function loadRaidCatalogAction(instanceId: string | null, context: unknown) {
@@ -43,6 +44,10 @@ export async function loadRaidSetupAction() {
 export async function searchRaidItemsAction(query: string) {
   const { partyId } = await requirePartyActionAccess("ADMIN");
   return searchSelectableItems(partyId, normalizeItemName(z.string().max(200).parse(query)));
+}
+export async function getRaidDraftItemsAction(itemIds: unknown) {
+  const { partyId } = await requirePartyActionAccess("ADMIN");
+  return listPartyRaidItems(partyId, catalogId.array().parse(itemIds));
 }
 export async function createInstanceAction(nameValue: unknown) {
   const access = await requirePartyActionAccess("ADMIN");

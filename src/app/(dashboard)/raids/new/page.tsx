@@ -54,6 +54,8 @@ async function NewRaidContent({
       </Link>
       <h1 className="sr-only">Создание рейда</h1>
       <RaidForm
+        key={`${workspace.userId}:${workspace.partyId}`}
+        lootDraftKey={`party-bank:raid-loot:v1:${workspace.userId}:${workspace.partyId}`}
         initialOccurredAt={initialOccurredAt}
         returnTo={safeRaidReturnTo(params.returnTo)}
         members={setup.members.map((member) => ({ ...member, status: "PRESENT" as const }))}

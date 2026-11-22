@@ -88,11 +88,11 @@ export function listPartyCompositions(partyId: string) {
   });
 }
 
-export async function listPartyRaidItems(partyId: string) {
+export async function listPartyRaidItems(partyId: string, itemIds?: string[]) {
   return prisma.item.findMany({
     orderBy: [{ normalizedName: "asc" }, { canonicalName: "asc" }],
-    where: selectableCatalog(partyId),
-    take: 40,
+    where: itemIds ? { ...visibleCatalog(partyId), id: { in: itemIds } } : selectableCatalog(partyId),
+    take: itemIds ? undefined : 40,
     select: {
       id: true,
       canonicalName: true,

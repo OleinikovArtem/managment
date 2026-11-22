@@ -5,7 +5,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, ChevronDown, Settings2 } from "lucide-react";
+import { Plus, ChevronDown, Settings2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DateInput } from "@/components/ui/date-input";
@@ -16,6 +16,7 @@ import { GameIcon } from "@/components/ui/game-icon";
 import { createRaidAction, updateRaidAction } from "@/app/(dashboard)/raids/actions";
 import {
   createInstanceAction,
+  getRaidDraftItemsAction,
   loadRaidCatalogAction,
   loadRaidSetupAction,
   manageInstanceAction,
@@ -33,6 +34,11 @@ import { localDateTimeToUtc, toLocalDateTimeInput } from "./local-date-time";
 import { InstancePicker } from "./instance-picker";
 import { ProfessionSelect } from "@/features/members/profession-select";
 import { LootPicker } from "./loot-picker";
+import {
+  clearSubmittedRaidLootDraft,
+  readRaidLootDraft,
+  saveRaidLootDraft,
+} from "./raid-loot-draft";
 import "./raid-form.css";
 import { raidHrefWithReturnTo } from "./raid-navigation";
 
@@ -72,6 +78,7 @@ type Props = {
   compositions?: RaidCompositionOption[];
   initialValues?: Omit<RaidFormValues, "occurredAt"> & { occurredAt: string };
   raidId?: string;
+  lootDraftKey?: string;
   submitLabel: string;
   initialOccurredAt?: string;
   returnTo?: string;
@@ -88,6 +95,7 @@ export function RaidForm({
   compositions = [],
   initialValues,
   raidId,
+  lootDraftKey,
   submitLabel,
   initialOccurredAt,
   returnTo = "/raids?view=calendar",
@@ -132,6 +140,9 @@ export function RaidForm({
   const [presetQuery, setPresetQuery] = useState("");
   const [dialogMessage, setDialogMessage] = useState("");
   const [catalogPending, setCatalogPending] = useState(false);
+  const [initialItemIds] = useState(() => new Set(items.map(({ id }) => id)));
+  const [restoredItems, setRestoredItems] = useState<CatalogItemOption[]>([]);
+  const [lootDraftError, setLootDraftError] = useState(false);
   const form = useForm<RaidFormValues>({
     resolver: zodResolver(raidFormSchema),
     defaultValues: initialValues
@@ -169,6 +180,34 @@ export function RaidForm({
       return item?.displayName || item?.canonicalName || drop.itemId;
     });
   const creationKey = useRef<string | null>(null);
+  const { setValue } = form;
+
+  useEffect(() => {
+    if (!lootDraftKey) return;
+    const draft = readRaidLootDraft(lootDraftKey);
+    if (!draft.length) return;
+
+    setValue("lootDrops", draft, { shouldDirty: true, shouldValidate: true });
+    const missingIds = draft.map(({ itemId }) => itemId).filter((id) => !initialItemIds.has(id));
+    if (!missingIds.length) return;
+
+    let active = true;
+    getRaidDraftItemsAction(missingIds)
+      .then((rows) => {
+        if (active) setRestoredItems(rows);
+      })
+      .catch(() => {
+        if (active) toast.error("Не удалось загрузить названия предметов черновика.");
+      });
+    return () => {
+      active = false;
+    };
+  }, [initialItemIds, lootDraftKey, setValue]);
+
+  function changeLoot(rows: RaidFormValues["lootDrops"]) {
+    setValue("lootDrops", rows, { shouldDirty: true, shouldValidate: true });
+    if (lootDraftKey) setLootDraftError(!saveRaidLootDraft(lootDraftKey, rows));
+  }
 
   useEffect(() => {
     function close(event: PointerEvent | KeyboardEvent) {
@@ -346,6 +385,7 @@ export function RaidForm({
       return;
     }
     if (!creationKey.current) creationKey.current = crypto.randomUUID();
+    const submittedLoot = form.getValues("lootDrops");
     setMessage("");
     startTransition(async () => {
       try {
@@ -373,6 +413,10 @@ export function RaidForm({
           }
           toast.error(result.message);
           return;
+        }
+        if (lootDraftKey) {
+          clearSubmittedRaidLootDraft(lootDraftKey, submittedLoot);
+          setValue("lootDrops", []);
         }
         toast.success(result.message);
         router.push(raidHrefWithReturnTo(`/raids/${result.raidId}`, returnTo));
@@ -676,7 +720,28 @@ export function RaidForm({
               <h2>Дроп</h2>
               <span className="raid-count">{loot.length} позиций</span>
             </div>
-            <p className="text-xs text-muted-foreground">Добавляйте только то, что выпало</p>
+            {lootDraftKey ? (
+              <ConfirmationDialog
+                trigger={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="min-h-11 shrink-0"
+                    disabled={isPending || !loot.length}
+                  >
+                    <Trash2 aria-hidden="true" />
+                    Очистить список
+                  </Button>
+                }
+                title="Очистить список добычи?"
+                description="Все предметы будут удалены из черновика нового рейда."
+                confirmLabel="Очистить"
+                onConfirm={async () => changeLoot([])}
+              />
+            ) : (
+              <p className="text-xs text-muted-foreground">Добавляйте только то, что выпало</p>
+            )}
           </div>
           {catalogError && (
             <p role="alert" className="mb-3 text-sm text-destructive">
@@ -693,10 +758,8 @@ export function RaidForm({
           )}
           <LootPicker
             value={loot}
-            onChange={(rows) =>
-              form.setValue("lootDrops", rows, { shouldDirty: true, shouldValidate: true })
-            }
-            initialItems={items}
+            onChange={changeLoot}
+            initialItems={restoredItems.length ? [...items, ...restoredItems] : items}
             recommended={recommendations}
             quick={quick}
             disabled={isPending}
@@ -709,6 +772,11 @@ export function RaidForm({
               setDialogMessage("");
             }}
           />
+          {lootDraftError && (
+            <p role="alert" className="mt-2 text-sm text-destructive">
+              Браузер не сохранил черновик добычи. Изменения могут потеряться при перезагрузке.
+            </p>
+          )}
           {form.formState.errors.lootDrops && (
             <p role="alert" className="mt-2 text-sm text-destructive">
               Проверьте количества: целое от 1 до 1 000 000; комментарий до 500 символов.
